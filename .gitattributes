@@ -1,0 +1,26 @@
+# Normalize text line endings in the index; git detects binary content automatically.
+# Binary assets are pinned explicitly so deterministic (byte-identical) outputs and
+# vendored resources are never line-ending mangled.
+* text=auto
+
+# binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.gz binary
+
+# LF-checked sources (also Docker COPY targets)
+*.sh text eol=lf
+*.py text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.ps1 text eol=crlf
