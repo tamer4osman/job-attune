@@ -1,0 +1,20 @@
+# Keep the build context small. The kernel build needs download/omnidecide-c
+# and requirements.txt; the UI build needs src/, public/ and the root config
+# files; the fullstack runtime bakes attune-engine/, attune-sample-data/ and
+# attune-data/templates/. Everything else stays host-side: the engine QA
+# image bind-mounts the repo at /app (see Dockerfile header).
+node_modules
+.next
+.git
+.vscode
+tsconfig.tsbuildinfo
+
+bench
+docs
+scripts
+
+# Run artifacts are machine-local state - never baked into images
+attune-data/runs
+
+*.log
+**/__pycache__
