@@ -1,0 +1,6 @@
+build/
+*.o
+*.a
+*.exe
+smoke_test_brain.json
+learning_brain.json
