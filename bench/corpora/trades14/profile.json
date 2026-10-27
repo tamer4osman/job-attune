@@ -1,0 +1,137 @@
+{
+  "categories": {
+    "certifications": [
+      {
+        "aliases": [
+          "licensed electrician",
+          "master electrician",
+          "Elektrofachkraft"
+        ],
+        "must_have": true,
+        "skill": "electrical-licence",
+        "weight": 2.0
+      }
+    ],
+    "degrees": [
+      {
+        "aliases": [
+          "apprenticeship",
+          "vocational qualification",
+          "Ausbildung"
+        ],
+        "must_have": false,
+        "skill": "vocational-training",
+        "weight": 2.0
+      }
+    ],
+    "languages": [
+      {
+        "aliases": [
+          "Deutsch",
+          "German language"
+        ],
+        "must_have": true,
+        "skill": "german",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "basic english"
+        ],
+        "must_have": false,
+        "skill": "english",
+        "weight": 1.0
+      }
+    ],
+    "soft_skills": [
+      {
+        "aliases": [
+          "tenant communication",
+          "client liaison"
+        ],
+        "must_have": false,
+        "skill": "client-communication",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "work safety",
+          "risk assessment",
+          "toolbox talks"
+        ],
+        "must_have": false,
+        "skill": "safety-compliance",
+        "weight": 2.0
+      }
+    ],
+    "technical_skills": [
+      {
+        "aliases": [
+          "electrical systems",
+          "electrical maintenance",
+          "electrical installations"
+        ],
+        "must_have": true,
+        "skill": "electrical-maintenance",
+        "weight": 3.0
+      },
+      {
+        "aliases": [
+          "sanitary",
+          "pipework",
+          "leak repair"
+        ],
+        "must_have": false,
+        "skill": "plumbing",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "heating ventilation",
+          "air conditioning",
+          "HVAC systems"
+        ],
+        "must_have": false,
+        "skill": "hvac",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "drywall",
+          "joinery",
+          "fixtures"
+        ],
+        "must_have": false,
+        "skill": "carpentry",
+        "weight": 1.0
+      },
+      {
+        "aliases": [
+          "BMS",
+          "building management system",
+          "building controls"
+        ],
+        "must_have": false,
+        "skill": "building-systems",
+        "weight": 2.0
+      }
+    ]
+  },
+  "company": {
+    "name": "Bauwerk Facility Group",
+    "summary": "Bauwerk Facility Group services office and retail properties in Munich with technical building maintenance and 24/7 on-call teams.",
+    "values_text": "quality craftsmanship; safety first; respect; reliability"
+  },
+  "job": {
+    "description": "You will keep commercial buildings running: planned electrical and sanitary maintenance, HVAC support, small carpentry jobs and clean client communication on site.",
+    "title": "Facility Maintenance Technician"
+  },
+  "profile_name": "Facility Maintenance Technician - Bauwerk Facility Group (example)",
+  "pseudonymous": true,
+  "role_overrides": {},
+  "study_note": "Task 38 synthetic holdout JD (trades). Frozen with its rubric reference before any engine run.",
+  "weights": {
+    "categories_total": 0.85,
+    "values_fit": 0.15
+  }
+}

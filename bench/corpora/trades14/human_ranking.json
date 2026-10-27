@@ -1,0 +1,113 @@
+{
+  "corpus": "verify/task38/holdouts/trades14/candidates (14 synthetic candidates)",
+  "frozen_before_engine_run": true,
+  "protocol": "Rubric-based single-reviewer reference over SYNTHETIC candidates: rank = sum(requirement weight x level points), levels frozen in the attribute table (strong 1.0 / direct 0.7 / indirect 0.4 / none 0.0); ties by years_total desc, then folder name. Frozen (sha256) BEFORE any 1.7.0 engine run for this corpus.",
+  "ranking": [
+    {
+      "folder": "ahmed_hassan",
+      "name": "Ahmed Hassan",
+      "rank": 1,
+      "rubric_total": 17.1,
+      "years_total": 14
+    },
+    {
+      "folder": "pavel_novotny",
+      "name": "Pavel Novotny",
+      "rank": 2,
+      "rubric_total": 13.9,
+      "years_total": 13
+    },
+    {
+      "folder": "thomas_bauer",
+      "name": "Thomas Bauer",
+      "rank": 3,
+      "rubric_total": 13.8,
+      "years_total": 11
+    },
+    {
+      "folder": "viktor_horvath",
+      "name": "Viktor Horvath",
+      "rank": 4,
+      "rubric_total": 13.5,
+      "years_total": 12
+    },
+    {
+      "folder": "julia_wagner",
+      "name": "Julia Wagner",
+      "rank": 5,
+      "rubric_total": 13.0,
+      "years_total": 9
+    },
+    {
+      "folder": "nina_schneider",
+      "name": "Nina Schneider",
+      "rank": 6,
+      "rubric_total": 11.8,
+      "years_total": 5
+    },
+    {
+      "folder": "ionut_popescu",
+      "name": "Ionut Popescu",
+      "rank": 7,
+      "rubric_total": 11.1,
+      "years_total": 8
+    },
+    {
+      "folder": "sabine_krueger",
+      "name": "Sabine Krueger",
+      "rank": 8,
+      "rubric_total": 7.7,
+      "years_total": 10
+    },
+    {
+      "folder": "leila_amrani",
+      "name": "Leila Amrani",
+      "rank": 9,
+      "rubric_total": 7.7,
+      "years_total": 3
+    },
+    {
+      "folder": "georg_steiner",
+      "name": "Georg Steiner",
+      "rank": 10,
+      "rubric_total": 7.2,
+      "years_total": 15
+    },
+    {
+      "folder": "mehmet_aydin",
+      "name": "Mehmet Aydin",
+      "rank": 11,
+      "rubric_total": 7.1,
+      "years_total": 6
+    },
+    {
+      "folder": "lena_hoffmann",
+      "name": "Lena Hoffmann",
+      "rank": 12,
+      "rubric_total": 5.5,
+      "years_total": 6
+    },
+    {
+      "folder": "fatima_zahra",
+      "name": "Fatima Zahra",
+      "rank": 13,
+      "rubric_total": 4.8,
+      "years_total": 8
+    },
+    {
+      "folder": "katarzyna_kowalska",
+      "name": "Katarzyna Kowalska",
+      "rank": 14,
+      "rubric_total": 4.4,
+      "years_total": 7
+    }
+  ],
+  "role": "Facility Maintenance Technician",
+  "rubric_points": {
+    "direct": 0.7,
+    "indirect": 0.4,
+    "none": 0.0,
+    "strong": 1.0
+  },
+  "schema": "screenpilot.task38.pre-registered-ranking/1"
+}

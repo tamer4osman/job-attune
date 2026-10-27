@@ -1,0 +1,135 @@
+{
+  "categories": {
+    "certifications": [
+      {
+        "aliases": [
+          "ADR licence",
+          "dangerous goods"
+        ],
+        "must_have": false,
+        "skill": "adr",
+        "weight": 1.0
+      }
+    ],
+    "degrees": [
+      {
+        "aliases": [
+          "logistics management",
+          "supply chain management",
+          "business administration"
+        ],
+        "must_have": false,
+        "skill": "logistics-degree",
+        "weight": 1.0
+      }
+    ],
+    "languages": [
+      {
+        "aliases": [
+          "Deutsch",
+          "German language"
+        ],
+        "must_have": false,
+        "skill": "german",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "business english"
+        ],
+        "must_have": false,
+        "skill": "english",
+        "weight": 1.0
+      }
+    ],
+    "soft_skills": [
+      {
+        "aliases": [
+          "stakeholder communication",
+          "driver communication"
+        ],
+        "must_have": false,
+        "skill": "communication",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "escalation handling",
+          "troubleshooting"
+        ],
+        "must_have": false,
+        "skill": "problem-solving",
+        "weight": 1.0
+      }
+    ],
+    "technical_skills": [
+      {
+        "aliases": [
+          "dispatch",
+          "dispatching",
+          "load planning"
+        ],
+        "must_have": true,
+        "skill": "dispatch-coordination",
+        "weight": 3.0
+      },
+      {
+        "aliases": [
+          "transport management system",
+          "CargoWise",
+          "truck planning software"
+        ],
+        "must_have": false,
+        "skill": "tms",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "telematics",
+          "GPS tracking",
+          "fleet visibility"
+        ],
+        "must_have": false,
+        "skill": "fleet-tracking",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "customs clearance",
+          "export documents",
+          "customs documentation"
+        ],
+        "must_have": false,
+        "skill": "customs-docs",
+        "weight": 2.0
+      },
+      {
+        "aliases": [
+          "WMS",
+          "warehouse management",
+          "pick and pack"
+        ],
+        "must_have": false,
+        "skill": "warehouse-ops",
+        "weight": 1.0
+      }
+    ]
+  },
+  "company": {
+    "name": "Nordwind Logistics GmbH",
+    "summary": "Nordwind Logistics runs freight brokerage and contract logistics from Hamburg with a 60-vehicle partner network across Central Europe.",
+    "values_text": "safety first; reliable delivery; teamwork; continuous improvement"
+  },
+  "job": {
+    "description": "You will plan and monitor daily freight movements across DE-NL, coordinate a mixed fleet, keep customs paperwork audit-clean and keep drivers, warehouse and customers aligned.",
+    "title": "Transport & Dispatch Coordinator"
+  },
+  "profile_name": "Transport & Dispatch Coordinator - Nordwind Logistics (example)",
+  "pseudonymous": true,
+  "role_overrides": {},
+  "study_note": "Task 38 synthetic holdout JD (logistics). Frozen with its rubric reference before any engine run.",
+  "weights": {
+    "categories_total": 0.85,
+    "values_fit": 0.15
+  }
+}

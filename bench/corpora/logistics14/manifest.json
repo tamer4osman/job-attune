@@ -1,0 +1,93 @@
+{
+  "candidates": [
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "anna_keller"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "aylin_yilmaz"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "claudia_fischer"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "david_okafor"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "elena_marin"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "jonas_weber"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "lukas_brandt"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "marco_ricci"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "mila_petrova"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "oana_ionescu"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "petra_novak"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "stefan_vogel"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "tobias_krause"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "yusuf_demir"
+    }
+  ],
+  "cell": "logistics14",
+  "n_candidates": 14,
+  "note": "All persons, employers and histories are fictional.",
+  "role": "Transport & Dispatch Coordinator",
+  "synthetic": true
+}

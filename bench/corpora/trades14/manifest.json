@@ -1,0 +1,93 @@
+{
+  "candidates": [
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "ahmed_hassan"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "fatima_zahra"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "georg_steiner"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "ionut_popescu"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "julia_wagner"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "katarzyna_kowalska"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "leila_amrani"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "lena_hoffmann"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "mehmet_aydin"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "nina_schneider"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "pavel_novotny"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "sabine_krueger"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "thomas_bauer"
+    },
+    {
+      "files": [
+        "cv.pdf"
+      ],
+      "folder": "viktor_horvath"
+    }
+  ],
+  "cell": "trades14",
+  "n_candidates": 14,
+  "note": "All persons, employers and histories are fictional.",
+  "role": "Facility Maintenance Technician",
+  "synthetic": true
+}

@@ -1,0 +1,113 @@
+{
+  "corpus": "verify/task38/holdouts/logistics14/candidates (14 synthetic candidates)",
+  "frozen_before_engine_run": true,
+  "protocol": "Rubric-based single-reviewer reference over SYNTHETIC candidates: rank = sum(requirement weight x level points), levels frozen in the attribute table (strong 1.0 / direct 0.7 / indirect 0.4 / none 0.0); ties by years_total desc, then folder name. Frozen (sha256) BEFORE any 1.7.0 engine run for this corpus.",
+  "ranking": [
+    {
+      "folder": "anna_keller",
+      "name": "Anna Keller",
+      "rank": 1,
+      "rubric_total": 15.3,
+      "years_total": 11
+    },
+    {
+      "folder": "yusuf_demir",
+      "name": "Yusuf Demir",
+      "rank": 2,
+      "rubric_total": 13.0,
+      "years_total": 9
+    },
+    {
+      "folder": "marco_ricci",
+      "name": "Marco Ricci",
+      "rank": 3,
+      "rubric_total": 12.4,
+      "years_total": 7
+    },
+    {
+      "folder": "elena_marin",
+      "name": "Elena Marin",
+      "rank": 4,
+      "rubric_total": 12.4,
+      "years_total": 6
+    },
+    {
+      "folder": "stefan_vogel",
+      "name": "Stefan Vogel",
+      "rank": 5,
+      "rubric_total": 11.2,
+      "years_total": 12
+    },
+    {
+      "folder": "petra_novak",
+      "name": "Petra Novak",
+      "rank": 6,
+      "rubric_total": 11.2,
+      "years_total": 8
+    },
+    {
+      "folder": "lukas_brandt",
+      "name": "Lukas Brandt",
+      "rank": 7,
+      "rubric_total": 10.2,
+      "years_total": 5
+    },
+    {
+      "folder": "mila_petrova",
+      "name": "Mila Petrova",
+      "rank": 8,
+      "rubric_total": 10.0,
+      "years_total": 4
+    },
+    {
+      "folder": "tobias_krause",
+      "name": "Tobias Krause",
+      "rank": 9,
+      "rubric_total": 7.7,
+      "years_total": 3
+    },
+    {
+      "folder": "jonas_weber",
+      "name": "Jonas Weber",
+      "rank": 10,
+      "rubric_total": 7.2,
+      "years_total": 10
+    },
+    {
+      "folder": "aylin_yilmaz",
+      "name": "Aylin Yilmaz",
+      "rank": 11,
+      "rubric_total": 6.3,
+      "years_total": 5
+    },
+    {
+      "folder": "oana_ionescu",
+      "name": "Oana Ionescu",
+      "rank": 12,
+      "rubric_total": 5.8,
+      "years_total": 6
+    },
+    {
+      "folder": "claudia_fischer",
+      "name": "Claudia Fischer",
+      "rank": 13,
+      "rubric_total": 4.9,
+      "years_total": 9
+    },
+    {
+      "folder": "david_okafor",
+      "name": "David Okafor",
+      "rank": 14,
+      "rubric_total": 4.7,
+      "years_total": 1
+    }
+  ],
+  "role": "Transport & Dispatch Coordinator",
+  "rubric_points": {
+    "direct": 0.7,
+    "indirect": 0.4,
+    "none": 0.0,
+    "strong": 1.0
+  },
+  "schema": "screenpilot.task38.pre-registered-ranking/1"
+}
