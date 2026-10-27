@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "ignorePatterns": [
+    "download/**",
+    "scripts/**",
+    "skills/**",
+    "examples/**",
+    "mini-services/**",
+    "tests/**",
+    "db/**",
+    "attune-data/**",
+    "attune-sample-data/**",
+    "attune-engine/**",
+    ".next/**",
+    "upload/**",
+    "public/**"
+  ],
+  "rules": {
+    "unused-files": "warn",
+    "unused-exports": "warn",
+    "unused-types": "warn",
+    "unresolved-imports": "error",
+    "circular-dependencies": "error"
+  },
+  "duplicates": {
+    "mode": "mild",
+    "minTokens": 50,
+    "minLines": 5,
+    "threshold": 10
+  },
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 15
+  },
+  "ignoreExportsUsedInFile": true,
+  "production": false
+}

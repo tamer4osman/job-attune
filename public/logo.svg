@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 64 64" role="img" aria-label="Job Attune logo">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="0.55" stop-color="#0a2f27"/>
+      <stop offset="1" stop-color="#022c22"/>
+    </linearGradient>
+  </defs>
+
+  <!-- rounded tile -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#tile)"/>
+
+  <!-- resonance halo above the apex -->
+  <path d="M 26.4 10.8 A 7 7 0 0 1 37.6 10.8"
+        fill="none" stroke="#34d399" stroke-width="2.4"
+        stroke-linecap="round" opacity="0.9"/>
+
+  <!-- tuning-fork A: two prongs -->
+  <path d="M 32 15 L 19.5 51"
+        fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M 32 15 L 44.5 51"
+        fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round"/>
+
+  <!-- emerald crossbar -->
+  <path d="M 25.6 36.5 L 38.4 36.5"
+        fill="none" stroke="#34d399" stroke-width="5.5" stroke-linecap="round"/>
+</svg>
