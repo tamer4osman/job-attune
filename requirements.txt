@@ -1,0 +1,4 @@
+# Python-side dependencies. The scoring engine runs on the standard library
+# alone; these two packages cover PDF export and QA-gate validation.
+reportlab>=4.4,<5
+pypdf>=4.0

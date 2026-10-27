@@ -1,0 +1,174 @@
+{
+  "profile_name": "Senior Data Engineer - NovaGrid Energy (example)",
+  "company": {
+    "name": "NovaGrid Energy",
+    "summary": "NovaGrid Energy operates smart-charging infrastructure for renewable energy across Europe. The data platform team builds the pipelines that balance grid load in real time.",
+    "values_text": "safety first; reliable engineering; open communication; sustainability; ownership and accountability"
+  },
+  "job": {
+    "title": "Senior Data Engineer",
+    "description": "You will design and operate batch and streaming pipelines that ingest charge-point telemetry, build dbt models on top of a cloud warehouse, and partner with grid analysts to keep the platform dependable."
+  },
+  "categories": {
+    "soft_skills": [
+      {
+        "skill": "communication",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "communicate",
+          "stakeholder communication"
+        ]
+      },
+      {
+        "skill": "stakeholder management",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "stakeholders",
+          "cross-functional collaboration"
+        ]
+      },
+      {
+        "skill": "mentoring",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "mentor",
+          "coaching juniors"
+        ]
+      }
+    ],
+    "technical_skills": [
+      {
+        "skill": "Python",
+        "weight": 3.0,
+        "must_have": false,
+        "aliases": [
+          "python3",
+          "pandas"
+        ]
+      },
+      {
+        "skill": "SQL",
+        "weight": 3.0,
+        "must_have": false,
+        "aliases": [
+          "postgresql",
+          "sql queries",
+          "window functions"
+        ]
+      },
+      {
+        "skill": "Apache Airflow",
+        "weight": 2.5,
+        "must_have": false,
+        "aliases": [
+          "airflow",
+          "dags",
+          "orchestration"
+        ]
+      },
+      {
+        "skill": "Docker",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "containers",
+          "containerisation"
+        ]
+      },
+      {
+        "skill": "AWS cloud",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "aws",
+          "s3",
+          "lambda",
+          "redshift"
+        ]
+      },
+      {
+        "skill": "streaming pipelines",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "kafka",
+          "spark streaming",
+          "real-time pipelines"
+        ]
+      }
+    ],
+    "languages": [
+      {
+        "skill": "English C1",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "english fluent",
+          "english c1",
+          "english professional",
+          "englisch c1",
+          "englisch"
+        ]
+      },
+      {
+        "skill": "German B2",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "german b2",
+          "german intermediate",
+          "deutsch"
+        ]
+      }
+    ],
+    "degrees": [
+      {
+        "skill": "MSc Computer Science",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "master of science",
+          "msc computer science",
+          "master in computer science",
+          "m.sc.",
+          "msc information systems",
+          "master of engineering in computer science",
+          "masters of science in computer science"
+        ]
+      }
+    ],
+    "certifications": [
+      {
+        "skill": "AWS Certified Data Analytics",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "aws data analytics",
+          "aws certified",
+          "aws specialty"
+        ]
+      }
+    ],
+    "bootcamps": [
+      {
+        "skill": "data engineering bootcamp",
+        "weight": 0.5,
+        "must_have": false,
+        "aliases": [
+          "bootcamp",
+          "data bootcamp"
+        ]
+      }
+    ]
+  },
+  "weights": {
+    "categories_total": 0.85,
+    "values_fit": 0.15
+  },
+  "pseudonymous": true,
+  "role_overrides": {},
+  "study_note": "Task 32 pool-adapted variant of example-senior-data-engineer.json: must-have gates cleared so a mixed-discipline applicant pool is ranked by relative fit instead of being uniformly must-have-capped. Requirements, aliases and weights are unchanged. | v2: field-specific degree aliases added after round-1 diagnosis (\"Master of Engineering in Computer Science\", \"Masters of Science in Computer Science\") so non-standard real-wording masters are not under-credited; generic loose aliases deliberately NOT added."
+}

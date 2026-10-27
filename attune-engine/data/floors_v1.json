@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "source": "Phase-1 floor calibration, 1,920-episode deterministic corpus, seed 20260930, cost ratio 3:1 (missed error : unnecessary escalation)",
+  "generated": "2026-09-30",
+  "default_floor": 0.4,
+  "floors": {
+    "noul": 0.98,
+    "choice": 0.73,
+    "compare": 0.58,
+    "rank": 0.12,
+    "score": 0.8,
+    "extract": 0.37
+  },
+  "provenance": {
+    "report": "OmniDecide_Floor_Calibration_Phase1_Report.pdf",
+    "dataset": "calibration_phase1/episodes.jsonl",
+    "dataset_sha256": "64d36ce69f495f5e8d4c4d464fb7f47fc66f354267a569c005a81c1710a81393",
+    "episodes": 1920,
+    "ece_equal_mass_10bin": {
+      "choice": 0.3569,
+      "compare": 0.2935,
+      "extract": 0.4201,
+      "noul": 0.3888,
+      "rank": 0.711,
+      "score": 0.5133
+    },
+    "ece_raw_halftest": {
+      "choice": 0.361,
+      "compare": 0.3021,
+      "extract": 0.4174,
+      "noul": 0.3802,
+      "rank": 0.7109,
+      "score": 0.5119
+    },
+    "ece_platt_halftest": {
+      "choice": 0.3137,
+      "compare": 0.2195,
+      "extract": 0.2535,
+      "noul": 0.3289,
+      "rank": 0.0047,
+      "score": 0.3831
+    },
+    "replay_verification": "sha256(canonical_json(payload)) identical for all 1,920 episodes across global-0.40 vs per-primitive floor configs; 0 differing payloads"
+  },
+  "notes": "noul/choice/score are escalate-by-default under the embedded fallback engine (confidently-wrong trap families at 0.90-0.97 confidence); extract's stable zone [0.32, 0.42] contains the historical 0.40. Re-calibrate on real traffic before external deployment."
+}

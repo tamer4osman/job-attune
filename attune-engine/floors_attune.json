@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "source": "attune v1.0.0 app floors - copied verbatim from OmniDecide v3.3.1 data/floors_v1.json (Phase-1 calibration, 1,920-episode deterministic corpus, seed 20260930, cost ratio 3:1)",
+  "generated": "2026-09-30",
+  "default_floor": 0.4,
+  "floors": {
+    "noul": 0.98,
+    "choice": 0.73,
+    "compare": 0.58,
+    "rank": 0.12,
+    "score": 0.8,
+    "extract": 0.37
+  },
+  "provenance": {
+    "report": "OmniDecide_Floor_Calibration_Phase1_Report.pdf",
+    "dataset": "calibration_phase1/episodes.jsonl",
+    "dataset_sha256": "64d36ce69f495f5e8d4c4d464fb7f47fc66f354267a569c005a81c1710a81393",
+    "episodes": 1920,
+    "replay_verification": "sha256(canonical_json(payload)) identical for all 1,920 episodes across global-0.40 vs per-primitive floor configs; 0 differing payloads"
+  },
+  "notes": "Editable by the deploying team (floors-as-data). Delete this file to fall back to OmniDecide's shipped data or the 0.40 default. Advisory escalations do not block exports; blocking items (unreadable material, unmet must-have requirements) gate the review queue."
+}

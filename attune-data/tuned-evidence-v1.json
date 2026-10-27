@@ -1,0 +1,108 @@
+{
+  "schema": "attune.tuned-evidence/1",
+  "method": "task32 soup blend: pre-registered reviewer claim-quality labels (verify/task32_my_ranking.json) blended over the v1.3.0 heuristic baseline; overrides apply only at confidence >= 0.60 | round 2: template-phantom downgrades added",
+  "created": "2026-10-03",
+  "sources": [
+    {
+      "source": "reviewer-manual",
+      "weight": 1.0,
+      "corpus": "verify/real-corpus (40 real-format university career-center samples)",
+      "labels": 13
+    }
+  ],
+  "notes": "All overrides are claim-quality reclassifications; no raw score edits. Upgrades and downgrades flow through the same CLAIM_CAPS pipeline.",
+  "overrides": [
+    {
+      "candidate": "mit_masters_charles_meng",
+      "skill": "Python",
+      "claim_quality": "direct",
+      "confidence": 0.9,
+      "rationale": "skills list + Django teaching + research code"
+    },
+    {
+      "candidate": "mit_masters_charles_meng",
+      "skill": "MSc Computer Science",
+      "claim_quality": "direct",
+      "confidence": 0.9,
+      "rationale": "Master of Engineering in Computer Science (MIT)"
+    },
+    {
+      "candidate": "mit_masters_joe",
+      "skill": "MSc Computer Science",
+      "claim_quality": "direct",
+      "confidence": 0.9,
+      "rationale": "Masters of Science in Computer Science and Mechanical Engineering"
+    },
+    {
+      "candidate": "uga_technology_resume",
+      "skill": "SQL",
+      "claim_quality": "direct",
+      "confidence": 0.9,
+      "rationale": "Database Management coursework; SQL Server/Oracle/DB2; JCL/SQL line"
+    },
+    {
+      "candidate": "uga_communications_resume",
+      "skill": "SQL",
+      "claim_quality": "qualified_low",
+      "confidence": 0.95,
+      "rationale": "bare language list 'HTML, SQL, CSS, ...'; no usage/coursework evidence"
+    },
+    {
+      "candidate": "uga_packet_emerson_ray",
+      "skill": "SQL",
+      "claim_quality": "qualified_low",
+      "confidence": 0.95,
+      "rationale": "last item of software skills list; no context or usage"
+    },
+    {
+      "candidate": "sloan_laura_thaler",
+      "skill": "SQL",
+      "claim_quality": "direct",
+      "confidence": 0.9,
+      "rationale": "'prior experience with VBA, SQL, HTML, C++' - explicit experience claim"
+    },
+    {
+      "candidate": "mit_alum_an",
+      "skill": "SQL",
+      "claim_quality": "direct",
+      "confidence": 0.9,
+      "rationale": "'Competency in Excel financial modeling, ..., SQL, SAS' - skills competency claim"
+    },
+    {
+      "candidate": "mit_alum_an",
+      "skill": "MSc Computer Science",
+      "claim_quality": "qualified_low",
+      "confidence": 0.95,
+      "rationale": "'Master of Science in Education' - real master's, wrong field"
+    },
+    {
+      "candidate": "mit_phd_mecheng",
+      "skill": "MSc Computer Science",
+      "claim_quality": "qualified_low",
+      "confidence": 0.95,
+      "rationale": "'M.Sc., Department of Mechanical Engineering' - degree exists, field is mechanical"
+    },
+    {
+      "candidate": "uga_basic_resume",
+      "skill": "communication",
+      "claim_quality": "qualified_low",
+      "confidence": 0.95,
+      "rationale": "'communication skills' appears only inside template example bullets, not a person's claim"
+    },
+    {
+      "candidate": "uga_cv_general",
+      "skill": "MSc Computer Science",
+      "claim_quality": "qualified_low",
+      "confidence": 0.95,
+      "confidence_round2": true,
+      "rationale": "placeholder line \"Master of Science (MS)/Art (MA) in Degree\" in an empty fill-in template - phantom hit, no person, no field"
+    },
+    {
+      "candidate": "uga_cv_general",
+      "skill": "communication",
+      "claim_quality": "qualified_low",
+      "confidence": 0.95,
+      "rationale": "\"communication skills\" appears only inside template example bullets"
+    }
+  ]
+}
