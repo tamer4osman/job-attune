@@ -53,7 +53,7 @@ Options
   --config PATH      fallow config (default: fallow.attune.json next to this file)
   --pipelines NAMES  comma-separated subset to run (default: all)
   --output-dir PATH  where raw JSON envelopes are stored (default: <root>/scripts/attune_app/checks_out)
-  --report PATH      markdown report path (default: <root>/download/attune-js-checks-report.md)
+  --report PATH      markdown report path (default: <root>/local-js-checks-report.md)
   --json-only        skip the markdown report, print the machine summary
   --fail-fast        stop after the first red pipeline
 
@@ -702,7 +702,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", default=str(here / "fallow.attune.json"))
     parser.add_argument("--pipelines", default="")
     parser.add_argument("--output-dir", default=str(here / "checks_out"))
-    parser.add_argument("--report", default=str(default_root / "download" / "attune-js-checks-report.md"))
+    parser.add_argument("--report", default=str(default_root / "local-js-checks-report.md"))
     parser.add_argument("--json-only", action="store_true")
     parser.add_argument("--fail-fast", action="store_true")
     args = parser.parse_args(argv)
