@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Tamer Osman
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  make:
+    name: make (${{ matrix.os }}, ${{ matrix.cc }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, cc: gcc }
+          - { os: ubuntu-latest, cc: clang }
+          - { os: macos-latest, cc: clang }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (warnings are errors)
+        run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" all examples
+      - name: Smoke test
+        run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" test
+      - name: Golden corpus and hostile-input checks
+        run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" golden-check hostile thread-probe
+      - name: Documentation links and version consistency
+        run: make docs-check version-check
+
+  cmake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure, build, test
+        run: |
+          cmake -S . -B out -DCMAKE_BUILD_TYPE=Release
+          cmake --build out
+          ctest --test-dir out --output-on-failure
