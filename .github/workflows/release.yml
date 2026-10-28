@@ -1,0 +1,121 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Tamer Osman
+#
+# Standalone, ready-to-run distributions for Windows, macOS and Linux.
+#
+# Every platform builds its own archive in scripts/standalone/package.sh:
+# the compiled C11 kernel, the Next.js standalone server, the Python engine
+# with reportlab/pypdf preinstalled, and the matching Node.js + CPython
+# runtimes - an unpacked archive runs with no prerequisites (no Bun, no
+# Node, no Python, no compiler installs).
+#
+#   kernel smoke    each platform compiles the kernel with the repo's
+#                   bit-identical flags and runs the real engine (bundled
+#                   python + that kernel) against the demo corpus before
+#                   anything is packaged.
+#   boot smoke      Linux additionally extracts the finished archive and
+#                   verifies the bundled server answers an API request.
+#
+# Triggers:
+#   - push a v* tag: all three archives are built and attached to the
+#     GitHub Release for that tag (created if missing, with generated
+#     notes).
+#   - workflow_dispatch: builds and uploads the archives as workflow
+#     artifacts only - use this to test the packaging without a release.
+#
+# Free tier: public repos run these on GitHub-hosted runners at no cost.
+# The tag builds need `permissions: contents: write` to attach assets;
+# nothing else is granted.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  standalone:
+    name: Standalone (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # glibc x86_64 - covers every mainstream 64-bit Linux distro
+          - os: ubuntu-24.04
+            platform: linux-x64
+          # Apple Silicon; the kernel is built universal (arm64 + x86_64)
+          - os: macos-latest
+            platform: macos-arm64
+          # x64 Windows 10/11 - gcc is the Strawberry Perl mingw-w64
+          # toolchain that ships with the runner images
+          - os: windows-latest
+            platform: windows-x64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Build the UI (type-checked production build)
+        shell: bash
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Package the standalone distribution
+        shell: bash
+        run: bash scripts/standalone/package.sh
+
+      - name: Boot smoke (extract and serve)
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/boot" && cd "$RUNNER_TEMP/boot"
+          tar -xzf "$GITHUB_WORKSPACE/dist/job-attune-standalone-linux-x64.tar.gz"
+          cd job-attune-standalone-linux-x64
+          ./start.sh &
+          SERVER_PID=$!
+          ok=""
+          for i in $(seq 1 30); do
+            if curl -sf -H "X-Attune-Client: cli" http://127.0.0.1:3000/api/template >/dev/null; then
+              ok="yes"; break
+            fi
+            sleep 1
+          done
+          kill "$SERVER_PID" 2>/dev/null || true
+          if [ "$ok" != "yes" ]; then
+            echo "boot smoke: the packaged server never answered /api/template" >&2
+            exit 1
+          fi
+          echo "boot smoke OK: packaged server answered /api/template"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: job-attune-standalone-${{ matrix.platform }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
+      - name: Attach the archives to the GitHub Release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+          generate_release_notes: true

@@ -1,0 +1,70 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
+Job Attune 1.0.0 - standalone distribution
+GDPR-safe, local-first resume screening
+https://github.com/tamer4osman/job-attune
+
+WHAT THIS IS
+
+  A ready-to-run package. The compiled omnidecide-c C11 decision kernel,
+  the Next.js UI server, the Python scoring engine (with the PDF-export
+  packages preinstalled) and the matching Node.js + CPython runtimes are
+  all bundled. Nothing to install, nothing to compile, no cloud, no
+  accounts, no API keys.
+
+  Contents:
+
+    app/          the application: UI server, scoring engine, demo corpus
+                  (attune-sample-data) and job-profile templates
+                  (attune-data/templates); run outputs land in
+                  app/attune-data/runs/<run-id>/
+    runtime/      bundled runtimes: Node.js 22 LTS (from nodejs.org) and
+                  CPython 3.12 (python-build-standalone build) with
+                  reportlab + pypdf already installed
+
+HOW TO RUN
+
+  Windows:   double-click start.bat
+  macOS:     double-click start.command  (first run: see FIRST-RUN NOTES)
+  Linux:     run  ./start.sh  from a terminal inside this folder
+
+  The app binds to 127.0.0.1:3000. Keep the launcher window open and open
+  http://127.0.0.1:3000 in your browser.
+
+  First screening: in the folder picker enter
+
+      attune-sample-data/candidates
+
+  (relative paths resolve against the app folder), press Scan, confirm the
+  CV / cover-letter tags, then Start run. PDF exports land in
+  app/attune-data/runs/<run-id>/exports/.
+
+FIRST-RUN NOTES
+
+  macOS Gatekeeper (unsigned download): right-click start.command and choose
+  Open, or clear the quarantine flag once from a terminal:
+
+      xattr -dr com.apple.quarantine job-attune-standalone-macos-arm64
+
+  Apple Silicon (arm64); macOS 12 or newer.
+
+  Windows SmartScreen: if the download is flagged, choose "Keep" in the
+  browser; if Windows shows "protected your PC", use More info -> Run
+  anyway. Windows 10 or newer, 64-bit.
+
+  Linux: 64-bit with glibc 2.28 or newer (Debian 10+, Ubuntu 20.04+,
+  Fedora 29+).
+
+PRIVACY
+
+  Everything runs on your machine. The engine makes no network calls, raw
+  CV text is never persisted, and candidates appear as pseudonymous
+  references in every output. Run outputs never leave this folder unless
+  you copy them out yourself. The repository README (link above) documents
+  the full security model and how every claim is verified.
+
+VERIFY THE DOWNLOAD
+
+  The .sha256 file shipped next to this archive holds the expected digest:
+
+      sha256sum -c job-attune-standalone-<platform>.<ext>.sha256
