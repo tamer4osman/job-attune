@@ -1,0 +1,138 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Tamer Osman
+#
+# CI quality + stability gates for every language in the repository.
+#
+#   kernel         C11 vendored kernel: strict build (gcc, -Werror), smoke
+#                  test, hostile input fuzz tool, thread probe, docs and
+#                  version consistency, then a bit-identical golden corpus
+#                  replay across gcc/clang x -O0/-O2/-O3 (2,013 frozen cases).
+#   engine         Python engine: the 45-check quality gate running through
+#                  the actual C kernel shared library (docker-parity flags).
+#   ui             TypeScript / JavaScript: ESLint, next build, tsc --noEmit.
+#   docker-engine  The QA engine image builds and runs its gate as CMD
+#                  against the freshly checked-out tree.
+#
+# Free tier: public repos run these on GitHub-hosted ubuntu runners at no
+# cost. No third-party services, no paid plans, no tokens beyond the built-in
+# checkout (permissions are read-only).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------- C kernel
+  kernel:
+    name: C kernel (omnidecide-c)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: download/omnidecide-c
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build strict, run smoke test, hostile fuzz and thread probe
+        run: |
+          make CC=gcc CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" test
+          make CC=gcc CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" hostile
+          make CC=gcc CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" thread-probe
+          make docs-check
+          make version-check
+
+      - name: Generate the golden replay corpus (gcc -O2 baseline)
+        run: |
+          make CC=gcc CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" golden
+          build/golden_tool gen golden
+
+      - name: Replay corpus bit-identically across gcc/clang and -O0/-O2/-O3
+        run: |
+          for cc in gcc clang; do
+            for opt in -O0 -O2 -O3; do
+              echo "=== ${cc} ${opt} ==="
+              make clean
+              make CC="$cc" CFLAGS="$opt -Wall -Wextra" golden
+              build/golden_tool check golden
+            done
+          done
+
+  # ------------------------------------------------------------- Python engine
+  engine:
+    name: Python engine (45-check quality gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install engine dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile the kernel shared library (docker-parity flags)
+        run: |
+          mkdir -p download/omnidecide-c/build
+          cc -std=c11 -ffp-contract=off -O2 -Wall -Wextra -pedantic -fPIC -shared \
+            -Idownload/omnidecide-c/include -Idownload/omnidecide-c/src \
+            download/omnidecide-c/src/*.c -lm \
+            -o download/omnidecide-c/build/libomnidecide.so
+
+      - name: Run the quality gate against the C kernel
+        env:
+          OMNIDECIDE_C_LIB: ${{ github.workspace }}/download/omnidecide-c/build/libomnidecide.so
+        run: python scripts/check_python_side.py
+
+  # --------------------------------------------------------- TypeScript / JS UI
+  ui:
+    name: TypeScript / JS UI (Next.js + Bun)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: ESLint
+        run: bun run lint
+
+      - name: Next.js production build
+        run: bun run build
+
+      - name: TypeScript check (tsc --noEmit)
+        run: bunx tsc --noEmit
+
+  # ------------------------------------------------------------ Docker engine image
+  docker-engine:
+    name: Engine Docker image (gate as CMD)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build the QA engine image
+        run: docker build --target engine -t job-attune-engine .
+
+      - name: Run the gate inside the image against the checked-out tree
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/app" \
+            -w /app \
+            job-attune-engine

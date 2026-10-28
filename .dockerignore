@@ -13,6 +13,12 @@ bench
 docs
 scripts
 
+# Frozen golden corpus and the local kernel build tree stay out of the image
+# context: ~12 MB of regenerable corpus plus machine-local build products
+# (both restored/regenerated from source, see .gitignore)
+download/omnidecide-c/golden
+download/omnidecide-c/build
+
 # Run artifacts are machine-local state - never baked into images
 attune-data/runs
 
