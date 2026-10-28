@@ -19,7 +19,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-334155?style=for-the-badge" alt="License: Apache-2.0"></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v1.0.0-059669?style=for-the-badge" alt="Release v1.0.0"></a>
-  <a href="download/omnidecide-c/README.md"><img src="https://img.shields.io/badge/Kernel-omnidecide--c_1.0.0-334155?style=for-the-badge" alt="Kernel: omnidecide-c 1.0.0"></a>
+  <a href="vendor/omnidecide-c/README.md"><img src="https://img.shields.io/badge/Kernel-omnidecide--c_1.0.0-334155?style=for-the-badge" alt="Kernel: omnidecide-c 1.0.0"></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Languages-10_packs-059669?style=for-the-badge" alt="10 language packs"></a>
   <br/>
   <a href="docs/VERIFICATION-1.8.0.md"><img src="https://img.shields.io/badge/Determinism-verified-16a34a?style=for-the-badge" alt="Determinism: verified"></a>
@@ -119,7 +119,7 @@ The pipeline in four moves:
    subfolder per candidate). Every document is tagged CV or cover letter
    (filename aliases, EN + DE), and raw text is never persisted.
 2. **Score with evidence.** Extraction → evidence scoring → aggregation →
-   ranking runs on the [omnidecide-c 1.0.0](download/omnidecide-c/) C11
+   ranking runs on the [omnidecide-c 1.0.0](vendor/omnidecide-c/) C11
    decision kernel (the only kernel), gated by the calibrated
    [floors contract](attune-engine/floors.py). Candidates are pseudonymous
    refs throughout.
@@ -172,7 +172,7 @@ required.
 | The C11 kernel changes no scores | 36-case kernel A/B battery + full-engine leaf-identical replay | [docs/VERIFICATION-1.8.0.md](docs/VERIFICATION-1.8.0.md) |
 | No PII leaks into outputs | PII-redaction probes over all enriched outputs on every regression run | Probe lines in the 45-check gate output |
 | Benchmarks are candidate-blind & pre-registered | Frozen corpora, pinned human rankings, recorded study salt | [bench/README.md](bench/README.md) |
-| Nothing phones home | The kernel is pure C11 computation — no sockets, no HTTP; the UI binds to `127.0.0.1` only | Read it: [download/omnidecide-c/](download/omnidecide-c/) |
+| Nothing phones home | The kernel is pure C11 computation — no sockets, no HTTP; the UI binds to `127.0.0.1` only | Read it: [vendor/omnidecide-c/](vendor/omnidecide-c/) |
 | Every decision is attributable | Each run manifest records engine, kernel and floors versions plus the aggregation provenance block | Open any run directory under `attune-data/runs/` |
 
 Release discipline follows the same rule: scoring behaviour changes require a
@@ -181,6 +181,21 @@ a CHANGELOG entry — engine and UI are tracked together under the engine
 version, so historical runs stay attributable forever.
 
 ## Quickstart
+
+**Prebuilt standalone** (nothing to install - recommended for end users):
+
+Download the archive for your OS from
+[Releases](https://github.com/tamer4osman/job-attune/releases)
+(`job-attune-standalone-<platform>.zip` / `.tar.gz`), verify it against
+the shipped `.sha256`, unpack, and run:
+
+- **Windows** (10+, x64) — double-click `start.bat`
+- **macOS** (12+, Apple Silicon) — double-click `start.command`
+- **Linux** (glibc 2.28+, x64) — run `./start.sh`
+
+Each bundle carries the compiled C11 kernel, the app, and its own Node.js
+22 + CPython 3.12 runtimes — the unpacked archive runs offline with no
+tooling on the machine.
 
 **With the UI** (Next.js + local engine):
 
@@ -232,7 +247,7 @@ scan) is regenerated with
 | [docs/ENGINE-CLI.md](docs/ENGINE-CLI.md) | Engine + reporter CLI reference, aggregation profile keys, run-directory contract |
 | [bench/README.md](bench/README.md) | Bench harness: systems, determinism protocol, reference results, corpus format |
 | [CHANGELOG.md](CHANGELOG.md) | Version history (v1.0.0 — initial public release) |
-| [download/omnidecide-c/README.md](download/omnidecide-c/README.md) | The C11 decision kernel the engine runs on (the only kernel) |
+| [vendor/omnidecide-c/README.md](vendor/omnidecide-c/README.md) | The C11 decision kernel the engine runs on (the only kernel) |
 | [SETUP.md](SETUP.md) | Condensed setup card (also shipped in the source zip) |
 
 <details>
@@ -243,11 +258,12 @@ src/                        Next.js app (UI + API routes + middleware)
 attune-engine/              engine.py, ckernel.py (C-kernel bridge), floors.py
                             (vendored floors contract), make_report.py,
                             floors_attune.json, data/floors_v1.json
-download/omnidecide-c/      omnidecide-c 1.0.0 C11 kernel (the only kernel)
+vendor/omnidecide-c/      omnidecide-c 1.0.0 C11 kernel (the only kernel)
 bench/                      candidate-blind benchmark harness + frozen corpora
 attune-data/                templates (runs/ is created at runtime)
 attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
-scripts/                    QA gates, sample generator, JS check pipelines
+scripts/                    QA gates, sample generator, JS check pipelines,
+                            standalone packager (scripts/standalone/)
 docs/                       architecture, API, CLI, developer guide, marketing,
                             screenshots, diagrams
 Dockerfile                  multi-target build: full-stack image (default) +
@@ -352,7 +368,7 @@ Job Attune is released under the **Apache License 2.0** — see
 [LICENSE](LICENSE) (full text) and [NOTICE](NOTICE) (copyright and
 third-party attributions). Every source file carries an SPDX header; the
 vendored kernel keeps its own Apache-2.0 license and Unicode-data notices
-under `download/omnidecide-c/`.
+under `vendor/omnidecide-c/`.
 
 <p align="center">
   <img src="public/logo.svg" width="72" alt="Job Attune logo" /><br/>

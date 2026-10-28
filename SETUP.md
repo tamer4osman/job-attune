@@ -4,7 +4,7 @@
 
 GDPR-safe resume screening: a Next.js UI driving a deterministic Python scoring
 engine, running on the omnidecide-c 1.0.0 C11 decision kernel (vendored under
-`download/omnidecide-c/`, the only kernel - the floors contract
+`vendor/omnidecide-c/`, the only kernel - the floors contract
 ships as `attune-engine/floors.py` with calibration data in
 `attune-engine/data/floors_v1.json`). Candidate
 documents are reduced to pseudonymous references before scoring; PDF exports
@@ -16,7 +16,7 @@ contain no raw PII.
     attune-engine/              Python engine, C-kernel bridge, PDF reporter,
                                 vendored floors contract (floors.py + data/)
     bench/                      candidate-blind benchmark harness + frozen corpora
-    download/omnidecide-c/      omnidecide-c 1.0.0 C11 kernel (the only kernel)
+    vendor/omnidecide-c/      omnidecide-c 1.0.0 C11 kernel (the only kernel)
     attune-data/                templates (runs/ is created at runtime)
     attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
     scripts/                    QA gates, sample generator, JS check pipelines
@@ -37,7 +37,7 @@ contain no raw PII.
     pip install -r requirements.txt   # reportlab + pypdf (engine itself: stdlib only)
 
     # build the omnidecide-c decision kernel (one-time):
-    cd download/omnidecide-c
+    cd vendor/omnidecide-c
     mkdir -p build
     cc -std=c11 -ffp-contract=off -O2 -fPIC -shared -Iinclude -Isrc \
        src/*.c -lm -o build/libomnidecide.so
@@ -112,6 +112,39 @@ cross-site browser requests):
 
 Windows/Docker Desktop bind-mount style: `-v D:/Projects/job-attune-1.0.0:/app`.
 
+## Standalone builds (prebuilt, no tooling)
+
+The Release workflow (`.github/workflows/release.yml`) builds ready-to-run
+distributions for Windows, macOS and Linux on every pushed `v*` tag and
+attaches them to the GitHub Release; a manual workflow run uploads them as
+workflow artifacts instead. Each archive bundles everything the app needs:
+
+- the compiled omnidecide-c kernel for that platform
+  (`omnidecide.dll` / `libomnidecide.dylib` / `libomnidecide.so`)
+- the Next.js standalone server plus the Python engine, the demo corpus
+  and the profile templates
+- a Node.js 22 LTS runtime and a CPython 3.12 runtime with reportlab +
+  pypdf preinstalled - no system Node or Python installs needed
+
+Platform support: Windows 10+ x64 (`start.bat`), macOS 12+ Apple Silicon
+(`start.command`), Linux glibc 2.28+ x64 (`./start.sh`). Unpack, run the
+launcher, open http://127.0.0.1:3000 - see START-HERE.txt inside each
+archive for first-run notes (Gatekeeper / SmartScreen) and the sha256
+verification command.
+
+Build one locally with the same script CI calls (current OS only):
+
+    bun install && bun run build
+    bash scripts/standalone/package.sh
+    # -> dist/job-attune-standalone-<platform>.<tar.gz|zip> (+ .sha256)
+
+The packager gates itself per platform before archiving anything: the
+kernel is compiled with the bit-identical flags from Setup above, the
+bundled Python must run the real engine against the demo corpus (the run
+manifest must record `omnidecide-c 1.0.0`), and on Linux the finished
+archive is extracted and must answer an API request through the shipped
+launcher before it is uploaded.
+
 ## QA gates
 
     python3 scripts/check_python_side.py
@@ -137,7 +170,7 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 - `ATTUNE_ROOT` - web-app project-root override (default: the cwd the app starts from)
 - `ATTUNE_TEXT_MODE` - kernel text layer: `unicode` (default) or `ascii`
 - `ATTUNE_LANGUAGE` - kernel language pack: `und` (default), `en zh hi es ar fr bn pt id ur auto`
-- `OMNIDECIDE_C_LIB` - engine override for the compiled C kernel (default: `<repo>/download/omnidecide-c/build/libomnidecide.so`)
+- `OMNIDECIDE_C_LIB` - engine override for the compiled C kernel (default: `<repo>/vendor/omnidecide-c/build/libomnidecide.so`)
 
 ## Documentation
 
@@ -151,7 +184,7 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 - `CHANGELOG.md` - version history (v1.0.0 - initial public release)
 - `docs/VERIFICATION-1.8.0.md` - kernel-migration verification evidence (historical record)
 - `LICENSE` / `NOTICE` - Apache License 2.0, copyright Tamer Osman
-- `download/omnidecide-c/README.md` - the C11 decision kernel the engine runs on
+- `vendor/omnidecide-c/README.md` - the C11 decision kernel the engine runs on
 
 ## What is NOT in this archive (restorable via build commands)
 
@@ -159,5 +192,5 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 - `.next/`                   -> `bun run build`
 - (no database — the unused Prisma scaffold was removed; all data lives on the filesystem)
 - `attune-data/runs/`   -> created automatically at runtime
-- `download/omnidecide-c/build/libomnidecide.so` -> the one-time build command
+- `vendor/omnidecide-c/build/libomnidecide.so` -> the one-time build command
   in Setup above (the vendored C sources and their test suite ship in the tree)

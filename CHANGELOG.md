@@ -28,10 +28,80 @@ the engine, decision-kernel and floors versions that produced it.
     2 shortlisted), and 7 PDF exports (17-page batch report + 6 candidate
     dossiers) validated with pypdf and downloaded over HTTP.
 - The fullstack image bakes the kernel version header at
-  `/app/download/omnidecide-c/include/omnidecide.h` (copied from the exact
+  `/app/vendor/omnidecide-c/include/omnidecide.h` (copied from the exact
   `kernel-build` source tree), so `ckernel.py` reports the version of the
   actually-baked library (`omnidecide-c 1.0.0`) in run manifests instead of
   `unknown`.
+- Standalone end-user distributions for Windows, macOS and Linux, built by
+  the new Release workflow (`.github/workflows/release.yml`) and by
+  `scripts/standalone/package.sh` - the same script CI calls, so local
+  builds are identical. Every archive bundles the compiled C11 kernel for
+  that platform, the Next.js standalone server, the Python engine with the
+  demo corpus and profile templates, and complete Node.js 22 LTS +
+  CPython 3.12 runtimes with reportlab/pypdf preinstalled - unpack, run
+  `start.bat` / `start.command` / `./start.sh`, open
+  http://127.0.0.1:3000, no prerequisites (see START-HERE.txt inside each
+  archive). Packaging gates itself per platform before archiving: the
+  kernel is compiled with the bit-identical flags, the bundled Python must
+  run the real engine against the demo corpus (manifest must record
+  `omnidecide-c 1.0.0`), and on Linux the finished archive is extracted and
+  must answer an API request through the shipped launcher. Tag builds
+  (`v*`) attach the archives plus sha256 checksums to the GitHub Release;
+  manual runs upload them as workflow artifacts. Verified end-to-end on
+  Linux: boot, scan, full screening run, and PDF export all driven through
+  the packaged app's own HTTP API.
+
+### Changed
+
+- Moved the vendored C11 kernel from `download/omnidecide-c/` to
+  `vendor/omnidecide-c/` — the old path was a leftover from the original
+  machine layout, not a deliberate location. Every reference moved with it
+  (README, SETUP, docs, NOTICE, Dockerfile, CI workflow, `.gitignore`,
+  `.dockerignore`, and the engine's default `OMNIDECIDE_C_LIB` resolution in
+  `attune-engine/ckernel.py`). Existing checkouts need one kernel rebuild at
+  the new path:
+
+      cd vendor/omnidecide-c
+      mkdir -p build
+      cc -std=c11 -ffp-contract=off -O2 -fPIC -shared -Iinclude -Isrc \
+         src/*.c -lm -o build/libomnidecide.so
+
+- `next.config.ts` now pins `outputFileTracingRoot` to the project
+  directory, making the standalone build layout deterministic
+  (`.next/standalone/server.js`) even when the repo is checked out inside
+  a parent directory that looks like a workspace root — without the pin,
+  Next 16 can nest the output under a workspace-name folder and the
+  standalone/Docker packaging assumptions break.
+
+### Fixed
+
+- `docker build -t job-attune-full .` failed on a fresh clone: the UI build
+  stage COPYed `next-env.d.ts`, a generated, gitignored file that does not
+  exist after a clean checkout (`next build` regenerates it). The file is no
+  longer copied and is excluded from the build context, so fresh clones and
+  warmed-up developer trees build the image identically. (The engine-target
+  image was unaffected; CI never built the fullstack target, which is why
+  this slipped through.)
+- Removed `typescript.ignoreBuildErrors` from `next.config.ts`: it silently
+  disabled type checking during `next build`, which is the only type gate on
+  the Docker build path (CI runs a separate `tsc --noEmit`; the image does
+  not). Type errors now fail the build everywhere — the tree passes with
+  zero errors, verified by the full gate suite below.
+- Fixed a regression from the kernel move in this same batch:
+  `attune-engine/ckernel.py` assembled its default kernel tree from two
+  separate path segments (`"download" / "omnidecide-c"`), which the
+  reference sweep missed — without `OMNIDECIDE_C_LIB` set the engine could
+  not find the kernel or read its version, so the documented quickstart
+  broke. Default resolution and the version header now point at
+  `vendor/omnidecide-c/`; the 45-check gate passes with no environment
+  overrides at all (the way the documented UI flow runs).
+- The kernel loader is now platform-aware: without `OMNIDECIDE_C_LIB` it
+  looks for `omnidecide.dll` on Windows and `libomnidecide.dylib` on macOS
+  instead of only `libomnidecide.so`, matching what the standalone packager
+  builds on those platforms.
+- `scripts/attune_app/js_check_pipelines.py` no longer writes its default
+  report into a stray `download/` folder; it lands in
+  `local-js-checks-report.md` at the repo root (ignored via `/local-*`).
 
 ### Removed
 
@@ -72,7 +142,7 @@ battery, bench harness, ten-language battery).
 ### Engine & kernel
 
 - Deterministic, stdlib-only scoring pipeline over the vendored
-  **omnidecide-c 1.0.0** C11 kernel (`download/omnidecide-c/`) through the
+  **omnidecide-c 1.0.0** C11 kernel (`vendor/omnidecide-c/`) through the
   ctypes bridge `attune-engine/ckernel.py` — the only kernel. All six
   decision primitives (extract, score, rank, compare, choice, noul) are
   load-bearing, gated by the calibrated confidence-floors contract
@@ -140,6 +210,6 @@ battery, bench harness, ten-language battery).
   NOTICE; SPDX headers on all first-party files). Author, owner and
   copyright holder: Tamer Osman (https://github.com/tamer4osman).
 - The embedded omnidecide-c kernel is Apache-2.0 as well
-  (`download/omnidecide-c/LICENSE`); its bundled Unicode Character Database
+  (`vendor/omnidecide-c/LICENSE`); its bundled Unicode Character Database
   data carries the Unicode License v3
-  (`download/omnidecide-c/THIRD_PARTY_NOTICES.md`).
+  (`vendor/omnidecide-c/THIRD_PARTY_NOTICES.md`).
