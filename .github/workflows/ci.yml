@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: download/omnidecide-c
+        working-directory: vendor/omnidecide-c
     steps:
       - uses: actions/checkout@v6
 
@@ -86,15 +86,15 @@ jobs:
 
       - name: Compile the kernel shared library (docker-parity flags)
         run: |
-          mkdir -p download/omnidecide-c/build
+          mkdir -p vendor/omnidecide-c/build
           cc -std=c11 -ffp-contract=off -O2 -Wall -Wextra -pedantic -fPIC -shared \
-            -Idownload/omnidecide-c/include -Idownload/omnidecide-c/src \
-            download/omnidecide-c/src/*.c -lm \
-            -o download/omnidecide-c/build/libomnidecide.so
+            -Ivendor/omnidecide-c/include -Ivendor/omnidecide-c/src \
+            vendor/omnidecide-c/src/*.c -lm \
+            -o vendor/omnidecide-c/build/libomnidecide.so
 
       - name: Run the quality gate against the C kernel
         env:
-          OMNIDECIDE_C_LIB: ${{ github.workspace }}/download/omnidecide-c/build/libomnidecide.so
+          OMNIDECIDE_C_LIB: ${{ github.workspace }}/vendor/omnidecide-c/build/libomnidecide.so
         run: python scripts/check_python_side.py
 
   # --------------------------------------------------------- TypeScript / JS UI

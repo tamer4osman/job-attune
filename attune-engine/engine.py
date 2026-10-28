@@ -8,7 +8,7 @@ CHANGELOG.md at the repository root. This file is the whole scoring
 pipeline (stdlib-only Python); the web UI is not needed for screening.
 
 Consumes the omnidecide-c C11 decision kernel (vendored under
-download/omnidecide-c/, reached through the ctypes bridge ckernel.py; the
+vendor/omnidecide-c/, reached through the ctypes bridge ckernel.py; the
 floors contract ships as attune-engine/floors.py with its calibration
 data in attune-engine/data/floors_v1.json) and turns a
 folder of applicant PDFs into a deterministic, fully auditable screening
@@ -95,7 +95,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Decision-library resolution. One kernel ships with the tree:
-#   download/omnidecide-c  the omnidecide-c C11 kernel, reached through
+#   vendor/omnidecide-c  the omnidecide-c C11 kernel, reached through
 #                          the ctypes bridge in ckernel.py
 # The floors contract is vendored at attune-engine/floors.py (data in
 # data/floors_v1.json). Paths resolve relative to this file so the tree

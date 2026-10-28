@@ -60,12 +60,15 @@ __pycache__/
 # machine-local runtime data — run artifacts are never committed (SETUP.md)
 attune-data/runs/
 
+# standalone packaging output (scripts/standalone/package.sh + Release workflow)
+/dist/
+
 # one-time local kernel build — restorable via the build command in SETUP.md
-/download/omnidecide-c/build/
+/vendor/omnidecide-c/build/
 
 # frozen golden replay-corpus (~12 MB) — not checked in; regenerate locally
 # from the vendored source: tests/golden_tool.c (`build/golden_tool gen golden`)
-/download/omnidecide-c/golden/
+/vendor/omnidecide-c/golden/
 
 # vercel
 .vercel

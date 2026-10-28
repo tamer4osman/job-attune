@@ -37,7 +37,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends gcc libc6-dev \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
-COPY download/omnidecide-c/ .
+COPY vendor/omnidecide-c/ .
 RUN mkdir -p /out \
  && cc -std=c11 -ffp-contract=off -O2 -Wall -Wextra -pedantic -fPIC -shared \
       -Iinclude -Isrc src/*.c \
@@ -87,11 +87,11 @@ COPY --from=ui-build /src/public ./public
 # Python engine and its vendored data floors/calibration files
 COPY attune-engine ./attune-engine
 # Kernel version header: ckernel.py reads ODK_LIBRARY_VERSION from
-# download/omnidecide-c/include/omnidecide.h relative to the repo root to
+# vendor/omnidecide-c/include/omnidecide.h relative to the repo root to
 # build the KERNEL_ID recorded in run manifests. Take it from the exact
 # kernel-build source tree so the reported version always matches the baked
 # library.
-COPY --from=kernel-build /src/include ./download/omnidecide-c/include
+COPY --from=kernel-build /src/include ./vendor/omnidecide-c/include
 # Demo candidates and profile templates (setup template is attune-data)
 COPY attune-sample-data ./attune-sample-data
 COPY attune-data/templates ./attune-data/templates

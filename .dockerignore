@@ -1,4 +1,4 @@
-# Keep the build context small. The kernel build needs download/omnidecide-c
+# Keep the build context small. The kernel build needs vendor/omnidecide-c
 # and requirements.txt; the UI build needs src/, public/ and the root config
 # files; the fullstack runtime bakes attune-engine/, attune-sample-data/ and
 # attune-data/templates/. Everything else stays host-side: the engine QA
@@ -16,8 +16,8 @@ scripts
 # Frozen golden corpus and the local kernel build tree stay out of the image
 # context: ~12 MB of regenerable corpus plus machine-local build products
 # (both restored/regenerated from source, see .gitignore)
-download/omnidecide-c/golden
-download/omnidecide-c/build
+vendor/omnidecide-c/golden
+vendor/omnidecide-c/build
 
 # Run artifacts are machine-local state - never baked into images
 attune-data/runs

@@ -4,7 +4,7 @@
 """omnidecide-c kernel bridge - the C11 decision kernel behind the Python API.
 
 The engine scores through the **omnidecide-c** C11 kernel (vendored under
-``download/omnidecide-c/``); this bridge is the only kernel path.  This
+``vendor/omnidecide-c/``); this bridge is the only kernel path.  This
 module loads ``libomnidecide.so`` via ctypes and exposes
 the exact class/method/payload contract the engine was written against, so
 the engine code above the kernel is untouched:
@@ -88,7 +88,7 @@ ENV_LANGUAGE = "ATTUNE_LANGUAGE"
 
 #: Repo root (the parent of attune-engine/) - keeps the tree relocatable.
 _BRIDGE_ROOT = Path(__file__).resolve().parent.parent
-_DEFAULT_C_TREE = _BRIDGE_ROOT / "download" / "omnidecide-c"
+_DEFAULT_C_TREE = _BRIDGE_ROOT / "vendor" / "omnidecide-c"
 
 
 class OmniDecideKernelUnavailable(RuntimeError):
@@ -123,15 +123,25 @@ KERNEL_ID = f"{KERNEL_NAME} {KERNEL_VERSION}"
 # Shared-library loading
 # --------------------------------------------------------------------------- #
 
+def _library_filename() -> str:
+    """Platform file name of the built kernel library (SETUP.md build step)."""
+    if sys.platform == "win32":
+        return "omnidecide.dll"
+    if sys.platform == "darwin":
+        return "libomnidecide.dylib"
+    return "libomnidecide.so"
+
+
 def _candidate_paths() -> List[Path]:
     """Search order: OMNIDECIDE_C_LIB override, then the vendored build."""
     override = os.environ.get("OMNIDECIDE_C_LIB")
     if override:
         return [Path(override).expanduser()]
+    filename = _library_filename()
     return [
-        _DEFAULT_C_TREE / "build" / "libomnidecide.so",
+        _DEFAULT_C_TREE / "build" / filename,
         # conventional install target (make install prefix)
-        Path("/usr/local/lib/libomnidecide.so"),
+        Path("/usr/local/lib") / filename,
     ]
 
 
@@ -143,13 +153,13 @@ def _load_library() -> ctypes.CDLL:
                 return ctypes.CDLL(str(path))
             except OSError as exc:
                 raise OmniDecideKernelUnavailable(
-                    f"libomnidecide.so found at {path} but failed to load: {exc}"
+                    f"kernel library found at {path} but failed to load: {exc}"
                 ) from exc
         tried.append(str(path))
     raise OmniDecideKernelUnavailable(
-        "libomnidecide.so not found. Build it with: "
+        f"{_library_filename()} not found. Build it with: "
         "cc -std=c11 -ffp-contract=off -O2 -fPIC -shared -Iinclude -Isrc "
-        "src/*.c -lm -o build/libomnidecide.so   (run inside download/omnidecide-c/). "
+        f"src/*.c -lm -o build/{_library_filename()}   (run inside vendor/omnidecide-c/). "
         f"Searched: {', '.join(tried)}"
     )
 
