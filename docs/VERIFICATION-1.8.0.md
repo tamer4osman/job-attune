@@ -12,6 +12,9 @@
 > kernel is no longer shipped; the commands referencing
 > `download/omnidecide/` below no longer apply. The migration evidence itself
 > remains the record of why the C kernel is trusted as the sole kernel.
+> Kernel paths in this note were later updated to the current repository
+> layout when the vendored kernel moved from `download/omnidecide-c/` to
+> `vendor/omnidecide-c/`; the recorded evidence is unchanged by the move.
 
 This note records the evidence that the v1.8.0 kernel migration (Python
 OmniDecide 3.3.1 embedded engine -> omnidecide-c 1.0.0 C11 kernel) is
@@ -22,7 +25,7 @@ in each section (run from the repository root).
 
 | Piece | Before (<=1.7.1) | After (1.8.0) |
 |---|---|---|
-| Decision kernel | `download/omnidecide/omnidecide/models/kernel.py` (pure Python) | `download/omnidecide-c/` C11 kernel via `screenpilot-engine/ckernel.py` (ctypes bridge) |
+| Decision kernel | `download/omnidecide/omnidecide/models/kernel.py` (pure Python) | `vendor/omnidecide-c/` C11 kernel via `screenpilot-engine/ckernel.py` (ctypes bridge) |
 | Kernel default | Python | **omnidecide-c** (`SCREENPILOT_KERNEL=python` rolls back) |
 | Floors contract | frozen `floors_v1` from the Python tree | unchanged - the Python tree stays as floors source |
 | Manifest pin | `omnidecide_version: "3.3.1"` | `omnidecide_version: "omnidecide-c 1.0.0"` (rollback: `"3.3.1"`) |
@@ -38,7 +41,7 @@ version.
 ### 1. The C kernel itself is sound (upstream gates)
 
 ```
-cd download/omnidecide-c
+cd vendor/omnidecide-c
 make test            # 373 checks, 0 failures
 make golden-check    # 2013 cases, all byte-identical
 make version-check   # OK (version 1.0.0)

@@ -37,11 +37,11 @@ bench/baselines.py               BooleanATS / TF-IDF / BM25 (candidate-blind)
 scripts/check_python_side.py     45-check release gate (Python side)
 scripts/attune_app/         JS check pipelines (Fallow), sample generator
 src/                             Next.js UI + API routes + middleware
-download/omnidecide-c/           omnidecide-c 1.0.0 C11 kernel - DO NOT EDIT
+vendor/omnidecide-c/           omnidecide-c 1.0.0 C11 kernel - DO NOT EDIT
                                  (build: libomnidecide.so, see SETUP.md)
 ```
 
-Hard rule: `download/omnidecide-c/`, `attune-engine/floors.py` and
+Hard rule: `vendor/omnidecide-c/`, `attune-engine/floors.py` and
 `floors_attune.json` are **frozen contracts** (floors v1.0; the kernel
 identity pins in every manifest). Changing either is a cross-repo
 decision with its own calibration evidence, not a code task. The kernel
@@ -58,7 +58,7 @@ npm install -g fallow              # optional: JS/TS check pipelines
 python3 scripts/attune_app/make_samples.py   # demo corpus, if missing
 
 # omnidecide-c kernel (one-time; see SETUP.md):
-cd download/omnidecide-c
+cd vendor/omnidecide-c
 mkdir -p build
 cc -std=c11 -ffp-contract=off -O2 -fPIC -shared -Iinclude -Isrc \
    src/*.c -lm -o build/libomnidecide.so

@@ -82,7 +82,7 @@ ATTUNE_LANGUAGE=zh
 
 `unicode` (default) is the required mode for evidence written in non-Latin
 scripts; language packs add per-language stopwords and script normalization
-(see `download/omnidecide-c/docs/LANGUAGES.md`) and stay opt-in per job
+(see `vendor/omnidecide-c/docs/LANGUAGES.md`) and stay opt-in per job
 market.
 
 ### Example (demo corpus)

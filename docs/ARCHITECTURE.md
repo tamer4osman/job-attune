@@ -33,7 +33,7 @@ needed at runtime.
                                   +-----------|----------------------+
                                               | ctypes bridge (ckernel.py)
                                   +-----------v----------------------+
-                                  | download/omnidecide-c: C11 kernel |
+                                  | vendor/omnidecide-c: C11 kernel |
                                   | (the only kernel,                 |
                                   | libomnidecide.so)                 |
                                   +----------------------------------+
