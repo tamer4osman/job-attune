@@ -2285,6 +2285,13 @@ static odk_brain *learn_load_core(const char *path, odk_text_mode mode,
         odk_json_free(root);
         return NULL;
     }
+    if (snapshot_version == 1 && lang != ODK_LANG_UND) {
+        learn_fail_data(err, errx, ODK_ERR_ARGUMENT,
+                        "snapshot has no language provenance",
+                        "v1 snapshot cannot load with a concrete language");
+        odk_json_free(root);
+        return NULL;
+    }
     brain = odk_brain_create();
     if (brain == NULL) {
         learn_fail_data(err, errx, ODK_ERR_MEMORY, "out of memory", NULL);

@@ -436,14 +436,14 @@ static int cooc_has(const cooc_set *s, size_t a, size_t b)
     uint64_t k;
     size_t slot;
     if (s->bucket_count == 0) {
-        return 0;
+        return s->full;
     }
     k = cooc_key(a, b);
     slot = (size_t)(k ^ (k >> 32)) & (s->bucket_count - 1);
     for (;;) {
         size_t idx = s->buckets[slot];
         if (idx == 0) {
-            return 0;
+            return s->full;
         }
         if (s->keys[idx - 1] == k) {
             return 1;
@@ -1007,8 +1007,9 @@ int odk_links_record(odk_link_store *store, const char *option_key,
         for (i = 0; i < limit; i++) {
             size_t j;
             for (j = i + 1; j < limit; j++) {
-                if (cooc_add(&store->cooc, ids[i], ids[j]) != 0) {
+                if (cooc_add(&store->cooc, ids[i], ids[j]) < 0) {
                     /* OOM: stop recording co-occurrence (fail-safe) */
+                    store->cooc.full = 1;
                     i = limit;
                     break;
                 }

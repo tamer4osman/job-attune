@@ -3836,17 +3836,17 @@ static odk_status extract_call_impl(odk_kernel *kernel,
     (void)image; /* the image channel only feeds the anchor of score-based
                     primitives; extract similarity is text-only */
     result_init(out);
-    if (instruction == NULL || instruction[0] == '\0') {
-        kernel_set_error(err,
-                         "extract evaluation requires a non-empty instruction");
-        return ODK_ERR_INFERENCE;
-    }
     /* Optional statement follows the query
      * extract semantics - instruction wins, statement is the
      * fallback text source.  The _opts form passes NULL. */
     if ((instruction == NULL || instruction[0] == '\0') && statement != NULL
         && statement[0] != '\0') {
         instruction = statement;
+    }
+    if (instruction == NULL || instruction[0] == '\0') {
+        kernel_set_error(err,
+                         "extract evaluation requires a non-empty instruction");
+        return ODK_ERR_INFERENCE;
     }
     eff = kernel_effective_cfg_call(kernel, context, call);
     fill_language_meta(meta, &eff, context);
@@ -4449,6 +4449,13 @@ odk_status odk_kernel_load_stopwords(odk_kernel *kernel, const char *path,
      * sections into the fresh stopword list (load order is the
      * documented deterministic merge). */
     if (kernel->rt != NULL) {
+        size_t k;
+        if (kernel->rt->stopwords != NULL) {
+            for (k = 0; k < kernel->rt->stopword_count; k++) {
+                free(kernel->rt->stopwords[k]);
+            }
+            free(kernel->rt->stopwords);
+        }
         rt->zh_words = kernel->rt->zh_words;
         rt->zh_word_count = kernel->rt->zh_word_count;
         rt->zh_word_max_cps = kernel->rt->zh_word_max_cps;

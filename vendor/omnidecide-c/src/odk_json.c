@@ -214,11 +214,6 @@ static char *json_parse_string_raw(json_parser *ps)
         json_set_error(ps->err, "out of memory");
         return NULL;
     }
-    if (sb_reserve(&sb, (size_t)(ps->end - ps->p)) != 0) {
-        sb_free(&sb);
-        json_set_error(ps->err, "out of memory");
-        return NULL;
-    }
     for (;;) {
         char c;
         if (ps->p >= ps->end) {
@@ -262,6 +257,7 @@ static int json_parse_number(json_parser *ps, double *out, int *is_integer,
         q++;
     }
     {
+        const char *first_digit = q;
         size_t int_digits = 0;
         while (q < ps->end && *q >= '0' && *q <= '9') {
             q++;
@@ -271,7 +267,7 @@ static int json_parse_number(json_parser *ps, double *out, int *is_integer,
             json_set_error(ps->err, "invalid number");
             return -1;
         }
-        if (int_digits > 1 && *start == '0') {
+        if (int_digits > 1 && *first_digit == '0') {
             json_set_error(ps->err, "leading zeros are not allowed");
             return -1;
         }

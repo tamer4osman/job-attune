@@ -1497,6 +1497,7 @@ odk_status odk_client_evaluate_json_lang(odk_client *client,
 {
     odk_call_config call;
 
+    memset(&call, 0, sizeof(call));
     call.language = language;
     return odk_client_evaluate_json_lang_ex(client, input_text,
                                             queries_json, analysis_mode,
