@@ -103,7 +103,11 @@ jobs:
         run: |
           cmake -S . -B out -DCMAKE_BUILD_TYPE=Release
           cmake --build out
-          ctest --test-dir out --output-on-failure
+          # -N lists the registered tests so the count is visible in the log;
+          # --no-tests=error makes an empty run fail instead of reporting
+          # success without having executed a single test.
+          ctest --test-dir out -N
+          ctest --test-dir out --output-on-failure --no-tests=error
 
   # ------------------------------------------------------------- Python engine
   engine:
