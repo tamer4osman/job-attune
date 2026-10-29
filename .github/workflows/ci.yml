@@ -86,6 +86,13 @@ jobs:
         run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" all examples
       - name: Smoke test
         run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" test
+      # golden/ is gitignored, so a fresh runner has no corpus to replay.
+      # Generate it here, in the same compiler/flags the check runs under,
+      # instead of relying on another job's workspace.
+      - name: Generate the golden replay corpus (this runner has no corpus)
+        run: |
+          make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" golden
+          build/golden_tool gen golden
       - name: Golden corpus and hostile-input checks
         run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" golden-check hostile thread-probe
       - name: Documentation links and version consistency
