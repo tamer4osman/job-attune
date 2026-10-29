@@ -62,7 +62,10 @@ FROM oven/bun:1 AS ui-build
 WORKDIR /src
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
-COPY next.config.ts tsconfig.json postcss.config.mjs components.json next-env.d.ts eslint.config.mjs ./
+# next-env.d.ts is NOT copied on purpose: it is a machine-local generated file
+# (gitignored) that `next build` regenerates inside this stage, so a fresh
+# checkout has the exact same Docker build as a warmed-up developer tree.
+COPY next.config.ts tsconfig.json postcss.config.mjs components.json eslint.config.mjs ./
 COPY src ./src
 COPY public ./public
 # package.json "build" = `next build` + static/public copied into .next/standalone
