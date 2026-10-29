@@ -67,6 +67,44 @@ jobs:
             done
           done
 
+  kernel-matrix:
+    name: C kernel make (${{ matrix.os }}, ${{ matrix.cc }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: vendor/omnidecide-c
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, cc: gcc }
+          - { os: ubuntu-latest, cc: clang }
+          - { os: macos-latest, cc: clang }
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build (warnings are errors)
+        run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" all examples
+      - name: Smoke test
+        run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" test
+      - name: Golden corpus and hostile-input checks
+        run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" golden-check hostile thread-probe
+      - name: Documentation links and version consistency
+        run: make docs-check version-check
+
+  kernel-cmake:
+    name: C kernel cmake (ubuntu-latest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vendor/omnidecide-c
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure, build, test
+        run: |
+          cmake -S . -B out -DCMAKE_BUILD_TYPE=Release
+          cmake --build out
+          ctest --test-dir out --output-on-failure
+
   # ------------------------------------------------------------- Python engine
   engine:
     name: Python engine (45-check quality gate)
