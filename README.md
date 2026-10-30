@@ -253,7 +253,7 @@ scan) is regenerated with
 <details>
 <summary><strong>Repository layout</strong></summary>
 
-```
+```text
 src/                        Next.js app (UI + API routes + middleware)
 attune-engine/              engine.py, ckernel.py (C-kernel bridge), floors.py
                             (vendored floors contract), make_report.py,
