@@ -72,3 +72,4 @@ attune-data/runs/
 
 # vercel
 .vercel
+*.tar.gz
