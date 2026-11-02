@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2026 Tamer Osman
 #
-# Job Attune container images (multi-stage, three buildable targets).
+# Job Attune container images (multi-stage, two buildable targets).
 #
 #   kernel-build (internal) - compiles the vendored OmniDecide C kernel into
 #                             libomnidecide.so with the flags the Makefile
@@ -18,18 +18,18 @@
 #                bind-mounted at /app at run time, so code changes take
 #                effect without rebuilding:
 #                  docker build --target engine -t job-attune-engine .
-#                  docker run --rm -v D:/Projects/job-attune-1.0.0:/app \
+#                  docker run --rm -v D:/Projects/job-attune-1.1.0:/app \
 #                    -w /app job-attune-engine          # full QA gate
 #
 #   fullstack  - production-style image of the whole app (default target):
-#                Next.js standalone server + Node 22 runtime + the Python
-#                engine, compiled kernel, demo candidates and profile
+#                the stdlib-only Python server (server.py + web/) plus the
+#                Python engine, compiled kernel, demo candidates and profile
 #                templates. Runs on port 3000 and spawns the engine through
 #                the app's own /api/run and /api/report routes:
 #                  docker build -t job-attune-full .
 #                  docker run --rm -d -p 127.0.0.1:3000:3000 job-attune-full
 #                Use -v to persist or inspect run artifacts:
-#                  -v D:/Projects/job-attune-1.0.0/attune-data/runs:/app/attune-data/runs
+#                  -v D:/Projects/job-attune-1.1.0/attune-data/runs:/app/attune-data/runs
 
 # ---------- Stage 1: compile the C decision kernel ----------
 FROM debian:bookworm-slim AS kernel-build
@@ -57,36 +57,15 @@ FROM engine-base AS engine
 WORKDIR /app
 CMD ["python3", "scripts/check_python_side.py"]
 
-# ---------- Stage 3: build the Next.js UI with Bun ----------
-FROM oven/bun:1 AS ui-build
-WORKDIR /src
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
-# next-env.d.ts is NOT copied on purpose: it is a machine-local generated file
-# (gitignored) that `next build` regenerates inside this stage, so a fresh
-# checkout has the exact same Docker build as a warmed-up developer tree.
-COPY next.config.ts tsconfig.json postcss.config.mjs components.json eslint.config.mjs ./
-COPY src ./src
-COPY public ./public
-# package.json "build" = `next build` + static/public copied into .next/standalone
-RUN bun run build
-
-# ---------- Target: fullstack (Next.js app + engine + kernel) ----------
+# ---------- Target: fullstack (vanilla web app + engine + kernel) ----------
 FROM engine-base AS fullstack
-# Node 22 LTS runtime for the Next.js standalone server (bookworm's apt
-# Node is too old for the Next.js engine requirement).
-RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
- && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
- && apt-get install -y --no-install-recommends nodejs \
- && rm -rf /var/lib/apt/lists/*
-ENV NODE_ENV=production
-ENV PORT=3000
+# The whole UI is static files served by the stdlib-only server.py - no
+# Node.js, no bundler, no build stage.
+ENV ATTUNE_HOST=127.0.0.1
+ENV ATTUNE_PORT=3000
 WORKDIR /app
-# Next.js standalone bundle: server.js (+ its vendored node_modules/.next)
-COPY --from=ui-build /src/.next/standalone ./
-COPY --from=ui-build /src/.next/static ./.next/static
-COPY --from=ui-build /src/public ./public
+COPY server.py ./server.py
+COPY web ./web
 # Python engine and its vendored data floors/calibration files
 COPY attune-engine ./attune-engine
 # Kernel version header: ckernel.py reads ODK_LIBRARY_VERSION from
@@ -99,4 +78,4 @@ COPY --from=kernel-build /src/include ./vendor/omnidecide-c/include
 COPY attune-sample-data ./attune-sample-data
 COPY attune-data/templates ./attune-data/templates
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["python3", "server.py"]

@@ -4,10 +4,10 @@
 # Standalone, ready-to-run distributions for Windows, macOS and Linux.
 #
 # Every platform builds its own archive in scripts/standalone/package.sh:
-# the compiled C11 kernel, the Next.js standalone server, the Python engine
-# with reportlab/pypdf preinstalled, and the matching Node.js + CPython
-# runtimes - an unpacked archive runs with no prerequisites (no Bun, no
-# Node, no Python, no compiler installs).
+# the compiled C11 kernel, the vanilla web app (server.py + web/), the engine
+# with reportlab/pypdf preinstalled, and the bundled CPython runtime - an
+# unpacked archive runs with no prerequisites (no Python, no compiler, and
+# no Node.js anywhere).
 #
 #   kernel smoke    each platform compiles the kernel with the repo's
 #                   bit-identical flags and runs the real engine (bundled
@@ -42,9 +42,6 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  NEXT_TELEMETRY_DISABLED: "1"
-
 jobs:
   standalone:
     name: Standalone (${{ matrix.platform }})
@@ -65,14 +62,6 @@ jobs:
             platform: windows-x64
     steps:
       - uses: actions/checkout@v6
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Build the UI (type-checked production build)
-        shell: bash
-        run: |
-          bun install --frozen-lockfile
-          bun run build
 
       - name: Package the standalone distribution
         shell: bash

@@ -9,7 +9,9 @@
 #                  replay across gcc/clang x -O0/-O2/-O3 (2,013 frozen cases).
 #   engine         Python engine: the 45-check quality gate running through
 #                  the actual C kernel shared library (docker-parity flags).
-#   ui             TypeScript / JavaScript: ESLint, next build, tsc --noEmit.
+#   ui             Vanilla JS frontend: server boot, guarded-API contract
+#                  and a headless-Chromium walk of the full wizard
+#                  (Playwright, installed ad hoc).
 #   docker-engine  The QA engine image builds and runs its gate as CMD
 #                  against the freshly checked-out tree.
 #
@@ -146,28 +148,45 @@ jobs:
           OMNIDECIDE_C_LIB: ${{ github.workspace }}/vendor/omnidecide-c/build/libomnidecide.so
         run: python scripts/check_python_side.py
 
-  # --------------------------------------------------------- TypeScript / JS UI
+  # ------------------------------------------------------------- Vanilla JS UI
   ui:
-    name: TypeScript / JS UI (Next.js + Bun)
+    name: Vanilla JS UI (server + headless Chromium)
     runs-on: ubuntu-latest
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v6
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
 
-      - name: Install dependencies (frozen lockfile)
-        run: bun install --frozen-lockfile
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt playwright
 
-      - name: ESLint
-        run: bun run lint
+      - name: Compile the kernel shared library (docker-parity flags)
+        run: |
+          mkdir -p vendor/omnidecide-c/build
+          cc -std=c11 -ffp-contract=off -O2 -Wall -Wextra -pedantic -fPIC -shared \
+            -Ivendor/omnidecide-c/include -Ivendor/omnidecide-c/src \
+            vendor/omnidecide-c/src/*.c -lm \
+            -o vendor/omnidecide-c/build/libomnidecide.so
 
-      - name: Next.js production build
-        run: bun run build
+      - name: Install Chromium for Playwright
+        run: python -m playwright install chromium --with-deps
 
-      - name: TypeScript check (tsc --noEmit)
-        run: bunx tsc --noEmit
+      - name: Boot the server and drive the full wizard headlessly
+        env:
+          ATTUNE_ROOT: ${{ github.workspace }}
+        run: |
+          python server.py &
+          for i in $(seq 1 30); do
+            curl -fsS -H "X-Attune-Client: cli" http://127.0.0.1:3000/api/template \
+              && break || sleep 1
+          done
+          python scripts/e2e_check.py
+          kill %1
 
   # ------------------------------------------------------------ Docker engine image
   docker-engine:

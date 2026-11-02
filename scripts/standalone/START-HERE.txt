@@ -1,26 +1,27 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
-Job Attune 1.0.0 - standalone distribution
+Job Attune 1.1.0 - standalone distribution
 GDPR-safe, local-first resume screening
 https://github.com/tamer4osman/job-attune
 
 WHAT THIS IS
 
   A ready-to-run package. The compiled omnidecide-c C11 decision kernel,
-  the Next.js UI server, the Python scoring engine (with the PDF-export
-  packages preinstalled) and the matching Node.js + CPython runtimes are
-  all bundled. Nothing to install, nothing to compile, no cloud, no
+  the web app (a stdlib-only Python server serving a vanilla HTML/CSS/JS
+  UI - no Node.js, no build step), the Python scoring engine (with the
+  PDF-export packages preinstalled) and the matching CPython 3.12 runtime
+  are all bundled. Nothing to install, nothing to compile, no cloud, no
   accounts, no API keys.
 
   Contents:
 
-    app/          the application: UI server, scoring engine, demo corpus
-                  (attune-sample-data) and job-profile templates
+    app/          the application: web server + UI, scoring engine, demo
+                  corpus (attune-sample-data) and job-profile templates
                   (attune-data/templates); run outputs land in
                   app/attune-data/runs/<run-id>/
-    runtime/      bundled runtimes: Node.js 22 LTS (from nodejs.org) and
-                  CPython 3.12 (python-build-standalone build) with
-                  reportlab + pypdf already installed
+    runtime/      bundled runtime: CPython 3.12
+                  (python-build-standalone build) with reportlab + pypdf
+                  already installed
 
 HOW TO RUN
 
