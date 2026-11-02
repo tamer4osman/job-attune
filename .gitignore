@@ -53,7 +53,7 @@ attune-data/runs/
 debug_*.py
 scripts/_inspect_*.py
 scripts/check_*.py
-test_*.py
+scripts/tmp_pycheck/test_*.py
 
 # Playwright MCP test artifacts
 .playwright-mcp/

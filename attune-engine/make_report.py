@@ -61,19 +61,20 @@ rl_config.invariant = 1
 # --------------------------------------------------------------------------- #
 _FONTS_DIR = Path(__file__).resolve().parent / "data" / "pdf-fonts"
 
+# (file, registered name, family, bold, italic)
+_FONT_PAIRS = [
+    ("DM Sans-Regular.ttf", "DM Sans", "DM Sans", 0, 0),
+    ("DM Sans-Bold.ttf", "DM Sans-Bold", "DM Sans", 1, 0),
+    ("DM Sans-Italic.ttf", "DM Sans-Italic", "DM Sans", 0, 1),
+    ("Boldonse-Regular.ttf", "Boldonse", "Boldonse", 0, 0),
+    ("Playfair Display-Regular.ttf", "Playfair Display", "Playfair Display", 0, 0),
+    ("Playfair Display-Italic.ttf", "Playfair Display-Italic", "Playfair Display", 0, 1),
+]
+
 
 def _register_fonts() -> None:
     """Register the self-hosted Google Fonts for use in both canvas text and\n    reportlab's HTML Paragraph parser. The parser needs an entry in the\n    ps2tt/tt2ps mapping to decompose a font name into family/bold/italic;\n    registerFont alone is not enough for that path.\n    """
-    pairs = [
-        # (file, registered name, family, bold, italic)
-        ("DM Sans-Regular.ttf", "DM Sans", "DM Sans", 0, 0),
-        ("DM Sans-Bold.ttf", "DM Sans-Bold", "DM Sans", 1, 0),
-        ("DM Sans-Italic.ttf", "DM Sans-Italic", "DM Sans", 0, 1),
-        ("Boldonse-Regular.ttf", "Boldonse", "Boldonse", 0, 0),
-        ("Playfair Display-Regular.ttf", "Playfair Display", "Playfair Display", 0, 0),
-        ("Playfair Display-Italic.ttf", "Playfair Display-Italic", "Playfair Display", 0, 1),
-    ]
-    for fname, name, family, bold, italic in pairs:
+    for fname, name, family, bold, italic in _FONT_PAIRS:
         path = _FONTS_DIR / fname
         if not path.exists():
             print(f"WARNING: missing font file {path}", file=sys.stderr)
@@ -87,6 +88,40 @@ def _register_fonts() -> None:
 
 
 _register_fonts()
+
+
+def _verify_fonts_ready() -> None:
+    """Ensure every required TTF is present and registered before export.
+
+    Falls back to Helvetica only when the caller explicitly opts in via
+    ALLOW_MISSING_FONTS=1; otherwise the process exits with a diagnostic so
+    a broken font install can never silently produce a mis-rendered PDF.
+    """
+    missing = [f for f, _, _, _, _ in _FONT_PAIRS if not (_FONTS_DIR / f).exists()]
+    if missing:
+        msg = (f"FATAL: required font files missing from {_FONTS_DIR}: "
+               f"{', '.join(missing)}")
+        if os.environ.get("ALLOW_MISSING_FONTS") == "1":
+            print(msg, file=sys.stderr)
+            return
+        print(msg, file=sys.stderr)
+        raise SystemExit(1)
+
+    unregistered = [
+        name for _, name, _, _, _ in _FONT_PAIRS
+        if not pdfmetrics.getFont(name) or not pdfmetrics.getFont(name).face
+    ]
+    if unregistered:
+        msg = (f"FATAL: fonts not registered with reportlab: "
+               f"{', '.join(unregistered)}")
+        if os.environ.get("ALLOW_MISSING_FONTS") == "1":
+            print(msg, file=sys.stderr)
+            return
+        print(msg, file=sys.stderr)
+        raise SystemExit(1)
+
+
+_verify_fonts_ready()
 
 PAPER = colors.HexColor("#fefae7")
 INK = colors.HexColor("#3b001b")
@@ -112,12 +147,13 @@ _SANS_BOLD = "DM Sans-Bold"
 _SANS_ITALIC = "DM Sans-Italic"
 _LABEL_ITALIC = "Playfair Display-Italic"
 
+# (label, text_color, background_color) — background_color is None unless set.
 RECOMMENDATION_LABELS = {
-    "strong_front_runner": ("Strong front-runner - proceed to shortlist / offer", MINT),
-    "proceed_to_interview": ("Proceed to interview", FOREST),
-    "hold_review": ("Hold - manual review before any decision", AMBER),
-    "blocked_manual_review": ("Blocked - manual review required (unreadable documents)", ROSE),
-    "no_strong_match_this_round": ("No strong match this round", ROSE),
+    "strong_front_runner": ("Strong front-runner - proceed to shortlist / offer", INK, MINT),
+    "proceed_to_interview": ("Proceed to interview", FOREST, None),
+    "hold_review": ("Hold - manual review before any decision", AMBER, None),
+    "blocked_manual_review": ("Blocked - manual review required (unreadable documents)", ROSE, None),
+    "no_strong_match_this_round": ("No strong match this round", ROSE, None),
 }
 
 
@@ -394,7 +430,8 @@ def verdict_section(results, styles) -> list:
     v = comp.get("verdict")
     if not v:
         return []
-    label, color = RECOMMENDATION_LABELS.get(v.get("recommendation"), ("Review recommended", AMBER))
+    label, color, bg = RECOMMENDATION_LABELS.get(
+        v.get("recommendation"), ("Review recommended", AMBER, None))
     hexcol = "#%02x%02x%02x" % (int(color.red * 255), int(color.green * 255), int(color.blue * 255))
     rows = [
         [Paragraph("<b>Position verdict</b>", cell),
@@ -407,7 +444,8 @@ def verdict_section(results, styles) -> list:
         Paragraph(esc(f"{top} vs {runner}"
                       + (f" (margin {v['margin_to_runner_up']:.1f} pts)" if v.get("margin_to_runner_up") is not None else "")), cell),
     ])
-    story = [table(rows, [44 * mm, 136 * mm], zebra=False)]
+    extra = [("BACKGROUND", (1, 0), (1, 0), bg)] if bg else None
+    story = [table(rows, [44 * mm, 136 * mm], zebra=False, extra_style=extra)]
     story.append(Spacer(1, 2 * mm))
     story.append(Paragraph(esc(v.get("rationale", "")), body))
     steps = v.get("next_steps") or []

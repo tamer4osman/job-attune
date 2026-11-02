@@ -6,6 +6,7 @@ Usage: python scripts/test_pdf_theme.py <run-dir>
 from __future__ import annotations
 
 import base64
+import os
 import re
 import shutil
 import subprocess
@@ -14,7 +15,9 @@ import zlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-VENV_PY = r"C:\Users\tamer\AppData\Local\Temp\opencode\attune-venv\Scripts\python.exe"
+# Default to the invoking interpreter so the documented command works on any
+# machine; allow an explicit override via the TEST_PY env var.
+VENV_PY = os.environ.get("TEST_PY", sys.executable)
 
 # Theme tokens from web/css/app.css, as reportlab renders them (RGB 0..1).
 # reportlab outputs normalized decimal RGB without leading zeros:
@@ -46,6 +49,34 @@ def decode_ascii85(data: bytes) -> bytes:
         if b'~>' in data:
             data = data.split(b'~>')[0]
         return base64.a85decode(data, adobe=False)
+
+
+def _find_font_dicts(pdf: bytes) -> list[bytes]:
+    """Return the raw dictionary bodies of every /Font object in the PDF."""
+    out = []
+    for m in re.finditer(
+        rb"(\d+) 0 obj\s*<<(.*?)>>\s*endobj",
+        pdf, re.S,
+    ):
+        body = m.group(2)
+        if b"/Type" in body and b"/Font" in body:
+            out.append(body)
+    return out
+
+
+def _basefont_names(pdf: bytes) -> list[str]:
+    """Extract /BaseFont names from all /Font dictionary objects.
+
+    This inspects the PDF's font *resources* rather than the decompressed
+    content-stream blob, so a font name can't be confused with body text
+    that happens to contain the same substring.
+    """
+    names = []
+    for body in _find_font_dicts(pdf):
+        m = re.search(rb"/BaseFont\s*/([^>\s]+(?:\s+[^>\s/]+)*)", body)
+        if m:
+            names.append(m.group(1).decode("latin-1"))
+    return names
 
 
 def decompressed_blob(pdf: bytes) -> str:
@@ -134,17 +165,20 @@ def main() -> int:
 
     pdf = scratch / "exports" / "batch-report.pdf"
     print(f"batch-report.pdf: {pdf.stat().st_size} bytes")
-    blob = decompressed_blob(pdf.read_bytes())
+    pdf_bytes = pdf.read_bytes()
+    blob = decompressed_blob(pdf_bytes)
+    font_names = _basefont_names(pdf_bytes)
     print(f"decompressed streams: {len(blob)} chars")
+    print(f"embedded font resource names: {font_names}")
 
     checks = {
-        "DMSans embedded": "DMSans" in blob,
-        "Boldonse embedded": "Boldonse" in blob,
-        "Playfair embedded": "Playfair" in blob,
+        "DMSans embedded": any("DM Sans" in f or "DMSans" in f for f in font_names),
+        "Boldonse embedded": any("Boldonse" in f for f in font_names),
+        "Playfair embedded": any("Playfair" in f for f in font_names),
         "cream paper fill": PAPER in blob,
         "forest header bar": FOREST in blob,
         "orange accent": ORANGE in blob,
-        "no raw Helvetica": "Helvetica" not in blob.replace("DMSans", "").replace("Boldonse", "").replace("Playfair", ""),
+        "no raw Helvetica": not any("Helvetica" in f for f in font_names),
     }
     ok = True
     for label, passed in checks.items():
