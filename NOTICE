@@ -17,3 +17,16 @@ licensed separately and retain their own notices:
 - Unicode Character Database 15.1.0 data bundled with the kernel,
   subject to the Unicode License v3 (reproduced verbatim in
   vendor/omnidecide-c/THIRD_PARTY_NOTICES.md).
+- Self-hosted web fonts under web/fonts/ (SIL Open Font License 1.1,
+  full text in web/fonts/OFL.txt):
+  - DM Sans - Copyright 2014 The DM Sans Project Authors
+    (https://github.com/googlefonts/dm-fonts), with Reserved Font Names
+    "DM Sans".
+  - Playfair Display - Copyright 2016 Claus Eggers Sorensen
+    (https://github.com/clauseggers/Playfair-Display), with Reserved Font
+    Names "Playfair Display".
+  - Boldonse - Copyright 2024 The Boldonse Project Authors
+    (https://github.com/googlefonts/boldonse), with Reserved Font Name
+    "Boldonse".
+- Icon set in web/js/icons.js generated from lucide-static 0.525.0 (ISC
+  License, https://lucide.dev) by scripts/fetch_icons.py.

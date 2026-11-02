@@ -1,0 +1,10 @@
+{
+  "entry": [
+    "web/js/app.js",
+    "web/css/app.css",
+    "web/index.html"
+  ],
+  "audit": {
+    "healthBaseline": ".codebase-intel/fallow-health-baseline.json"
+  }
+}
