@@ -4,5 +4,3 @@ build/
 *.exe
 smoke_test_brain.json
 learning_brain.json
-*.gz
-
