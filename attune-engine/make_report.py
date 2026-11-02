@@ -93,12 +93,16 @@ _register_fonts()
 _HELVETICA_FALLBACK = False
 
 
-def _verify_fonts_ready() -> None:
+def _verify_fonts_ready() -> bool:
     """Ensure every required TTF is present and registered before export.
 
-    Falls back to Helvetica only when the caller explicitly opts in via
-    ALLOW_MISSING_FONTS=1; otherwise the process exits with a diagnostic so
-    a broken font install can never silently produce a mis-rendered PDF.
+    Returns True when the caller should fall back to Helvetica (fonts
+    missing/unregistered AND ALLOW_MISSING_FONTS=1). Returns False when
+    fonts are ready. Raises SystemExit when fonts are broken and the
+    caller has not opted in to the fallback.
+
+    The return value drives _HELVETICA_FALLBACK so a later successful
+    check clears the flag instead of leaving it stale.
     """
     global _HELVETICA_FALLBACK
 
@@ -125,9 +129,12 @@ def _verify_fonts_ready() -> None:
         if os.environ.get("ALLOW_MISSING_FONTS") == "1":
             _HELVETICA_FALLBACK = True
             print(msg, file=sys.stderr)
-            return
+            return True
         print(msg, file=sys.stderr)
         raise SystemExit(1)
+
+    _HELVETICA_FALLBACK = False
+    return False
 
 
 _verify_fonts_ready()
