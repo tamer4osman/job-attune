@@ -31,6 +31,7 @@ const state = {
   runId: null,
   starting: false,
   startError: null,
+  profileMsg: null,
   results: null,
   resultsError: null,
   decisions: [],

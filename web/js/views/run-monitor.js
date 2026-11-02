@@ -97,8 +97,10 @@ export function RunMonitor(state, actions) {
   }
 
   function renderFailed(messageText) {
-    head.querySelector(".card-title").replaceChild(icon("AlertTriangle", 20), head.querySelector(".card-title").firstChild);
-    head.querySelector(".card-title").appendChild(document.createTextNode("Screening run failed"));
+    const title = head.querySelector(".card-title");
+    clear(title); // drop the spinner icon and stale "in progress" text
+    title.appendChild(icon("AlertTriangle", 20));
+    title.appendChild(document.createTextNode("Screening run failed."));
     card.classList.add("band-weak");
     clear(body);
     body.appendChild(el("div", {

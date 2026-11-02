@@ -56,6 +56,7 @@ ICONS = {
     "RotateCcw": ["rotate-ccw"],
     "Save": ["save"],
     "Scale": ["scale"],
+    "ScrollText": ["scroll-text"],
     "Search": ["search"],
     "ShieldAlert": ["shield-alert"],
     "ShieldCheck": ["shield-check"],
@@ -66,6 +67,7 @@ ICONS = {
     "TrendingUp": ["trending-up"],
     "UserRound": ["user-round"],
     "UserSearch": ["user-search"],
+    "Users": ["users"],
     "Wrench": ["wrench"],
     "X": ["x"],
 }

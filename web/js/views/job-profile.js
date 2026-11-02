@@ -204,6 +204,12 @@ export function JobProfileEditor(state, actions) {
   for (const key of CATEGORY_KEYS) updateBadges(key);
   updateTotals();
 
+  // a previous editor instance may have queued a message before remounting
+  if (state.profileMsg) {
+    setMsg(state.profileMsg);
+    state.profileMsg = null;
+  }
+
   /* ---------------- templates ---------------------------------------- */
   async function loadTemplate(name) {
     try {
@@ -211,8 +217,10 @@ export function JobProfileEditor(state, actions) {
       const converted = fromEngineProfile(d.profile);
       converted.profileName = d.profile.profileName ?? name;
       state.profile = converted;
+      // actions.render() remounts this editor, so hand the message over via
+      // state; setMsg here would target the detached (old) DOM and be lost.
+      state.profileMsg = `Loaded template "${name}".`;
       actions.render();
-      setMsg(`Loaded template "${name}".`);
     } catch (err) {
       setMsg(err.message);
     }

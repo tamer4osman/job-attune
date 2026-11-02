@@ -111,11 +111,15 @@ export function labelFor(target, text) {
 
 /** Styled native select (replaces the Radix select - same a11y for free). */
 export function select(options, attrs = {}) {
-  const sel = el("select", { class: "select", ...attrs });
+  // The legacy `value` attribute does nothing on an empty <select>, so
+  // apply it as a property only after the options exist.
+  const { value, ...rest } = attrs;
+  const sel = el("select", { class: "select", ...rest });
   for (const opt of options) {
     sel.appendChild(el("option", { value: opt.value, disabled: opt.disabled || undefined },
       opt.label));
   }
+  if (value != null) sel.value = value;
   return sel;
 }
 

@@ -53,7 +53,11 @@ function hideTooltip() {
 }
 
 function bindTip(shape, getText) {
-  shape.addEventListener("mouseenter", (ev) => { tooltip(getText()); moveTooltip(ev); });
+  // getText may be a plain string or a callback resolving on mouseenter.
+  shape.addEventListener("mouseenter", (ev) => {
+    tooltip(typeof getText === "function" ? getText(ev) : getText);
+    moveTooltip(ev);
+  });
   shape.addEventListener("mousemove", moveTooltip);
   shape.addEventListener("mouseleave", hideTooltip);
 }
