@@ -129,9 +129,16 @@ jobs:
           # pinned .deb also depends on.
           sudo apt-get update -qq
           sudo apt-get install -y -qq cppcheck
-          curl -fsSLO http://deb.debian.org/debian/pool/main/c/cppcheck/cppcheck_2.17.1-2_amd64.deb
-          curl -fsSLO http://deb.debian.org/debian/pool/main/t/tinyxml2/libtinyxml2-11_11.0.0+dfsg-1+b1_amd64.deb
-          sudo dpkg -i cppcheck_2.17.1-2_amd64.deb libtinyxml2-11_11.0.0+dfsg-1+b1_amd64.deb
+          # Fetch over HTTPS and verify both pinned packages against their
+          # trusted SHA256 checksums before anything is installed; a failed
+          # verification aborts the step before dpkg runs.
+          curl -fsSLO https://deb.debian.org/debian/pool/main/c/cppcheck/cppcheck_2.17.1-2_amd64.deb
+          curl -fsSLO "https://deb.debian.org/debian/pool/main/t/tinyxml2/libtinyxml2-11_11.0.0+dfsg-1+b1_amd64.deb"
+          printf '%s  %s\n%s  %s\n' \
+            b040d87c1b73c51437e3365d3dbb60d1b08be8a90d4a19dfe026ead0e5a478db cppcheck_2.17.1-2_amd64.deb \
+            6b61fb15444bcd6b516163f661d6af85eb98f4e89b880060889e9ec8e4e3ad64 "libtinyxml2-11_11.0.0+dfsg-1+b1_amd64.deb" \
+            | sha256sum -c - \
+            && sudo dpkg -i cppcheck_2.17.1-2_amd64.deb "libtinyxml2-11_11.0.0+dfsg-1+b1_amd64.deb"
           cppcheck --version
 
       # jscpd runs via the runner's preinstalled Node.js.
