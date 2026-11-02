@@ -22,6 +22,7 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 from pathlib import Path
 
 import reportlab.rl_config as rl_config
@@ -29,6 +30,9 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
 from reportlab.platypus import (
     PageBreak,
     Paragraph,
@@ -42,19 +46,75 @@ from reportlab.platypus import (
 # /CreationDate), so exports can be hash-verified across re-runs.
 rl_config.invariant = 1
 
-ENGINE_EMERALD = colors.Color(0.055, 0.47, 0.33)
-SLATE_900 = colors.Color(0.09, 0.13, 0.19)
-SLATE_600 = colors.Color(0.38, 0.43, 0.50)
-SLATE_100 = colors.Color(0.94, 0.96, 0.97)
-AMBER = colors.Color(0.72, 0.45, 0.05)
-ROSE = colors.Color(0.72, 0.15, 0.25)
-EMERALD_LIGHT = colors.Color(0.87, 0.94, 0.90)
-AMBER_LIGHT = colors.Color(0.995, 0.945, 0.82)
-ROSE_LIGHT = colors.Color(0.995, 0.905, 0.905)
+# --------------------------------------------------------------------------- #
+# Visual identity - mirrors web/css/app.css :root tokens exactly so exported
+# PDFs look like the application that produced them.
+#   paper   #fefae7   cream, the page background
+#   ink     #3b001b   deep warm text
+#   forest  #09352d   primary dark (headings, header bar)
+#   orange  #f26c17   accent / primary button
+#   amber   #d9a514   warnings
+#   rose    #bd4a6e   failures
+#   mint    #86efac   strong evidence
+# Fonts: the same self-hosted Google Fonts the web UI uses (scripts/convert_fonts.py
+# turns the woff2 files under web/fonts/ into the TTFs below).
+# --------------------------------------------------------------------------- #
+_FONTS_DIR = Path(__file__).resolve().parent / "data" / "pdf-fonts"
+
+
+def _register_fonts() -> None:
+    """Register the self-hosted Google Fonts for use in both canvas text and\n    reportlab's HTML Paragraph parser. The parser needs an entry in the\n    ps2tt/tt2ps mapping to decompose a font name into family/bold/italic;\n    registerFont alone is not enough for that path.\n    """
+    pairs = [
+        # (file, registered name, family, bold, italic)
+        ("DM Sans-Regular.ttf", "DM Sans", "DM Sans", 0, 0),
+        ("DM Sans-Bold.ttf", "DM Sans-Bold", "DM Sans", 1, 0),
+        ("DM Sans-Italic.ttf", "DM Sans-Italic", "DM Sans", 0, 1),
+        ("Boldonse-Regular.ttf", "Boldonse", "Boldonse", 0, 0),
+        ("Playfair Display-Regular.ttf", "Playfair Display", "Playfair Display", 0, 0),
+        ("Playfair Display-Italic.ttf", "Playfair Display-Italic", "Playfair Display", 0, 1),
+    ]
+    for fname, name, family, bold, italic in pairs:
+        path = _FONTS_DIR / fname
+        if not path.exists():
+            print(f"WARNING: missing font file {path}", file=sys.stderr)
+            continue
+        try:
+            pdfmetrics.registerFont(TTFont(name, str(path)))
+            addMapping(family, bold, italic, name)
+            print(f"  registered {name} ({fname})")
+        except Exception as exc:
+            print(f"WARNING: failed to register {name}: {exc}", file=sys.stderr)
+
+
+_register_fonts()
+
+PAPER = colors.HexColor("#fefae7")
+INK = colors.HexColor("#3b001b")
+FOREST = colors.HexColor("#09352d")
+ORANGE = colors.HexColor("#f26c17")
+AMBER = colors.HexColor("#d9a514")
+ROSE = colors.HexColor("#bd4a6e")
+MINT = colors.HexColor("#86efac")
+SLATE_900 = INK
+SLATE_600 = colors.HexColor("#6b5e63")
+SLATE_100 = colors.HexColor("#f3ead9")
+ENGINE_EMERALD = ORANGE  # legacy name kept for call-site compatibility
+EMERALD_LIGHT = colors.HexColor("#fbe0c8")   # orange 50  (strong evidence)
+AMBER_LIGHT = colors.HexColor("#faeec7")    # amber 100 (partial evidence)
+ROSE_LIGHT = colors.HexColor("#f2dde5")     # rose 100  (weak / gap)
+
+# Boldonse (uppercase display) is used for the cover title; Playfair Display
+# (italic) for the subtitle, exactly like the web header.
+_DISPLAY = "Boldonse"
+_LABEL = "Playfair Display"
+_SANS = "DM Sans"
+_SANS_BOLD = "DM Sans-Bold"
+_SANS_ITALIC = "DM Sans-Italic"
+_LABEL_ITALIC = "Playfair Display-Italic"
 
 RECOMMENDATION_LABELS = {
-    "strong_front_runner": ("Strong front-runner - proceed to shortlist / offer", ENGINE_EMERALD),
-    "proceed_to_interview": ("Proceed to interview", colors.Color(0.10, 0.55, 0.55)),
+    "strong_front_runner": ("Strong front-runner - proceed to shortlist / offer", MINT),
+    "proceed_to_interview": ("Proceed to interview", FOREST),
     "hold_review": ("Hold - manual review before any decision", AMBER),
     "blocked_manual_review": ("Blocked - manual review required (unreadable documents)", ROSE),
     "no_strong_match_this_round": ("No strong match this round", ROSE),
@@ -92,11 +152,16 @@ def folder_name_scrubber(results) -> object:
 
 def build_styles():
     ss = getSampleStyleSheet()
-    h1 = ParagraphStyle("H1", parent=ss["Title"], fontSize=20, textColor=SLATE_900, spaceAfter=2 * mm, alignment=0)
-    h2 = ParagraphStyle("H2", parent=ss["Heading2"], fontSize=13, textColor=ENGINE_EMERALD, spaceBefore=5 * mm, spaceAfter=2 * mm, alignment=0)
-    h3 = ParagraphStyle("H3", parent=ss["Heading3"], fontSize=10.5, textColor=SLATE_900, spaceBefore=3 * mm, spaceAfter=1.5 * mm, alignment=0)
-    body = ParagraphStyle("Body", parent=ss["BodyText"], fontSize=9.5, leading=13, textColor=SLATE_900, alignment=0)
-    small = ParagraphStyle("Small", parent=body, fontSize=8, leading=10.5, textColor=SLATE_600)
+    h1 = ParagraphStyle("H1", parent=ss["Title"], fontName=_DISPLAY, fontSize=26,
+                        textColor=FOREST, spaceAfter=3 * mm, alignment=0)
+    h2 = ParagraphStyle("H2", parent=ss["Heading2"], fontName=_SANS_BOLD, fontSize=13,
+                        textColor=ORANGE, spaceBefore=6 * mm, spaceAfter=2.5 * mm, alignment=0)
+    h3 = ParagraphStyle("H3", parent=ss["Heading3"], fontName=_SANS_BOLD, fontSize=10.5,
+                        textColor=INK, spaceBefore=3 * mm, spaceAfter=1.5 * mm, alignment=0)
+    body = ParagraphStyle("Body", parent=ss["BodyText"], fontName=_SANS, fontSize=9.5,
+                          leading=13, textColor=INK, alignment=0)
+    small = ParagraphStyle("Small", parent=body, fontSize=8, leading=10.5,
+                           textColor=SLATE_600)
     cell = ParagraphStyle("Cell", parent=body, fontSize=8.5, leading=11)
     cellsm = ParagraphStyle("CellSm", parent=cell, fontSize=7.5, leading=9)
     return h1, h2, h3, body, small, cell, cellsm
@@ -105,11 +170,11 @@ def build_styles():
 def table(data, widths, align="CENTER", zebra=True, extra_style=None, font_size=8.5):
     t = Table(data, colWidths=widths, hAlign=align, repeatRows=1)
     style = [
-        ("BACKGROUND", (0, 0), (-1, 0), SLATE_900),
+        ("BACKGROUND", (0, 0), (-1, 0), FOREST),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 0), (-1, 0), _SANS_BOLD),
         ("FONTSIZE", (0, 0), (-1, -1), font_size),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.Color(0.8, 0.83, 0.86)),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.Color(0.80, 0.74, 0.66)),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
@@ -137,15 +202,19 @@ def score_cell_color(score) -> colors.Color:
 def header_footer(title):
     def draw(canvas, doc):
         canvas.saveState()
-        canvas.setFillColor(ENGINE_EMERALD)
+        # cream paper background so the page never renders as raw white
+        canvas.setFillColor(PAPER)
+        canvas.rect(0, 0, A4[0], A4[1], stroke=0, fill=1)
+        # forest-green header bar, matching the web .site-header accent
+        canvas.setFillColor(FOREST)
         canvas.rect(0, A4[1] - 14 * mm, A4[0], 14 * mm, stroke=0, fill=1)
         canvas.setFillColor(colors.white)
-        canvas.setFont("Helvetica-Bold", 9)
+        canvas.setFont(_SANS_BOLD, 9)
         canvas.drawString(15 * mm, A4[1] - 9 * mm, safe("Job Attune - GDPR-safe resume screening"))
-        canvas.setFont("Helvetica", 8)
+        canvas.setFont(_SANS, 8)
         canvas.drawRightString(A4[0] - 15 * mm, A4[1] - 9 * mm, safe(title))
         canvas.setFillColor(SLATE_600)
-        canvas.setFont("Helvetica", 7.5)
+        canvas.setFont(_SANS, 7.5)
         canvas.drawString(15 * mm, 9 * mm, safe("100% local processing - no data leaves this machine - pseudonymous by default"))
         canvas.drawRightString(A4[0] - 15 * mm, 9 * mm, safe(f"Page {doc.page}"))
         canvas.restoreState()
@@ -199,7 +268,7 @@ def profile_card_table(cand, cell, cellsm):
     ]
     t = Table(rows, colWidths=[26 * mm, 64 * mm, 26 * mm, 64 * mm], hAlign="CENTER")
     t.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.Color(0.8, 0.83, 0.86)),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.Color(0.80, 0.74, 0.66)),
         ("BACKGROUND", (0, 0), (0, -1), SLATE_100), ("BACKGROUND", (2, 0), (2, -1), SLATE_100),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
@@ -627,6 +696,25 @@ def main() -> int:
 
     # ---------------- batch report (comprehensive position report) ----------------
     story = []
+    # Cover block: Boldonse display title + Playfair Display italic subtitle,
+    # matching the web header's typography and the cream/orange/forest palette.
+    cover_title = ParagraphStyle("CoverTitle", fontName=_DISPLAY, fontSize=30,
+                                 textColor=FOREST, spaceAfter=4 * mm, alignment=1)
+    cover_sub = ParagraphStyle("CoverSub", fontName=_LABEL_ITALIC, fontSize=14,
+                               textColor=ORANGE, spaceAfter=2 * mm, alignment=1)
+    story.append(Spacer(1, 18 * mm))
+    story.append(Paragraph(safe(prof.get("title", "Position")), cover_title))
+    story.append(Paragraph(safe(prof.get("company", "")), cover_sub))
+    story.append(Spacer(1, 4 * mm))
+    story.append(Paragraph(
+        safe(f"Run {results['run_id']} &middot; {results['created_at']} &middot; "
+             f"{st['candidates_total']} applicants screened"), small))
+    story.append(Spacer(1, 3 * mm))
+    story.append(Paragraph(
+        safe("Candidates are pseudonymous (sha256-based references). The mapping to original folder names stays on this machine and is never exported."),
+        small))
+    story.append(PageBreak())
+
     story.append(Paragraph("Position Report", h1))
     story.append(Paragraph(
         safe(f"{prof.get('title', '')} - {prof.get('company', '')} | Run {results['run_id']} | {results['created_at']}"),
@@ -706,7 +794,9 @@ def main() -> int:
     for ref in results["ranking"]:
         c = by_ref[ref]
         label = label_for(c, pseudonymous)
-        story2 = [Paragraph(f"Candidate Report - {esc(label)}", h1),
+        cand_title = ParagraphStyle("CandTitle", fontName=_DISPLAY, fontSize=22,
+                                    textColor=FOREST, spaceAfter=2 * mm, alignment=1)
+        story2 = [Paragraph(safe(f"Candidate Report - {esc(label)}"), cand_title),
                   Paragraph(safe(f"{prof.get('title', '')} - {prof.get('company', '')} | Run {results['run_id']}"), small)]
         story2.append(Paragraph(esc(c["overall_assessment"]), body))
         story2.extend(dossier_flow(c, styles, pseudonymous))
