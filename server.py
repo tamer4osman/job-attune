@@ -10,8 +10,9 @@ with a zero-dependency Python HTTP server that:
   * implements the exact same ``/api`` contract as documented in docs/API.md
     (browse, scan, run, run/status, run/results, report, audit, template);
   * keeps the loopback guard: every ``/api`` request must carry the
-    ``X-Attune-Client`` header, and ``Sec-Fetch-Site: cross-site`` requests
-    are rejected outright (drive-by CSRF / DNS-rebinding mitigation);
+    ``X-Attune-Client`` header, name this server's loopback ``Host``, and
+    ``Sec-Fetch-Site: cross-site`` requests are rejected outright (drive-by
+    CSRF / DNS-rebinding mitigation);
   * spawns the deterministic Python engine and the PDF reporter as child
     processes, exactly like the old Node routes did.
 
@@ -656,11 +657,21 @@ class AttuneHandler(BaseHTTPRequestHandler):
     # ---- loopback guard (port of src/middleware.ts) ---------------------- #
 
     def _guard_passes(self) -> bool:
-        """Every /api request must carry X-Attune-Client; cross-site browser
-        requests are rejected. Cross-site `no-cors` fetches cannot set custom
-        headers, which kills the realistic drive-by CSRF vector; plain HTTP
-        clients must send the header explicitly, e.g. -H "X-Attune-Client: cli".
+        """Every /api request must name this server's loopback Host, carry
+        X-Attune-Client and not be a cross-site browser request. The Host
+        check breaks DNS-rebinding (a rebinding attack would have to send
+        our exact loopback host:port); cross-site `no-cors` fetches cannot
+        set headers, killing the realistic drive-by CSRF vector. Plain HTTP
+        clients must set both explicitly, e.g.
+        curl -H "Host: 127.0.0.1:3000" -H "X-Attune-Client: cli".
         """
+        port = self.server.server_address[1]  # the actually bound listener
+        host = (self.headers.get("Host") or "").strip().lower()
+        if host not in (f"localhost:{port:d}",
+                        f"127.0.0.1:{port:d}",
+                        f"[::1]:{port:d}"):
+            self._json_error("Forbidden: missing or mismatched Host header", 403)
+            return False
         if self.headers.get("Sec-Fetch-Site") == "cross-site":
             self._json_error("Forbidden: cross-site requests are not allowed", 403)
             return False
