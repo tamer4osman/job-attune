@@ -1,9 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
-# Job Attune 1.0.0 - source archive
+# Job Attune 1.1.0 - source archive
 
-GDPR-safe resume screening: a Next.js UI driving a deterministic Python scoring
-engine, running on the omnidecide-c 1.0.0 C11 decision kernel (vendored under
+GDPR-safe resume screening: a vanilla HTML/CSS/JS UI served by a stdlib-only
+Python server, driving a deterministic Python scoring engine that runs on
+the omnidecide-c 1.0.0 C11 decision kernel (vendored under
 `vendor/omnidecide-c/`, the only kernel - the floors contract
 ships as `attune-engine/floors.py` with calibration data in
 `attune-engine/data/floors_v1.json`). Candidate
@@ -12,7 +13,8 @@ contain no raw PII.
 
 ## Layout
 
-    src/                        Next.js app (UI + API routes)
+    server.py                   stdlib-only web server (UI + /api routes)
+    web/                        vanilla frontend: HTML/CSS/JS, no build step
     attune-engine/              Python engine, C-kernel bridge, PDF reporter,
                                 vendored floors contract (floors.py + data/)
     bench/                      candidate-blind benchmark harness + frozen corpora
@@ -25,12 +27,13 @@ contain no raw PII.
 
 ## Prerequisites
 
-- Bun 1.1+ (or Node 20+ with npm) - https://bun.sh
 - Python 3.10+ (tested on 3.12)
 - A C11 compiler (gcc/clang) + libm - one-time build of the omnidecide-c
   shared library (see Setup below)
-- Optional: `fallow` CLI for the JS/TS check pipelines (`npm install -g fallow`)
 - Optional: Docker — container images for the QA gate and the full app (see the Docker section below)
+
+No Node.js, no npm, no bundler: the UI is plain HTML/CSS/JavaScript served
+by `server.py`.
 
 ## Setup
 
@@ -43,12 +46,10 @@ contain no raw PII.
        src/*.c -lm -o build/libomnidecide.so
     cd ../..
 
-    bun install                       # or: npm install
-
 ## Run
 
-    bun run dev                       # or: npm run dev
-    -> http://localhost:3000
+    python3 server.py
+    -> http://127.0.0.1:3000
 
 First screening:
 
@@ -98,15 +99,15 @@ The same image for a plain engine run:
 
 Baked in with the app: the compiled kernel (built with `-std=c11
 -ffp-contract=off`, exposed via `OMNIDECIDE_C_LIB=/opt/attune/libomnidecide.so`),
-python3 + reportlab/pypdf, the Next.js standalone bundle, the demo candidates
-and the profile templates. Run directories (`attune-data/runs/`) are
+python3 + reportlab/pypdf, the vanilla web app (server.py + web/), the demo
+candidates and the profile templates. Run directories (`attune-data/runs/`) are
 machine-local state and are never baked in — persist or inspect them with:
 
     -v /path/to/this/folder/attune-data/runs:/app/attune-data/runs
 
 Scripted access to the container API must carry the loopback-guard header
-(the built-in UI sends it automatically; the middleware also rejects
-cross-site browser requests):
+(the built-in UI sends it automatically; the guard also rejects cross-site
+browser requests):
 
     curl -H "X-Attune-Client: cli" http://127.0.0.1:3000/api/template
 
@@ -121,10 +122,10 @@ workflow artifacts instead. Each archive bundles everything the app needs:
 
 - the compiled omnidecide-c kernel for that platform
   (`omnidecide.dll` / `libomnidecide.dylib` / `libomnidecide.so`)
-- the Next.js standalone server plus the Python engine, the demo corpus
-  and the profile templates
-- a Node.js 22 LTS runtime and a CPython 3.12 runtime with reportlab +
-  pypdf preinstalled - no system Node or Python installs needed
+- the vanilla web app (stdlib-only Python server + static frontend), the
+  Python engine, the demo corpus and the profile templates
+- a CPython 3.12 runtime with reportlab + pypdf preinstalled - no system
+  Python install needed (and no Node.js at all)
 
 Platform support: Windows 10+ x64 (`start.bat`), macOS 12+ Apple Silicon
 (`start.command`), Linux glibc 2.28+ x64 (`./start.sh`). Unpack, run the
@@ -134,7 +135,6 @@ verification command.
 
 Build one locally with the same script CI calls (current OS only):
 
-    bun install && bun run build
     bash scripts/standalone/package.sh
     # -> dist/job-attune-standalone-<platform>.<tar.gz|zip> (+ .sha256)
 
@@ -152,10 +152,14 @@ launcher before it is uploaded.
     # determinism, enrichment fields, PII-redaction probes, bench baselines
     # (C36-C38), 7-PDF export validation. Exit 0 = all green.
 
-    python3 scripts/attune_app/js_check_pipelines.py
-    # JS/TS static checks (dead code, circular deps, unresolved imports,
-    # duplication, complexity, styling drift); requires the `fallow` CLI
-    # (https://fallow.tools). Release rule: 0 red findings.
+    python3 scripts/smoke_test.py
+    # 54-check fast health check (~10 s, self-contained): boots its own server,
+    # static assets + traversal containment, loopback guard, all 13 API routes,
+    # engine + PDF export per shipped corpus, Chromium pass with zero JS
+    # errors. --quick / --api-only for shorter runs.
+
+    python3 scripts/e2e_check.py
+    # 23-check deep UI walk in headless Chromium (needs playwright installed)
 
 The demo corpus (6 candidates, 10 PDFs, including an unreadable image-only
 scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
@@ -168,6 +172,7 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 ## Environment variables (all optional)
 
 - `ATTUNE_ROOT` - web-app project-root override (default: the cwd the app starts from)
+- `ATTUNE_HOST` / `ATTUNE_PORT` - server bind address (default: 127.0.0.1:3000)
 - `ATTUNE_TEXT_MODE` - kernel text layer: `unicode` (default) or `ascii`
 - `ATTUNE_LANGUAGE` - kernel language pack: `und` (default), `en zh hi es ar fr bn pt id ur auto`
 - `OMNIDECIDE_C_LIB` - engine override for the compiled C kernel (default: `<repo>/vendor/omnidecide-c/build/libomnidecide.so`)
@@ -177,20 +182,20 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 - `README.md` - project overview, measured accuracy, quickstart, repository layout
 - `docs/ARCHITECTURE.md` - components, run lifecycle, data contracts, security model, diagrams
 - `docs/DEVELOPMENT.md` - QA pipelines, regression lock, adding bench corpora, release checklist
-- `docs/API.md` - HTTP API reference (all 7 endpoints + middleware auth rules)
+- `docs/API.md` - HTTP API reference (all 13 routes + loopback-guard auth rules)
 - `docs/ENGINE-CLI.md` - engine + reporter CLI reference, aggregation profile keys
 - `docs/MARKETING.md` - sales playbook: positioning, statistics, workflows, objection handling
 - `bench/README.md` - bench harness protocol and reference results
-- `CHANGELOG.md` - version history (v1.0.0 - initial public release)
+- `CHANGELOG.md` - version history (v1.1.0 - vanilla UI rewrite)
 - `docs/VERIFICATION-1.8.0.md` - kernel-migration verification evidence (historical record)
 - `LICENSE` / `NOTICE` - Apache License 2.0, copyright Tamer Osman
 - `vendor/omnidecide-c/README.md` - the C11 decision kernel the engine runs on
 
 ## What is NOT in this archive (restorable via build commands)
 
-- `node_modules/`            -> `bun install`
-- `.next/`                   -> `bun run build`
-- (no database — the unused Prisma scaffold was removed; all data lives on the filesystem)
+- `dist/`                     -> `bash scripts/standalone/package.sh`
+- (no Node.js, no node_modules, no bundler - the UI ships as plain files)
+- (no database — all data lives on the filesystem)
 - `attune-data/runs/`   -> created automatically at runtime
 - `vendor/omnidecide-c/build/libomnidecide.so` -> the one-time build command
   in Setup above (the vendored C sources and their test suite ship in the tree)

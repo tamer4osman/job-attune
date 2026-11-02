@@ -35,8 +35,15 @@ attune-engine/floors_attune.json  floors contract (v1.0, frozen)
 bench/run_bench.py               bench cell runner (double-pass + sha256)
 bench/baselines.py               BooleanATS / TF-IDF / BM25 (candidate-blind)
 scripts/check_python_side.py     45-check release gate (Python side)
-scripts/attune_app/         JS check pipelines (Fallow), sample generator
-src/                             Next.js UI + API routes + middleware
+scripts/smoke_test.py            fast health check: server + guard + all API
+                                 routes + engine/reports + browser pass
+scripts/e2e_check.py             deep UI walk in headless Chromium
+scripts/design_check.py          design regression: fonts, palette, pills,
+                                 overflow (Agenflow-style skin)
+.fallowrc.json                  entry points for the fallow static analysis
+                                 (dev-only; see QA pipeline #6)
+scripts/attune_app/         sample generator
+server.py + web/             stdlib-only Python web server + vanilla JS UI
 vendor/omnidecide-c/           omnidecide-c 1.0.0 C11 kernel - DO NOT EDIT
                                  (build: libomnidecide.so, see SETUP.md)
 ```
@@ -53,8 +60,6 @@ docs/VERIFICATION-1.8.0.md).
 
 ```bash
 pip install -r requirements.txt    # reportlab + pypdf only
-bun install                        # JS deps (or npm install)
-npm install -g fallow              # optional: JS/TS check pipelines
 python3 scripts/attune_app/make_samples.py   # demo corpus, if missing
 
 # omnidecide-c kernel (one-time; see SETUP.md):
@@ -68,7 +73,7 @@ The engine itself is stdlib-only (ctypes bridge included); reportlab/pypdf
 are needed for the reporter and the PDF checks; a C11 compiler is needed once
 to build the decision kernel. Python 3.10+ (CI runs 3.12).
 
-## The three QA pipelines
+## The seven QA pipelines
 
 ### 1. Python release gate — `scripts/check_python_side.py`
 
@@ -93,21 +98,7 @@ python3 scripts/check_python_side.py
 
 Run it before every push. It is the definition of "the tree is healthy".
 
-### 2. JS/TS check pipelines — `scripts/attune_app/js_check_pipelines.py`
-
-```bash
-python3 scripts/attune_app/js_check_pipelines.py
-# OVERALL must not be RED (0 red). Raw envelopes: scripts/attune_app/checks_out/
-```
-
-Seven Fallow-powered pipelines (dead code, circular deps, unresolved imports,
-duplication, complexity, styling drift, feature flags), each graded
-red/amber/green with file:line evidence and ownership-zone classification
-(app = Job Attune code, scaffold = shadcn kit, infra = config). Release
-rule: **0 red**. Amber findings are reviewed, not auto-fixed; scaffold-zone
-findings (unused shadcn files) are accepted by design.
-
-### 3. Regression lock — scoring-lineage protection
+### 2. Regression lock — scoring-lineage protection
 
 The lock replays **stored reference-lineage run inputs** through the current
 engine and diffs every content leaf against the stored results, under an
@@ -126,6 +117,100 @@ change is reverted or the allowlist amendment is **documented in the
 CHANGELOG** with its evidence. This is how the aggregation framework shipped a
 refactor with *zero* scoring change — the lock proved it, not the release
 notes.
+
+### 3. UI end-to-end check — `scripts/e2e_check.py`
+
+```bash
+python3 server.py &            # the app under test
+python3 scripts/e2e_check.py   # needs: pip install playwright + chromium
+```
+
+Drives the real UI in headless Chromium against the local server: scan the
+demo folder, load the example profile, start a run, wait for completion,
+verify all six result tabs render, open the candidate dossier, record a
+review decision, generate and download the PDF exports, then reset the
+wizard. 23 assertions, and the whole flow must produce **zero console
+errors**. CI runs the same script (see the `ui` job in
+`.github/workflows/ci.yml`).
+
+### 4. Fast smoke test — `scripts/smoke_test.py`
+
+```bash
+python3 scripts/smoke_test.py            # full pass (~10 s)
+python3 scripts/smoke_test.py --quick    # static + guard + API only
+python3 scripts/smoke_test.py --api-only  # skip the browser phase
+```
+
+Self-contained health check for day-to-day work: boots its own `server.py`
+on a scratch port and tears it down again. 54 assertions cover the boot,
+every static asset, path-traversal containment, the loopback guard
+(403 without `X-Attune-Client`, 403 on cross-site), all 13 API routes with
+their error shapes, a full engine run + PDF export per shipped corpus
+(sample-6, trades14, logistics14) with throughput numbers, and a browser
+pass (scan → profile → run → results) with zero JS errors. Run it before
+any commit that touches `server.py` or `web/`; run `e2e_check.py` (above)
+for the full-depth UI walk before a release.
+
+The `--keep` flag retains the run directories it created for inspection;
+by default it cleans them up again.
+
+### 5. Design regression check — `scripts/design_check.py`
+
+```bash
+python3 scripts/design_check.py [port]   # boots nothing; needs a live server
+```
+
+Guards the Agenflow-inspired skin (v1.1.0): 22 assertions verify the
+self-hosted fonts actually load (Boldonse / DM Sans / Playfair Display
+from `web/fonts/`, zero external hosts — the app must work air-gapped),
+the cream / ink / orange / forest palette is applied (body background,
+header, sticker badge, active step, footer), pill shapes and 18px card
+radii are in place, nothing overflows horizontally, and the results
+view + candidate dialog render in the new palette with zero JS errors.
+Run it after any change to `web/css/app.css`, `web/fonts/` or the chart
+color constants.
+
+### 6. Frontend static analysis — `fallow` (CI gate, needs Node)
+
+```bash
+npx fallow@3.38.1 dead-code --ci
+npx fallow@3.38.1 health --baseline .codebase-intel/fallow-health-baseline.json \
+    --fail-on-issues --fail-on-stale-baseline
+```
+
+[fallow](https://fallow.tools) is a TS/JS codebase analyzer. It runs as a
+required gate in `.github/workflows/codebase-intel.yml` (dead code,
+duplication and architecture hard-gated; complexity ratcheted against
+`.codebase-intel/fallow-health-baseline.json`). The shipped app still
+needs **no Node.js** — the repo just carries `.fallowrc.json`, a 3-line
+config that declares the entry points (`web/js/app.js` plus the
+root-absolute `index.html` / `app.css` links its HTML plugin cannot
+resolve on its own). Current state after the v1.1.0 cleanup pass: 0 dead
+files, 0 dead exports, 0 duplication, maintainability 88.2; the 33
+remaining complexity findings are baselined so new hotspots fail the
+build while refactors ratchet the number down. The remaining deduction
+is "unit size": the six view builders are large because they render
+data-driven DOM section by section; the two former hotspots
+(`openCandidateDialog` at cyclomatic 52 / 258 lines and `PositionReport`
+at 34 / 214 lines) were split into per-section builders in that pass,
+verified DOM-identical by a before/after Playwright snapshot diff. Run it
+whenever you add or restructure modules under `web/js/`.
+
+### 7. Codebase intelligence, Python + C — `scripts/codebase_intel.py`
+
+```bash
+python3 scripts/codebase_intel.py python   # ruff, vulture, pylint, pip-audit, lizard
+python3 scripts/codebase_intel.py c        # cppcheck, flawfinder, lizard, jscpd
+```
+
+The per-language fallow equivalents (see [CODEBASE-INTEL.md](CODEBASE-INTEL.md)
+for the full capability map): 19 checks, hard gates for dead code,
+duplication, hygiene rules, cppcheck warnings and known CVEs; ratchets
+against `.codebase-intel/ratchet-baselines.json` for the complexity and
+clone metrics of the frozen engine and C kernel. After an accepted
+refactor re-save the baseline (`--update-baseline`) and commit it with
+your change — CI fails on a stale baseline so improvements are always
+locked in.
 
 ## Adding a bench corpus
 
@@ -191,12 +276,14 @@ free text, length-cap it and route it through the existing scrubbers.
 # 3. CHANGELOG.md entry (what changed, why, evidence pointers)
 # 4. Gates:
 python3 scripts/check_python_side.py          # 45/45 green
-python3 scripts/attune_app/js_check_pipelines.py   # 0 red
+python3 scripts/smoke_test.py                  # 54/54 fast health check
+python3 scripts/e2e_check.py                   # full UI walk in headless Chromium
+python3 scripts/design_check.py 3000           # 22/22 style checks (server up)
 #    + regression lock vs stored lineage runs (3/3 PASS expected for
 #      scoring-neutral releases)
 # 5. Update README/SETUP/docs version references (search for the previous
 #    version string to catch strays)
-# 6. Package the source archive: copy the tree without node_modules/, .next/,
+# 6. Package the source archive: copy the tree without dist/,
 #    build/, db/, logs; verify required members + absence of dev artifacts
 # 7. Prove relocatability: unzip to a FOREIGN path, run the 45-gate there
 # 8. Refresh the download page and verify served bytes == posted sha256

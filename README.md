@@ -2,7 +2,7 @@
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
 
 <p align="center">
-  <img src="public/logo.svg" width="132" alt="Job Attune logo" />
+  <img src="web/logo.svg" width="132" alt="Job Attune logo" />
 </p>
 
 <h1 align="center">Job Attune</h1>
@@ -18,13 +18,14 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-334155?style=for-the-badge" alt="License: Apache-2.0"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v1.0.0-059669?style=for-the-badge" alt="Release v1.0.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v1.1.0-059669?style=for-the-badge" alt="Release v1.1.0"></a>
   <a href="vendor/omnidecide-c/README.md"><img src="https://img.shields.io/badge/Kernel-omnidecide--c_1.0.0-334155?style=for-the-badge" alt="Kernel: omnidecide-c 1.0.0"></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Languages-10_packs-059669?style=for-the-badge" alt="10 language packs"></a>
   <br/>
   <a href="docs/VERIFICATION-1.8.0.md"><img src="https://img.shields.io/badge/Determinism-verified-16a34a?style=for-the-badge" alt="Determinism: verified"></a>
   <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/Data-local--only-059669?style=for-the-badge" alt="Data: local-only"></a>
   <a href="scripts/check_python_side.py"><img src="https://img.shields.io/badge/QA-45_checks_green-16a34a?style=for-the-badge" alt="QA: 45 checks green"></a>
+  <a href="docs/CODEBASE-INTEL.md"><img src="https://img.shields.io/badge/Codebase_intel-3_languages-334155?style=for-the-badge" alt="Codebase intelligence: 3 languages"></a>
   <a href="docs/ENGINE-CLI.md"><img src="https://img.shields.io/badge/Engine-stdlib--only-334155?style=for-the-badge" alt="Engine: stdlib-only"></a>
 </p>
 
@@ -173,6 +174,7 @@ required.
 | No PII leaks into outputs | PII-redaction probes over all enriched outputs on every regression run | Probe lines in the 45-check gate output |
 | Benchmarks are candidate-blind & pre-registered | Frozen corpora, pinned human rankings, recorded study salt | [bench/README.md](bench/README.md) |
 | Nothing phones home | The kernel is pure C11 computation — no sockets, no HTTP; the UI binds to `127.0.0.1` only | Read it: [vendor/omnidecide-c/](vendor/omnidecide-c/) |
+| Every language ships behind static-analysis gates | `fallow` (JS), ruff/vulture/pylint/pip-audit/lizard (Python), cppcheck/flawfinder/lizard/jscpd (C) — hard gates plus shrink-only complexity ratchets, wired in `codebase-intel.yml` | [docs/CODEBASE-INTEL.md](docs/CODEBASE-INTEL.md) |
 | Every decision is attributable | Each run manifest records engine, kernel and floors versions plus the aggregation provenance block | Open any run directory under `attune-data/runs/` |
 
 Release discipline follows the same rule: scoring behaviour changes require a
@@ -193,23 +195,23 @@ the shipped `.sha256`, unpack, and run:
 - **macOS** (12+, Apple Silicon) — double-click `start.command`
 - **Linux** (glibc 2.28+, x64) — run `./start.sh`
 
-Each bundle carries the compiled C11 kernel, the app, and its own Node.js
-22 + CPython 3.12 runtimes — the unpacked archive runs offline with no
-tooling on the machine.
+Each bundle carries the compiled C11 kernel, the app, and its own CPython
+3.12 runtime (with reportlab/pypdf preinstalled) — the unpacked archive runs
+offline with no tooling on the machine.
 
-**With the UI** (Next.js + local engine):
+**With the UI** (vanilla HTML/CSS/JS + stdlib Python server, no Node.js,
+no build step):
 
 ```bash
 pip install -r requirements.txt   # reportlab + pypdf (engine: stdlib only)
-bun install                       # or: npm install
-bun run dev                       # -> http://localhost:3000
+python3 server.py                 # -> http://127.0.0.1:3000
 ```
 
 Then: enter `attune-sample-data/candidates` in the folder picker, **Scan**,
 confirm the CV / cover-letter tags, and **Start run**. PDF exports land in
 `attune-data/runs/<run-id>/exports/`.
 
-**With Docker** (no local Python/Bun setup):
+**With Docker** (no local Python setup):
 
 ```bash
 docker build -t job-attune-full .                              # full stack + baked engine/templates
@@ -242,19 +244,21 @@ scan) is regenerated with
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, run lifecycle, data contracts, redaction pipeline, security model, diagrams |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Developer guide: QA pipelines, regression lock, adding bench corpora, release checklist |
+| [docs/CODEBASE-INTEL.md](docs/CODEBASE-INTEL.md) | Codebase-intelligence gates: fallow + the Python/C analyzer stack, capability map, ratchet contract |
 | [docs/MARKETING.md](docs/MARKETING.md) | Sales playbook: positioning, comparison matrix, statistics, workflows, objection handling |
-| [docs/API.md](docs/API.md) | HTTP API reference (7 endpoints) incl. middleware auth rules |
+| [docs/API.md](docs/API.md) | HTTP API reference (13 routes) incl. loopback-guard auth rules |
 | [docs/ENGINE-CLI.md](docs/ENGINE-CLI.md) | Engine + reporter CLI reference, aggregation profile keys, run-directory contract |
 | [bench/README.md](bench/README.md) | Bench harness: systems, determinism protocol, reference results, corpus format |
-| [CHANGELOG.md](CHANGELOG.md) | Version history (v1.0.0 — initial public release) |
+| [CHANGELOG.md](CHANGELOG.md) | Version history (v1.1.0 — vanilla UI rewrite) |
 | [vendor/omnidecide-c/README.md](vendor/omnidecide-c/README.md) | The C11 decision kernel the engine runs on (the only kernel) |
 | [SETUP.md](SETUP.md) | Condensed setup card (also shipped in the source zip) |
 
 <details>
 <summary><strong>Repository layout</strong></summary>
 
-```text
-src/                        Next.js app (UI + API routes + middleware)
+```
+server.py                   stdlib-only web server: static UI + all /api routes
+web/                        vanilla frontend (HTML/CSS/JS, no build step)
 attune-engine/              engine.py, ckernel.py (C-kernel bridge), floors.py
                             (vendored floors contract), make_report.py,
                             floors_attune.json, data/floors_v1.json
@@ -262,8 +266,12 @@ vendor/omnidecide-c/      omnidecide-c 1.0.0 C11 kernel (the only kernel)
 bench/                      candidate-blind benchmark harness + frozen corpora
 attune-data/                templates (runs/ is created at runtime)
 attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
-scripts/                    QA gates, sample generator, JS check pipelines,
-                            standalone packager (scripts/standalone/)
+scripts/                    QA gates, codebase-intel orchestrator, sample
+                            generator, icon fetcher, standalone packager
+                            (scripts/standalone/)
+.codebase-intel/            analyzer baselines + suppressions (fallow health,
+                            ratchets, vulture whitelist, cppcheck exceptions)
+ruff.toml                   curated ruff rule set for the Python side
 docs/                       architecture, API, CLI, developer guide, marketing,
                             screenshots, diagrams
 Dockerfile                  multi-target build: full-stack image (default) +
@@ -281,14 +289,25 @@ python3 scripts/check_python_side.py
 # determinism, enrichment fields, PII-redaction probes, bench baselines,
 # 7-PDF export validation. Exit 0 = release-ready.
 
-python3 scripts/attune_app/js_check_pipelines.py
-# JS/TS static checks (dead code, circular deps, unresolved imports,
-# duplication, complexity, styling drift); requires the external `fallow` CLI
-# (https://fallow.tools) - `npm install -g fallow`
+python3 scripts/smoke_test.py
+# 54-check fast health check (self-contained, ~10 s): boots its own server,
+# every static asset + traversal containment, the loopback guard, all 13
+# API routes with error shapes, engine + PDF export on every shipped
+# corpus, and a Chromium pass with zero JS errors. --quick / --api-only
+# for shorter runs.
 
 # regression lock vs the stored reference scoring runs (protocol in
 # docs/DEVELOPMENT.md): stored lineage runs must replay with zero
 # unexpected diffs for any scoring-neutral release
+
+# codebase-intelligence gates (CI wiring: codebase-intel.yml; capability
+# map: docs/CODEBASE-INTEL.md). fallow needs Node.js locally; the Python
+# and C gates need their analyzers pip/apt-installed:
+npx fallow@3.38.1 dead-code --ci
+python3 scripts/codebase_intel.py python   # ruff, vulture, pylint, pip-audit, lizard
+python3 scripts/codebase_intel.py c        # cppcheck, flawfinder, lizard, jscpd
+# 19 + 4 checks: hard gates for dead code, duplication, hygiene, CVEs and
+# C warnings; shrink-only ratchets for complexity and clone metrics.
 ```
 
 </details>
@@ -371,7 +390,7 @@ vendored kernel keeps its own Apache-2.0 license and Unicode-data notices
 under `vendor/omnidecide-c/`.
 
 <p align="center">
-  <img src="public/logo.svg" width="72" alt="Job Attune logo" /><br/>
+  <img src="web/logo.svg" width="72" alt="Job Attune logo" /><br/>
   <strong>Job Attune — Hire for aptitude.</strong><br/>
   <sub>Built by <a href="https://github.com/tamer4osman">Tamer Osman</a> ·
   © 2026 · Apache-2.0 ·

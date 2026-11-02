@@ -2,9 +2,9 @@
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
 # Engine & Reporter CLI Reference
 
-The engine and the PDF reporter are plain `python3` CLIs — the Next.js API
-layer spawns them exactly as documented here, and they are fully usable from
-a shell for scripted or air-gapped operation.
+The engine and the PDF reporter are plain `python3` CLIs — the local web
+server (`server.py`) spawns them exactly as documented here, and they are
+fully usable from a shell for scripted or air-gapped operation.
 
 ## `attune-engine/engine.py`
 

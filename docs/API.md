@@ -5,7 +5,7 @@
 All endpoints live under `/api` on the local server (`http://127.0.0.1:3000`).
 Every request — no exceptions — must carry the `X-Attune-Client` header
 (any non-empty value, e.g. `ui` or `cli`); requests with
-`Sec-Fetch-Site: cross-site` are rejected outright. See `src/middleware.ts`.
+`Sec-Fetch-Site: cross-site` are rejected outright. See `server.py` (loopback guard).
 
 ```bash
 curl -s -H "X-Attune-Client: cli" "http://127.0.0.1:3000/api/run" | jq
@@ -16,6 +16,11 @@ Errors are always `{"error": string}` with an appropriate status code
 504 timeout).
 
 ---
+
+## GET /api — ping
+
+- **Response**: `{ "message": "Hello, world!" }` — the cheapest way to
+  prove the guard lets your client through before scripting anything else.
 
 ## POST /api/browse — folder browser
 
@@ -96,8 +101,9 @@ Spawns `make_report.py` for a finished run (120 s kill timer).
 
 - **Body**: `{ "run_id": string, "pseudonymous": boolean }` — `pseudonymous`
   defaults to true and should stay on for sharing.
-- **Response**: `{ "exports": [{ "kind", "ref", "file", "sha256" }] }` from
-  the fresh manifest.
+- **Response**: `{ "ok": true, "files": [{ "kind", "ref", "file", "sha256" }] }`
+  from the fresh manifest (the UI re-reads the same list via
+  `GET /api/run/results` before listing downloads).
 - **Errors**: `404` unknown run, `500` generation failed, `504` timeout.
 
 ## GET /api/report?run_id=…&file=… — download an exported PDF

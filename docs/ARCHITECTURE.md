@@ -2,8 +2,9 @@
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
 # Architecture
 
-Job Attune is a three-tier local application: a Next.js UI + API layer, a
-deterministic Python scoring engine, and a frozen decision library. All tiers
+Job Attune is a three-tier local application: a vanilla web UI + API layer
+(a stdlib-only Python HTTP server), a deterministic Python scoring engine,
+and a frozen decision library. All tiers
 run on one machine; no data leaves it. A fourth, orthogonal tier — the
 candidate-blind bench harness — verifies scoring quality without ever being
 needed at runtime.
@@ -12,17 +13,17 @@ needed at runtime.
 
 ```
 +--------------------------------------------------------------+
-|  Browser (React UI, 7 screens)                               |
+|  Browser (vanilla JS UI, 7 screens, no framework)                               |
 |    folder picker -> validation preview -> run monitor ->      |
 |    results dashboard -> candidate detail -> review queue ->   |
 |    audit                                                      |
 +---------------------|----------------------------------------+
                       | fetch (X-Attune-Client header)
 +---------------------v----------------------------------------+
-|  Next.js API layer (src/app/api, guarded by src/middleware)   |
+|  Python HTTP API layer (server.py, loopback-guarded)          |
 |    /api/browse  /api/scan  /api/run  /api/run/status          |
 |    /api/run/results  /api/report  /api/audit  /api/template   |
-|    shared lib: src/lib/attune-server.ts                  |
+|    also serves the static frontend from web/                  |
 +-----------|---------------------------------|----------------+
             | filesystem                      | subprocess (python3)
 +-----------v-----------------+   +-----------v----------------------+
@@ -43,22 +44,36 @@ needed at runtime.
 
 ## Components
 
-### UI (`src/`)
+### UI (`web/`)
 
-Seven screens composed from shadcn/ui components. The UI never talks to the
-engine directly — it goes through the API layer, which owns every filesystem
-and subprocess interaction. Client-side helpers live in
-`src/lib/attune.ts` (typed `api()` fetch wrapper that always sends the
-client header, scan types, formatting helpers).
+Seven screens built with plain HTML, CSS and vanilla JavaScript (ES
+modules) - no framework, no bundler, no build step. Hand-rolled components
+replace the previous Radix/shadcn kit (focus-trapped dialogs, keyboard
+navigable tabs, collapsibles, switches, sliders) and the overview charts
+are hand-drawn SVG. The UI never talks to the engine directly - it goes
+through the API layer, which owns every filesystem and subprocess
+interaction. Client-side helpers live in `web/js/api.js` (the `api()` fetch
+wrapper that always sends the client header, profile conversion, formatting
+helpers) and `web/js/ui.js` (DOM builder + components); the icon set in
+`web/js/icons.js` is generated from lucide-static 0.525.0 (ISC) by
+`scripts/fetch_icons.py`.
 
-### API layer (`src/app/api` + `src/lib/attune-server.ts`)
+### API layer (`server.py`)
 
-Thin, defensive request handlers. Responsibilities: input validation (run-id
-regex + containment + symlink-realpath guards in `resolveRunDir`), folder
-scanning and CV/cover-letter classification, collision-proof run-id creation
-(EEXIST-aware mkdir retries), engine/reporter process lifecycle (progress
-watchdog, 120 s report timeout), and audit-trail appends with capped
-free-text fields.
+A single stdlib-only Python file (`http.server`, ThreadingHTTPServer) that
+serves the static frontend from `web/` and exposes the same guarded API
+surface the previous Next.js routes implemented — 13 routes on 9 paths
+(ping, browse, scan, run start/list, run/status, run/results, report
+generate/download, audit read/write, template list/fetch/save/delete).
+Responsibilities: input
+validation (run-id regex + containment + symlink-realpath guards in
+`resolve_run_dir`), folder scanning and CV/cover-letter classification,
+collision-proof run-id creation (EEXIST-aware mkdir retries),
+engine/reporter process lifecycle (progress watchdog, 120 s report
+timeout), and audit-trail appends with capped free-text fields. The
+loopback guard (client-header requirement + `Sec-Fetch-Site` rejection)
+runs before every `/api` route.
+
 
 ### Engine (`attune-engine/engine.py`)
 
@@ -210,7 +225,7 @@ evidence dates survive, phone numbers do not.
 - **No network surface**: the scoring engine is stdlib-only Python and the
   decision kernel is a pure C11 computation library — neither opens sockets
   or makes network calls, so screening runs fully offline.
-- **CSRF / drive-by**: `src/middleware.ts` requires the
+- **CSRF / drive-by**: the `server.py` loopback guard requires the
   `X-Attune-Client` header (cross-site `no-cors` requests cannot set
   custom headers) and rejects `Sec-Fetch-Site: cross-site`.
 - **Path traversal**: run ids are regex-validated and resolved with
@@ -225,8 +240,11 @@ evidence dates survive, phone numbers do not.
 analysis, floors contract, functional engine behaviour (determinism, ranking
 order, primitives load-bearing, escalation, PII probes, enrichment fields,
 tuned-evidence overrides, bench baselines C36–C38) and PDF export
-validation. JS/TS static health is tracked by the Fallow pipelines in
-`scripts/attune_app/js_check_pipelines.py` (release rule: 0 red).
-Scoring-lineage protection is the regression lock — three stored
+validation. The vanilla UI is walked end-to-end (scan -> profile -> run ->
+results -> export) by `scripts/e2e_check.py` in headless Chromium with a
+zero-console-error requirement, and checked fast (~10 s, 54 assertions:
+static assets, traversal containment, loopback guard, all 13 API routes,
+engine + PDF export per corpus) by the self-contained
+`scripts/smoke_test.py`. Scoring-lineage protection is the regression lock — three stored
 reference-lineage runs replayed against the current engine with an explicit
 diff allowlist (see [docs/DEVELOPMENT.md](DEVELOPMENT.md)).
