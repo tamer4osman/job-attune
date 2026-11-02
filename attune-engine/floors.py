@@ -88,7 +88,7 @@ def floors_version(path: Optional[Union[str, Path]] = None) -> str:
     try:
         raw = json.loads(target.read_text(encoding="utf-8"))
         return str(raw.get("version", "unknown"))
-    except Exception:  # noqa: BLE001 - decision-critical config: degrade, never crash
+    except Exception:  # decision-critical config: degrade, never crash
         return "unknown"
 
 
@@ -112,7 +112,7 @@ def load_floors(path: Optional[Union[str, Path]] = None) -> Dict[str, float]:
         logger.warning("floor data %s not found; falling back to %.2f defaults",
                        target, DEFAULT_FLOOR)
         return dict(DEFAULT_FLOORS)
-    except Exception as exc:  # noqa: BLE001 - malformed data must not crash callers
+    except Exception as exc:  # malformed data must not crash callers
         logger.warning("floor data %s malformed (%s); falling back to %.2f defaults",
                        target, exc, DEFAULT_FLOOR)
         return dict(DEFAULT_FLOORS)

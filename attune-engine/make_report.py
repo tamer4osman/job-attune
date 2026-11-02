@@ -25,7 +25,6 @@ import os
 from pathlib import Path
 
 import reportlab.rl_config as rl_config
-
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -125,10 +124,6 @@ def table(data, widths, align="CENTER", zebra=True, extra_style=None, font_size=
     return t
 
 
-def band_color(band: str):
-    return {"strong": ENGINE_EMERALD, "good": colors.Color(0.10, 0.55, 0.55), "potential": AMBER}.get(band, ROSE)
-
-
 def score_cell_color(score) -> colors.Color:
     if score is None:
         return colors.white
@@ -176,7 +171,7 @@ def profile_card_table(cand, cell, cellsm):
     edu = card.get("education") or []
     edu_txt = "; ".join(f"{e['level']}: {e['detail']}" for e in edu) or "not detected"
     langs = card.get("languages") or []
-    lang_txt = "; ".join(f"{l['language']} {l['level']}/{l['band']}" for l in langs) or "not detected"
+    lang_txt = "; ".join(f"{lang['language']} {lang['level']}/{lang['band']}" for lang in langs) or "not detected"
     certs = card.get("certifications") or []
     cert_txt = "; ".join(certs) or "not detected"
     risks = card.get("risk_flags") or []
@@ -246,7 +241,7 @@ def evidence_snippets_table(cand, cell, cellsm, limit=5):
 
 def dossier_flow(cand, styles, pseudonymous: bool) -> list:
     """Full per-candidate dossier: profile card, prompts, categories, evidence."""
-    h3, body, small, cell, cellsm = styles[2], styles[3], styles[4], styles[5], styles[6]
+    h3, small, cell, cellsm = styles[2], styles[4], styles[5], styles[6]
     flow = []
     note = cand.get("review_note")
     if note:
@@ -325,7 +320,7 @@ def dossier_flow(cand, styles, pseudonymous: bool) -> list:
 # --------------------------------------------------------------------------- #
 
 def verdict_section(results, styles) -> list:
-    h2, h3, body, small, cell, cellsm = styles[1], styles[2], styles[3], styles[4], styles[5], styles[6]
+    h3, body, small, cell = styles[2], styles[3], styles[4], styles[5]
     comp = results.get("comparison") or {}
     v = comp.get("verdict")
     if not v:
@@ -387,13 +382,13 @@ def category_matrix_table(results, styles, pseudonymous: bool) -> Table:
     comp = results.get("comparison") or {}
     # per-column leaders: shade the cell of the category's leader, not the whole
     # row of any candidate who leads somewhere
-    leaders_by_cat = {l["category"]: l["leader_ref"] for l in comp.get("category_leaders", [])}
-    cat_keys = [l["category"] for l in comp.get("category_leaders", [])]
+    leaders_by_cat = {lead["category"]: lead["leader_ref"] for lead in comp.get("category_leaders", [])}
+    cat_keys = [lead["category"] for lead in comp.get("category_leaders", [])]
     if not cat_keys:
         cat_keys = list(next(iter(results["candidates"]), {}).get("categories", [{}])[0].get("category", []) or [])
     header = [Paragraph("<b>Candidate</b>", cell)]
     for key in cat_keys:
-        lbl = next((l["label"] for l in comp.get("category_leaders", []) if l["category"] == key), key)
+        lbl = next((lead["label"] for lead in comp.get("category_leaders", []) if lead["category"] == key), key)
         header.append(Paragraph(f"<b>{esc(lbl)}</b>", cellsm))
     rows = [header]
     extra = []
@@ -413,7 +408,7 @@ def category_matrix_table(results, styles, pseudonymous: bool) -> Table:
 
 
 def coverage_matrix_tables(results, styles, pseudonymous: bool, chunk: int = 10) -> list:
-    cell, cellsm = styles[5], styles[6]
+    cellsm = styles[6]
     comp = results.get("comparison") or {}
     matrix = comp.get("skill_coverage_matrix") or []
     refs = comp.get("candidates_order") or results["ranking"]
@@ -442,7 +437,7 @@ def coverage_matrix_tables(results, styles, pseudonymous: bool, chunk: int = 10)
 
 
 def head_to_head_section(results, styles, pseudonymous: bool) -> list:
-    h3, small, cell, cellsm = styles[2], styles[4], styles[5], styles[6]
+    h3, small, cell = styles[2], styles[4], styles[5]
     comp = results.get("comparison") or {}
     h2h = comp.get("head_to_head")
     if not h2h:
@@ -536,7 +531,7 @@ def talent_pool_section(results, styles) -> list:
         lines.append("Highest education detected: " + ", ".join(f"{k}: {v}" for k, v in edu.items()))
     langs = tp.get("languages_distribution") or []
     if langs:
-        lines.append("Languages declared: " + ", ".join(f"{l['language']} ({l['count']})" for l in langs))
+        lines.append("Languages declared: " + ", ".join(f"{lang['language']} ({lang['count']})" for lang in langs))
     if tp.get("median_experience_years") is not None:
         lines.append(f"Median experience: {tp['median_experience_years']:.1f} years")
     if tp.get("avg_skills_per_candidate") is not None:
@@ -625,7 +620,7 @@ def main() -> int:
     pseudonymous = str(args.pseudonymous).lower() not in ("0", "false", "no")
     exports = run_dir / "exports"
     exports.mkdir(exist_ok=True)
-    h1, h2, h3, body, small, cell, cellsm = styles = build_styles()
+    h1, h2, _h3, body, small, cell, _cellsm = styles = build_styles()
     manifest = {"files": []}
     prof = results.get("profile") or {}
     st = results["statistics"]

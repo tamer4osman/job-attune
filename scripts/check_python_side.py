@@ -32,7 +32,6 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -114,7 +113,7 @@ try:
     grade("B2 floors provenance pinned to calibration dataset",
           raw.get("provenance", {}).get("dataset_sha256", "").startswith("64d36ce6"),
           f"dataset_sha256={raw.get('provenance', {}).get('dataset_sha256', '')[:16]}... episodes={raw.get('provenance', {}).get('episodes')}")
-except Exception as exc:  # noqa: BLE001
+except Exception as exc:
     grade("B1 floors load", False, f"{type(exc).__name__}: {exc}")
 
 # --------------------------------------------------------------------------- #
@@ -147,7 +146,6 @@ if proc.returncode == 0 and res_path.exists():
     grade("C2 determinism two-pass sha256 identical", det.get("identical") is True,
           f"pass1={det.get('pass1_sha256', '')[:12]}... pass2={det.get('pass2_sha256', '')[:12]}...")
 
-    overs = [c["overall"] for c in cands]
     ranked = [next(c for c in cands if c["candidate_ref"] == ref)["overall"] for ref in r["ranking"]]
     grade("C3 ranking strictly non-increasing", all(ranked[i] >= ranked[i + 1] for i in range(len(ranked) - 1)),
           f"ranking={ranked}")
@@ -489,7 +487,7 @@ if proc.returncode == 0 and res_path.exists():
             ok = head == b"%PDF-" and len(reader.pages) >= 1 and h == entry["sha256"]
             all_ok &= ok
             details.append(f"{entry['file']}({len(reader.pages)}p)")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         all_ok = False
         details.append(f"{type(exc).__name__}: {exc}")
     grade("D2 PDFs valid + manifest sha256 match", all_ok,

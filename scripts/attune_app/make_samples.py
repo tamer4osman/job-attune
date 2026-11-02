@@ -20,7 +20,7 @@ OUT = Path(__file__).resolve().parents[2] / "attune-sample-data" / "candidates"
 
 def make_pdf(path: Path, lines):
     c = canvas.Canvas(str(path), pagesize=A4)
-    width, height = A4
+    _width, height = A4
     y = height - 60
     for line in lines:
         c.setFont("Helvetica", 10)

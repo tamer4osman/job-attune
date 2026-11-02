@@ -103,14 +103,13 @@ from pathlib import Path
 # location (see ckernel.py).
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # ckernel.py + floors.py
 
-from floors import (  # noqa: E402
+import ckernel
+from floors import (
     escalation_record,
     floors_version,
     load_floors,
     should_escalate,
 )
-
-import ckernel  # noqa: E402
 
 # Kernel: the omnidecide-c C11 kernel is the only kernel (see CHANGELOG.md).
 DeterministicDecisionKernel = ckernel.DeterministicDecisionKernel
@@ -1864,8 +1863,8 @@ def build_statistics(candidates: list) -> dict:
             skill_counts[s["skill"]] += 1
     edu_dist = Counter(((c.get("profile_card") or {}).get("education") or [{}])[0].get("level", "none")
                        for c in candidates)
-    lang_counts = Counter(l["language"] for c in candidates
-                          for l in ((c.get("profile_card") or {}).get("languages") or []))
+    lang_counts = Counter(lang["language"] for c in candidates
+                          for lang in ((c.get("profile_card") or {}).get("languages") or []))
     exps_sorted = sorted(exps)
     if exps_sorted:
         mid = len(exps_sorted) // 2
