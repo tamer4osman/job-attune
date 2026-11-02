@@ -1,0 +1,141 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Tamer Osman
+#
+# Codebase-intelligence gates: the static analyzers that watch code health,
+# as opposed to the build/test gates in ci.yml.
+#
+#   fallow         JavaScript (web/): npx fallow, version-pinned. Dead code,
+#                  duplication and architecture cycles/boundaries are hard
+#                  gates - any finding fails the build. Complexity runs as a
+#                  ratchet against the committed baseline
+#                  (.codebase-intel/fallow-health-baseline.json): new hotspots
+#                  fail, and an accepted fix must be locked in
+#                  (`fallow baselines prune`), mirroring --fail-on-stale.
+#   python-intel   scripts/codebase_intel.py python: ruff hygiene, vulture
+#                  dead code, pylint duplicate-code and pip-audit CVEs as
+#                  hard gates; lizard complexity bands as a ratchet.
+#   c-intel        scripts/codebase_intel.py c: cppcheck and flawfinder as
+#                  hard gates; lizard bands, jscpd clones, cppcheck style and
+#                  flawfinder level-4 counts as ratchets.
+#
+# The per-language tool mapping and the ratchet contract are documented in
+# docs/CODEBASE-INTEL.md. Tool versions are pinned to the ones the baselines
+# were measured with; bump a pin together with re-saving its baseline
+# (`python scripts/codebase_intel.py <lang> --update-baseline`, or
+# `fallow health --save-baseline` for fallow).
+#
+# Free tier: public repos run these on GitHub-hosted ubuntu runners at no
+# cost, with read-only permissions. SARIF reports are attached as workflow
+# artifacts; uploading them to GitHub code scanning instead would require
+# `security-events: write`, which this repo deliberately avoids.
+#
+# The weekly schedule lets pip-audit flag newly published CVEs in
+# reportlab/pypdf even when no code changed.
+
+name: Codebase intelligence
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codebase-intel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ------------------------------------------------------------ JavaScript
+  fallow:
+    name: JS (fallow dead-code, dupes, architecture, health)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # The runner's preinstalled Node.js is enough - fallow ships as a
+      # self-contained npx package and this repo has no node_modules.
+      - name: fallow gates (any finding or any complexity growth fails)
+        run: |
+          mkdir -p sarif
+          npx --yes fallow@3.38.1 dead-code    --ci -o sarif/fallow-dead-code.sarif
+          npx --yes fallow@3.38.1 dupes        --ci -o sarif/fallow-dupes.sarif
+          npx --yes fallow@3.38.1 architecture --ci -o sarif/fallow-architecture.sarif
+          npx --yes fallow@3.38.1 health \
+            --fail-on-issues --fail-on-stale-baseline \
+            --baseline .codebase-intel/fallow-health-baseline.json \
+            --format sarif --quiet -o sarif/fallow-health.sarif
+
+      - name: Render the run summary
+        if: always()
+        run: |
+          {
+            npx --yes fallow@3.38.1 dead-code    -f github-summary -q
+            npx --yes fallow@3.38.1 dupes        -f github-summary -q
+            npx --yes fallow@3.38.1 architecture -f github-summary -q
+            npx --yes fallow@3.38.1 health \
+              --baseline .codebase-intel/fallow-health-baseline.json \
+              -f github-summary -q
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fallow-sarif
+          path: sarif/
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------- Python
+  python-intel:
+    name: Python (ruff, vulture, pylint, pip-audit, lizard)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install the analyzers (pinned; baselines were measured with these)
+        run: python -m pip install ruff==0.17.3 vulture==2.16 pylint==4.1.3 lizard==1.24.3 pip-audit==2.10.1
+
+      - name: Run the Python gates
+        env:
+          CODEBASE_INTEL_STRICT: "1"
+        run: python scripts/codebase_intel.py python
+
+  # -------------------------------------------------------------- C kernel
+  c-intel:
+    name: C kernel (cppcheck, flawfinder, lizard, jscpd)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install the analyzers (pinned; baselines were measured with these)
+        run: |
+          python -m pip install flawfinder==2.0.20 lizard==1.24.3
+          # cppcheck is pinned to the exact Debian package the ratchet
+          # baseline (c.cppcheck_style = 46) was measured with: the runner
+          # image's apt version counts style findings differently. Installing
+          # the distro package first pulls in python3-pygments, which the
+          # pinned .deb also depends on.
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cppcheck
+          curl -fsSLO http://deb.debian.org/debian/pool/main/c/cppcheck/cppcheck_2.17.1-2_amd64.deb
+          curl -fsSLO http://deb.debian.org/debian/pool/main/t/tinyxml2/libtinyxml2-11_11.0.0+dfsg-1+b1_amd64.deb
+          sudo dpkg -i cppcheck_2.17.1-2_amd64.deb libtinyxml2-11_11.0.0+dfsg-1+b1_amd64.deb
+          cppcheck --version
+
+      # jscpd runs via the runner's preinstalled Node.js.
+      - name: Run the C gates
+        env:
+          CODEBASE_INTEL_STRICT: "1"
+        run: python scripts/codebase_intel.py c

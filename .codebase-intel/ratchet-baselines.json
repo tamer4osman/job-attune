@@ -1,0 +1,19 @@
+{
+  "c": {
+    "ccn_ge_26": 39,
+    "ccn_ge_51": 10,
+    "cppcheck_style": 46,
+    "flawfinder_ge_4": 11,
+    "jscpd_clones": 68,
+    "jscpd_dup_lines": 714,
+    "jscpd_dup_percent": 2.83,
+    "max_ccn": 138
+  },
+  "python": {
+    "ccn_ge_11": 41,
+    "ccn_ge_21": 7,
+    "ccn_ge_31": 4,
+    "ccn_ge_41": 2,
+    "max_ccn": 95
+  }
+}
