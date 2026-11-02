@@ -90,6 +90,9 @@ def _register_fonts() -> None:
 _register_fonts()
 
 
+_HELVETICA_FALLBACK = False
+
+
 def _verify_fonts_ready() -> None:
     """Ensure every required TTF is present and registered before export.
 
@@ -97,24 +100,30 @@ def _verify_fonts_ready() -> None:
     ALLOW_MISSING_FONTS=1; otherwise the process exits with a diagnostic so
     a broken font install can never silently produce a mis-rendered PDF.
     """
-    missing = [f for f, _, _, _, _ in _FONT_PAIRS if not (_FONTS_DIR / f).exists()]
-    if missing:
-        msg = (f"FATAL: required font files missing from {_FONTS_DIR}: "
-               f"{', '.join(missing)}")
-        if os.environ.get("ALLOW_MISSING_FONTS") == "1":
-            print(msg, file=sys.stderr)
-            return
-        print(msg, file=sys.stderr)
-        raise SystemExit(1)
+    global _HELVETICA_FALLBACK
 
-    unregistered = [
-        name for _, name, _, _, _ in _FONT_PAIRS
-        if not pdfmetrics.getFont(name) or not pdfmetrics.getFont(name).face
-    ]
-    if unregistered:
-        msg = (f"FATAL: fonts not registered with reportlab: "
-               f"{', '.join(unregistered)}")
+    missing = [f for f, _, _, _, _ in _FONT_PAIRS if not (_FONTS_DIR / f).exists()]
+    unregistered = []
+    if not missing:
+        for _, name, _, _, _ in _FONT_PAIRS:
+            try:
+                f = pdfmetrics.getFont(name)
+                if not f or not f.face:
+                    unregistered.append(name)
+            except Exception:
+                unregistered.append(name)
+
+    if missing or unregistered:
+        parts = []
+        if missing:
+            parts.append(f"required font files missing from {_FONTS_DIR}: "
+                         f"{', '.join(missing)}")
+        if unregistered:
+            parts.append(f"fonts not registered with reportlab: "
+                         f"{', '.join(unregistered)}")
+        msg = "FATAL: " + "; ".join(parts)
         if os.environ.get("ALLOW_MISSING_FONTS") == "1":
+            _HELVETICA_FALLBACK = True
             print(msg, file=sys.stderr)
             return
         print(msg, file=sys.stderr)
@@ -140,12 +149,23 @@ ROSE_LIGHT = colors.HexColor("#f2dde5")     # rose 100  (weak / gap)
 
 # Boldonse (uppercase display) is used for the cover title; Playfair Display
 # (italic) for the subtitle, exactly like the web header.
-_DISPLAY = "Boldonse"
-_LABEL = "Playfair Display"
-_SANS = "DM Sans"
-_SANS_BOLD = "DM Sans-Bold"
-_SANS_ITALIC = "DM Sans-Italic"
-_LABEL_ITALIC = "Playfair Display-Italic"
+# When ALLOW_MISSING_FONTS=1 and the custom TTFs are absent, every name
+# resolves to Helvetica (a base-14 font always available in reportlab) so
+# the report still renders rather than crashing on an unregistered font.
+if _HELVETICA_FALLBACK:
+    _DISPLAY = "Helvetica"
+    _LABEL = "Helvetica"
+    _SANS = "Helvetica"
+    _SANS_BOLD = "Helvetica"
+    _SANS_ITALIC = "Helvetica"
+    _LABEL_ITALIC = "Helvetica"
+else:
+    _DISPLAY = "Boldonse"
+    _LABEL = "Playfair Display"
+    _SANS = "DM Sans"
+    _SANS_BOLD = "DM Sans-Bold"
+    _SANS_ITALIC = "DM Sans-Italic"
+    _LABEL_ITALIC = "Playfair Display-Italic"
 
 # (label, text_color, background_color) — background_color is None unless set.
 RECOMMENDATION_LABELS = {
