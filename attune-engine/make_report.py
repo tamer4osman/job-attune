@@ -139,6 +139,23 @@ def _verify_fonts_ready() -> bool:
 
 _verify_fonts_ready()
 
+
+def _resolve_font(name: str) -> str:
+    """Return *name* if registered with reportlab, otherwise 'Helvetica'.
+
+    Each font slot resolves independently, so a missing-font fallback uses
+    whatever custom fonts are actually registered instead of blanket-switching
+    every slot to Helvetica.
+    """
+    try:
+        f = pdfmetrics.getFont(name)
+        if f and f.face:
+            return name
+    except Exception:
+        pass
+    return "Helvetica"
+
+
 PAPER = colors.HexColor("#fefae7")
 INK = colors.HexColor("#3b001b")
 FOREST = colors.HexColor("#09352d")
@@ -155,24 +172,14 @@ AMBER_LIGHT = colors.HexColor("#faeec7")    # amber 100 (partial evidence)
 ROSE_LIGHT = colors.HexColor("#f2dde5")     # rose 100  (weak / gap)
 
 # Boldonse (uppercase display) is used for the cover title; Playfair Display
-# (italic) for the subtitle, exactly like the web header.
-# When ALLOW_MISSING_FONTS=1 and the custom TTFs are absent, every name
-# resolves to Helvetica (a base-14 font always available in reportlab) so
-# the report still renders rather than crashing on an unregistered font.
-if _HELVETICA_FALLBACK:
-    _DISPLAY = "Helvetica"
-    _LABEL = "Helvetica"
-    _SANS = "Helvetica"
-    _SANS_BOLD = "Helvetica"
-    _SANS_ITALIC = "Helvetica"
-    _LABEL_ITALIC = "Helvetica"
-else:
-    _DISPLAY = "Boldonse"
-    _LABEL = "Playfair Display"
-    _SANS = "DM Sans"
-    _SANS_BOLD = "DM Sans-Bold"
-    _SANS_ITALIC = "DM Sans-Italic"
-    _LABEL_ITALIC = "Playfair Display-Italic"
+# (italic) for the subtitle, exactly like the web header. Each name resolves
+# independently via _resolve_font so fallback mode uses registered fonts.
+_DISPLAY = _resolve_font("Boldonse")
+_LABEL = _resolve_font("Playfair Display")
+_SANS = _resolve_font("DM Sans")
+_SANS_BOLD = _resolve_font("DM Sans-Bold")
+_SANS_ITALIC = _resolve_font("DM Sans-Italic")
+_LABEL_ITALIC = _resolve_font("Playfair Display-Italic")
 
 # (label, text_color, background_color) — background_color is None unless set.
 RECOMMENDATION_LABELS = {
