@@ -253,6 +253,7 @@ def table(data, widths, align="CENTER", zebra=True, extra_style=None, font_size=
         for i in range(1, len(data)):
             if i % 2 == 0:
                 style.append(("BACKGROUND", (0, i), (-1, i), SLATE_100))
+                style.append(("TEXTCOLOR", (0, i), (-1, i), colors.white))
     if extra_style:
         style.extend(extra_style)
     t.setStyle(TableStyle(style))
@@ -481,7 +482,7 @@ def verdict_section(results, styles) -> list:
     ])
     extra = [("BACKGROUND", (1, 0), (1, 0), bg)] if bg else None
     story = [table(rows, [44 * mm, 132 * mm], zebra=False, extra_style=extra)]
-    story.append(Spacer(1, 2 * mm))
+    story.append(Spacer(1, 3 * mm))
     story.append(Paragraph(esc(v.get("rationale", "")), body))
     steps = v.get("next_steps") or []
     if steps:
@@ -870,7 +871,7 @@ def main() -> int:
         cand_title = ParagraphStyle("CandTitle", fontName=_DISPLAY, fontSize=22,
                                     textColor=FOREST, spaceAfter=3 * mm, alignment=1)
         story2 = [Paragraph(safe(f"Candidate Report - {esc(label)}"), cand_title),
-                  Spacer(1, 2 * mm),
+                  Spacer(1, 3 * mm),
                   Paragraph(safe(f"{prof.get('title', '')} - {prof.get('company', '')} | Run {results['run_id']}"), small)]
         story2.append(Paragraph(esc(c["overall_assessment"]), body))
         story2.extend(dossier_flow(c, styles, pseudonymous))
