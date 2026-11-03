@@ -35,7 +35,13 @@ scripts/
 .DS_Store
 Thumbs.db
 
-# Build outputs
-dist/
-build/
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+
+# Run outputs and data
+attune-data/runs/
+
+# Build/log outputs
 *.log

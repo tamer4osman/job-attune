@@ -336,10 +336,11 @@ def profile_card_table(cand, cell, cellsm):
         [Paragraph("<b>Evidence quality</b>", cell), Paragraph(esc(eq_txt), cellsm),
          Paragraph("<b>Tenure</b>", cell), Paragraph(esc(ten_txt), cellsm)],
     ]
-    t = Table(rows, colWidths=[26 * mm, 64 * mm, 26 * mm, 64 * mm], hAlign="CENTER")
+    t = Table(rows, colWidths=[24 * mm, 62 * mm, 24 * mm, 62 * mm], hAlign="CENTER")
     t.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.4, colors.Color(0.80, 0.74, 0.66)),
         ("BACKGROUND", (0, 0), (0, -1), SLATE_100), ("BACKGROUND", (2, 0), (2, -1), SLATE_100),
+        ("TEXTCOLOR", (0, 0), (0, -1), colors.white), ("TEXTCOLOR", (2, 0), (2, -1), colors.white),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]))
@@ -375,7 +376,7 @@ def evidence_snippets_table(cand, cell, cellsm, limit=5):
         picked += 1
     if picked == 0:
         return None
-    return table(rows, [40 * mm, 16 * mm, 124 * mm], zebra=True, font_size=7.5)
+    return table(rows, [38 * mm, 15 * mm, 122 * mm], zebra=True, font_size=7.5)
 
 
 def dossier_flow(cand, styles, pseudonymous: bool) -> list:
@@ -415,7 +416,7 @@ def dossier_flow(cand, styles, pseudonymous: bool) -> list:
             Paragraph(esc(str(c.get("kernel_score_result") or "-")), cell),
             Paragraph("below floor" if c.get("score_advisory") else "-", cell),
         ])
-    flow.append(table(cat_rows, [52 * mm, 28 * mm, 24 * mm, 46 * mm, 30 * mm]))
+    flow.append(table(cat_rows, [48 * mm, 26 * mm, 22 * mm, 44 * mm, 26 * mm]))
     dec = cand.get("score_decomposition") or {}
     if dec.get("contributions"):
         flow.append(Paragraph("Score decomposition (how the overall score is composed)", h3))
@@ -479,7 +480,7 @@ def verdict_section(results, styles) -> list:
                       + (f" (margin {v['margin_to_runner_up']:.1f} pts)" if v.get("margin_to_runner_up") is not None else "")), cell),
     ])
     extra = [("BACKGROUND", (1, 0), (1, 0), bg)] if bg else None
-    story = [table(rows, [44 * mm, 136 * mm], zebra=False, extra_style=extra)]
+    story = [table(rows, [44 * mm, 132 * mm], zebra=False, extra_style=extra)]
     story.append(Spacer(1, 2 * mm))
     story.append(Paragraph(esc(v.get("rationale", "")), body))
     steps = v.get("next_steps") or []
@@ -544,7 +545,7 @@ def category_matrix_table(results, styles, pseudonymous: bool) -> Table:
             if is_leader:
                 extra.append(("BACKGROUND", (col_i, r_i), (col_i, r_i), EMERALD_LIGHT))
         rows.append(row)
-    return table(rows, [40 * mm] + [(140.0 / max(len(cat_keys), 1)) * mm] * len(cat_keys),
+    return table(rows, [40 * mm] + [(136.0 / max(len(cat_keys), 1)) * mm] * len(cat_keys),
                  zebra=True, extra_style=extra, font_size=7.5)
 
 
@@ -570,7 +571,7 @@ def coverage_matrix_tables(results, styles, pseudonymous: bool, chunk: int = 10)
                 extra.append(("BACKGROUND", (col_i, r_i), (col_i, r_i), score_cell_color(score)))
             rows.append(row)
         label_w = 46 * mm
-        col_w = (134.0 / max(len(group), 1)) * mm
+        col_w = (120.0 / max(len(group), 1)) * mm
         out.append(table(rows, [label_w, 10 * mm] + [col_w] * len(group), zebra=True, extra_style=extra, font_size=7))
         if start + chunk < len(refs):
             out.append(Spacer(1, 2 * mm))
@@ -631,7 +632,7 @@ def bench_market_section(results, styles, pseudonymous: bool) -> list:
             rows.append([Paragraph(esc(b["label"]), cell), Paragraph(str(b["strong"]), cell),
                          Paragraph(str(b["capable"]), cell), Paragraph(str(b["thin"]), cell),
                          Paragraph(esc(read), cellsm)])
-        flow.append(table(rows, [50 * mm, 26 * mm, 22 * mm, 24 * mm, 58 * mm]))
+        flow.append(table(rows, [46 * mm, 24 * mm, 20 * mm, 22 * mm, 54 * mm]))
     if gaps:
         by_ref = {c["candidate_ref"]: c for c in results["candidates"]}
         flow.append(Paragraph("Market gaps - requirements where even the best applicant shows weak evidence", h3))
@@ -645,7 +646,7 @@ def bench_market_section(results, styles, pseudonymous: bool) -> list:
                          Paragraph(f"{g['best_score']:.2f}", cell),
                          Paragraph(esc(label_for(best_c, pseudonymous)) if best_c else esc(g["best_ref"]), cellsm),
                          Paragraph(f"{g['n_with_evidence']}/{len(results['candidates'])}", cell)])
-        flow.append(table(rows, [44 * mm, 38 * mm, 10 * mm, 22 * mm, 40 * mm, 26 * mm], font_size=7.5))
+        flow.append(table(rows, [42 * mm, 36 * mm, 10 * mm, 20 * mm, 38 * mm, 24 * mm], font_size=7.5))
         flow.append(Paragraph(safe(
             "Market gaps cannot be solved by ranking - verify at interview, plan training, or revise the requirement."), small))
     return flow
@@ -729,7 +730,7 @@ def methodology_section(results, styles) -> list:
                 # pseudonymous exports
                 Paragraph(esc(scrub(str(q.get("detail") or "-"))), cellsm),
             ])
-        flow.append(table(rows, [42 * mm, 24 * mm, 16 * mm, 98 * mm], font_size=7.5))
+        flow.append(table(rows, [40 * mm, 22 * mm, 14 * mm, 94 * mm], font_size=7.5))
     else:
         flow.append(Paragraph("No escalations were raised in this run.", small))
     flow.append(Paragraph(safe(
@@ -867,8 +868,9 @@ def main() -> int:
         c = by_ref[ref]
         label = label_for(c, pseudonymous)
         cand_title = ParagraphStyle("CandTitle", fontName=_DISPLAY, fontSize=22,
-                                    textColor=FOREST, spaceAfter=2 * mm, alignment=1)
+                                    textColor=FOREST, spaceAfter=3 * mm, alignment=1)
         story2 = [Paragraph(safe(f"Candidate Report - {esc(label)}"), cand_title),
+                  Spacer(1, 2 * mm),
                   Paragraph(safe(f"{prof.get('title', '')} - {prof.get('company', '')} | Run {results['run_id']}"), small)]
         story2.append(Paragraph(esc(c["overall_assessment"]), body))
         story2.extend(dossier_flow(c, styles, pseudonymous))
