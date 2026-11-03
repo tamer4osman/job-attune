@@ -18,12 +18,12 @@ const BAND_CLASSES = {
   weak: "band-weak",
 };
 
-const RANK_COLORS = ["#f26c17", "#b3a990", "#8f6a0b"];
+const RANK_COLORS = ["var(--emerald-500)", "var(--slate-400)", "var(--amber-700)"];
 
 function rankBadgeEl(rank) {
   const style = rank <= 3
     ? `background-color:${RANK_COLORS[rank - 1]};color:#fff`
-    : "background-color:#f5f1e3;color:#524a42";
+    : "background-color:var(--slate-100);color:var(--slate-700)";
   return el("span", { class: "rank-badge", style }, String(rank));
 }
 

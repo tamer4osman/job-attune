@@ -9,12 +9,14 @@
 import { icon } from "./ui.js";
 
 const NS = "http://www.w3.org/2000/svg";
-export const EMERALD = "#f26c17";
-const TEAL = "#2d7864";
-export const AMBER = "#d9a514";
-export const ROSE = "#a0325a";
-const GRID = "#e9e2cd";
-const TEXT = "#8e8471";
+
+/* Chart colors reference the CSS design tokens so they track theme changes. */
+export const EMERALD = "var(--emerald-500)";
+const TEAL = "var(--teal-500)";
+export const AMBER = "var(--amber-500)";
+export const ROSE = "var(--rose-500)";
+const GRID = "var(--slate-200)";
+const TEXT = "var(--slate-500)";
 
 /* ------------------------------------------------------------------ */
 /* plumbing                                                            */
@@ -133,7 +135,7 @@ export function hbarChart(container, { items, barSize = 22, labelWidth = 150, ti
     }
     items.forEach((item, i) => {
       const cy = padTop + rowH * i + rowH / 2;
-      text(svg, labelWidth - 8, cy + 4, item.label, { size: tickSize, anchor: "end", fill: "#524a42" });
+      text(svg, labelWidth - 8, cy + 4, item.label, { size: tickSize, anchor: "end", fill: "var(--slate-700)" });
       const w = Math.max(0, (item.value / max) * plotW);
       const bar = svgEl("path", {
         d: barPath(labelWidth + 1, cy - bh / 2, w, bh, 6, "right"),
