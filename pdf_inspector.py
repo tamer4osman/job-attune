@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-BATCH_REPORT = Path("D:/Projects/job-attune-1.0.0/attune-data/runs/run-20261103022827/exports/batch-report.pdf")
-CANDIDATE_PDF = Path("D:/Projects/job-attune-1.0.0/attune-data/runs/run-20261103022827/exports/candidate-07fe023dad.pdf")
+BATCH_REPORT = Path("D:/Projects/job-attune-1.0.0/attune-data/runs/run-20261103140420/exports/batch-report.pdf")
+CANDIDATE_PDF = Path("D:/Projects/job-attune-1.0.0/attune-data/runs/run-20261103140420/exports/candidate-08a20e4edb.pdf")
 
 # A4 dimensions
 PAGE_WIDTH_PT = 595.28
