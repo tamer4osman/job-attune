@@ -49,8 +49,17 @@ SLATE_900
 ENGINE_EMERALD
 
 # --- scripts/convert_fonts.py: fontTools TTFont attributes ---------------------
-# sfntVersion and flavor are set on the TTFont object in _to_ttf() to control
-# the output format (TrueType vs WOFF2). fontTools reads them during save();
-# they are not "used" in the conventional sense within this file.
+# sfntVersion, flavor and flavorData are set on the TTFont object in _to_ttf()
+# to control the output format (TrueType vs WOFF2). fontTools reads them during
+# save(); they are not "used" in the conventional sense within this file.
 sfntVersion
 flavor
+flavorData
+
+# --- scripts/test_pdf_theme.py: theme color definitions -------------------------
+# PAPER_HEX, FOREST_HEX, ORANGE_HEX are theme color definitions for PDF
+# export testing. They document the mapping between CSS tokens and reportlab
+# normalized RGB values; kept for reference and potential future use.
+PAPER_HEX
+FOREST_HEX
+ORANGE_HEX
