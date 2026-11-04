@@ -45,3 +45,7 @@ attune-data/runs/
 
 # Build/log outputs
 *.log
+
+# Codebase-intelligence workflow artifacts
+pydiff.md
+sarif/
