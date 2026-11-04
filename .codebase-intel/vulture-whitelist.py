@@ -39,3 +39,18 @@ _rl_config.invariant
 # parity, see the class docstring); a bare reference marks the parameter as
 # deliberately accepted-and-ignored.
 cache_dir
+
+# --- attune-engine/make_report.py: legacy aliases -----------------------------
+# SLATE_900 and ENGINE_EMERALD are kept as aliases for INK and ORANGE
+# respectively — they preserve the public module surface for any external
+# code that imports them by the old name. Bare references mark them as
+# deliberately retained.
+SLATE_900
+ENGINE_EMERALD
+
+# --- scripts/convert_fonts.py: fontTools TTFont attributes ---------------------
+# sfntVersion and flavor are set on the TTFont object in _to_ttf() to control
+# the output format (TrueType vs WOFF2). fontTools reads them during save();
+# they are not "used" in the conventional sense within this file.
+sfntVersion
+flavor
