@@ -22,8 +22,8 @@ import argparse
 import hashlib
 import json
 import os
-import sys
 from pathlib import Path
+import sys
 
 import reportlab.rl_config as rl_config
 from reportlab.lib import colors
