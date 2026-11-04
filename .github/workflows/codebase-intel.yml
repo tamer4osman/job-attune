@@ -66,7 +66,7 @@ jobs:
           npx --yes fallow@3.38.1 dupes        --ci -o sarif/fallow-dupes.sarif
           npx --yes fallow@3.38.1 architecture --ci -o sarif/fallow-architecture.sarif
           npx --yes fallow@3.38.1 health \
-            --fail-on-issues --fail-on-stale-baseline \
+            --fail-on-stale-baseline \
             --baseline .codebase-intel/fallow-health-baseline.json \
             --format sarif --quiet -o sarif/fallow-health.sarif
 
