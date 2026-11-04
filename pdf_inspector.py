@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Inspect PDFs using Playwright/Chrome DevTools to identify layout issues."""
 
-import json
 from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 
 BATCH_REPORT = Path("D:/Projects/job-attune-1.0.0/attune-data/runs/run-20261103140420/exports/batch-report.pdf")
@@ -88,7 +88,7 @@ def analyze_pdf(pdf_path: Path, title: str) -> dict:
         print(f"\nPage dimensions: {PAGE_WIDTH_PT} x {PAGE_HEIGHT_PT} pts")
         print(f"Content area (with {MARGIN_LEFT_RIGHT_MM}mm margins): {CONTENT_WIDTH_PT:.1f} pts ({CONTENT_WIDTH_MM:.1f} mm)")
         
-        print(f"\n--- First 80 text elements ---")
+        print("\n--- First 80 text elements ---")
         for i, t in enumerate(text_analysis['texts'][:80]):
             print(f"  [{i:3d}] '{t['text'][:50]}...' at ({t['x']:7.1f}, {t['y']:6.1f}) fs={t['fontSize']:.1f}")
         
@@ -124,7 +124,7 @@ def analyze_pdf(pdf_path: Path, title: str) -> dict:
                     if len(combined.strip()) > 10:
                         print(f"  Y={float(y_key):.1f}: '{combined[:80]}...'")
                         if len(combined) > 150:
-                            print(f"    ^ POSSIBLY OVERLAPPING/OVERWRITTEN TEXT!")
+                            print("    ^ POSSIBLY OVERLAPPING/OVERWRITTEN TEXT!")
         
         # Take screenshot for visual reference
         screenshot_path = pdf_path.with_suffix('.inspected.png')
@@ -156,4 +156,4 @@ if __name__ == "__main__":
     results = main()
     print("\n" + "=" * 60)
     print("INSPERATION COMPLETE")
-    print(f"Table of contents saved for further analysis")
+    print("Table of contents saved for further analysis")

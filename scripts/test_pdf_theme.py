@@ -44,7 +44,7 @@ def decode_ascii85(data: bytes) -> bytes:
     """
     try:
         return base64.a85decode(data, adobe=True)
-    except Exception as e:
+    except Exception:
         # Fallback: remove '~>' marker and try again
         if b'~>' in data:
             data = data.split(b'~>')[0]

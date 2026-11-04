@@ -9,7 +9,6 @@ back both the browser and the exported PDFs - one visual language.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from fontTools.ttLib import TTFont

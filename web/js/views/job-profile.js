@@ -186,23 +186,34 @@ export function JobProfileEditor(state, actions) {
   });
   root.appendChild(el("div", { class: "action-bar" }, totalsEl, startBtn));
 
-  function updateTotals() {
+  function _jobTitleOk() {
+    return state.profile.job.title.trim().length > 0;
+  }
+
+  function _updateTotals() {
     const totalSkills = CATEGORY_KEYS.reduce((n, k) => n + state.profile.categories[k].length, 0);
     const totalMust = CATEGORY_KEYS.reduce((n, k) => n + state.profile.categories[k].filter((r) => r.mustHave).length, 0);
+    const hasJobTitle = _jobTitleOk();
+    const canStart = hasJobTitle && totalSkills > 0 && !actions.starting();
+
     clear(totalsEl);
     append(totalsEl,
       el("span", { class: "strong" }, String(totalSkills)), " skills across 6 categories, ",
-      el("span", { class: "strong warn-text" }, String(totalMust)), " marked must-have.",
-      !state.profile.job.title.trim() ? el("span", { class: "warn-text" }, " - add a job title first.") : null,
-      state.profile.job.title.trim() && totalSkills === 0 ? el("span", { class: "warn-text" }, " - add at least one skill.") : null,
+      el("span", { class: "strong warn-text" }, String(totalMust)), " marked must-have."
     );
-    startBtn.disabled = actions.starting() || !state.profile.job.title.trim() || totalSkills === 0;
+    if (!hasJobTitle) {
+      append(totalsEl, el("span", { class: "warn-text" }, " - add a job title first."));
+    } else if (totalSkills === 0) {
+      append(totalsEl, el("span", { class: "warn-text" }, " - add at least one skill."));
+    }
+
+    startBtn.disabled = !canStart;
     startBtn.textContent = "";
     append(startBtn, icon("Save", 16), actions.starting() ? "Starting..." : "Start screening run");
   }
 
   for (const key of CATEGORY_KEYS) updateBadges(key);
-  updateTotals();
+  _updateTotals();
 
   // a previous editor instance may have queued a message before remounting
   if (state.profileMsg) {

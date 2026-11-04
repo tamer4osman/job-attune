@@ -67,8 +67,8 @@
       }
     },
     "web/js/views/job-profile.js": {
-      "crap_high": {
-        "count": 1
+      "crap_moderate": {
+        "count": 2
       }
     },
     "web/js/views/position-report.js": {
