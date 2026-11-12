@@ -113,8 +113,11 @@ ls -la "vendor/omnidecide-c/build/$KERNEL_LIB"
 
 # ------------------------------------------------------------------ runtime
 echo "==> downloading the bundled CPython runtime"
+# URL-encode the + in Python version string (GitHub requires %2B; + can be
+# misinterpreted by curl on Windows Git Bash where + decodes to space).
+PY_ASSET_ENCODED="${PY_ASSET//+/%2B}"
 curl -fsSL --retry 3 -L -o "$TMP/python-archive" \
-  "https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_TAG}/${PY_ASSET}"
+  "https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_TAG}/${PY_ASSET_ENCODED}"
 echo "==> download complete, file size: $(wc -c < "$TMP/python-archive") bytes"
 
 # install_only archives unpack to ./python/ ; system tar exists on every
