@@ -21,8 +21,17 @@ e2e_results.txt
 pdf_theme_test_output.txt
 run_e2e.py
 
-# Development scripts directory
-scripts/
+# Development scripts directory (only ignore specific dev/debug scripts,
+# not the production build scripts in scripts/standalone/)
+scripts/cdp_browser_test.py
+scripts/cdp_direct_results.txt
+scripts/cdp_test_results.txt
+scripts/cdptest.py
+scripts/e2e_live_output.txt
+scripts/e2e_output.txt
+scripts/e2e_results.txt
+scripts/pdf_theme_test_output.txt
+scripts/run_e2e.py
 
 # IDE/editor files
 .vscode/
