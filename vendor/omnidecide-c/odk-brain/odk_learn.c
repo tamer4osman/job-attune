@@ -1626,13 +1626,7 @@ static int learn_key_is_canonical(const odk_brain *brain,
     *bad_part = -1;
     for (part = 0; part < 3; part++) {
         const char *sep = strchr(p, '\x1f');
-        size_t len = (part < 2)
-                         ? (size_t)(sep - p)
-                         : strlen(p);
-        char *piece;
-        char *canon;
-        int mismatch;
-
+        /* Check for NULL separator before pointer arithmetic */
         if (part < 2 && sep == NULL) {
             learn_set_error(err,
                             "re-key key must be three \\x1f-separated "
@@ -1642,6 +1636,12 @@ static int learn_key_is_canonical(const odk_brain *brain,
             *bad_part = -1;
             return 0;
         }
+        size_t len = (part < 2)
+                         ? (size_t)(sep - p)
+                         : strlen(p);
+        char *piece;
+        char *canon;
+        int mismatch;
         if (part == 2 && strchr(p, '\x1f') != NULL) {
             learn_set_error(err,
                             "re-key key must be exactly three "
