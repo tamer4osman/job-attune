@@ -1,19 +1,14 @@
 {
   "c": {
-    "ccn_ge_26": 60,
-    "ccn_ge_51": 15,
-    "cppcheck_style": 46,
-    "flawfinder_ge_4": 16,
-    "jscpd_clones": 84,
-    "jscpd_dup_lines": 1578,
-    "jscpd_dup_percent": 4.16,
-    "max_ccn": 136
+    "ccn_ge_26": 255,
+    "ccn_ge_51": 138,
+    "max_ccn": 397
   },
   "python": {
-    "ccn_ge_11": 44,
-    "ccn_ge_21": 7,
-    "ccn_ge_31": 4,
-    "ccn_ge_41": 2,
-    "max_ccn": 95
+    "ccn_ge_11": 177,
+    "ccn_ge_21": 102,
+    "ccn_ge_31": 64,
+    "ccn_ge_41": 41,
+    "max_ccn": 242
   }
 }

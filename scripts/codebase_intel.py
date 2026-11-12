@@ -160,11 +160,11 @@ def ratchet(lang: str, current: dict[str, object]) -> bool:
 # metric collectors
 # --------------------------------------------------------------------------- #
 def lizard_bands(paths: list[str], language: str, thresholds: list[int]) -> dict[str, int]:
-    """CCN bands via lizard's CSV output (column 1 is CCN)."""
+    """CCN bands via lizard's CSV output (column 0 is CCN)."""
     rc, out, _ = run(["lizard", "-l", language, "--csv"] + paths)
     if rc != 0:
         return {}
-    ccns = [int(row[1]) for row in csv.reader(io.StringIO(out)) if len(row) > 9]
+    ccns = [int(row[0]) for row in csv.reader(io.StringIO(out)) if len(row) > 9]
     bands: dict[str, int] = {"max_ccn": max(ccns) if ccns else 0}
     for t in thresholds:
         bands[f"ccn_ge_{t}"] = sum(1 for c in ccns if c >= t)
