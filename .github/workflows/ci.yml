@@ -139,8 +139,10 @@ jobs:
         run: |
           mkdir -p vendor/omnidecide-c/build
           cc -std=c11 -ffp-contract=off -O2 -Wall -Wextra -pedantic -fPIC -shared \
-            -Ivendor/omnidecide-c/include -Ivendor/omnidecide-c/src \
-            vendor/omnidecide-c/src/*.c -lm \
+            -Ivendor/omnidecide-c/include \
+            -Ivendor/omnidecide-c/odk-core -Ivendor/omnidecide-c/odk-brain -Ivendor/omnidecide-c/odk-spine \
+            vendor/omnidecide-c/odk-core/*.c vendor/omnidecide-c/odk-brain/*.c vendor/omnidecide-c/odk-spine/*.c \
+            -lm \
             -o vendor/omnidecide-c/build/libomnidecide.so
 
       - name: Run the quality gate against the C kernel
@@ -169,8 +171,10 @@ jobs:
         run: |
           mkdir -p vendor/omnidecide-c/build
           cc -std=c11 -ffp-contract=off -O2 -Wall -Wextra -pedantic -fPIC -shared \
-            -Ivendor/omnidecide-c/include -Ivendor/omnidecide-c/src \
-            vendor/omnidecide-c/src/*.c -lm \
+            -Ivendor/omnidecide-c/include \
+            -Ivendor/omnidecide-c/odk-core -Ivendor/omnidecide-c/odk-brain -Ivendor/omnidecide-c/odk-spine \
+            vendor/omnidecide-c/odk-core/*.c vendor/omnidecide-c/odk-brain/*.c vendor/omnidecide-c/odk-spine/*.c \
+            -lm \
             -o vendor/omnidecide-c/build/libomnidecide.so
 
       - name: Install Chromium for Playwright

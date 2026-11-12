@@ -55,7 +55,9 @@ BASELINES = ROOT / ".codebase-intel" / "ratchet-baselines.json"
 
 PY_PATHS = ["server.py", "attune-engine", "bench", "scripts"]
 C_DIRS = [
-    "vendor/omnidecide-c/src",
+    "vendor/omnidecide-c/odk-core",
+    "vendor/omnidecide-c/odk-brain",
+    "vendor/omnidecide-c/odk-spine",
     "vendor/omnidecide-c/include",
     "vendor/omnidecide-c/tools",
 ]

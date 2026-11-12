@@ -1,13 +1,13 @@
 {
   "c": {
-    "ccn_ge_26": 39,
-    "ccn_ge_51": 10,
+    "ccn_ge_26": 60,
+    "ccn_ge_51": 15,
     "cppcheck_style": 46,
-    "flawfinder_ge_4": 11,
-    "jscpd_clones": 68,
-    "jscpd_dup_lines": 714,
-    "jscpd_dup_percent": 2.83,
-    "max_ccn": 138
+    "flawfinder_ge_4": 16,
+    "jscpd_clones": 84,
+    "jscpd_dup_lines": 1578,
+    "jscpd_dup_percent": 4.16,
+    "max_ccn": 136
   },
   "python": {
     "ccn_ge_11": 44,
