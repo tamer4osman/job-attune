@@ -17,15 +17,19 @@
 #                   verifies the bundled server answers an API request.
 #
 # Triggers:
-#   - push a v* tag: all three archives are built and attached to the
-#     GitHub Release for that tag (created if missing, with generated
-#     notes).
+#   - push a v* tag: the release is created first, then all three archives are
+#     built in parallel and attached to that release (with generated notes).
 #   - workflow_dispatch: builds and uploads the archives as workflow
 #     artifacts only - use this to test the packaging without a release.
 #
 # Free tier: public repos run these on GitHub-hosted runners at no cost.
 # The tag builds need `permissions: contents: write` to attach assets;
 # nothing else is granted.
+#
+# Release sequencing follows the canonical multi-platform Actions pattern:
+# the create_release job materialises the GitHub Release before any asset
+# upload runs, so the matrix jobs never race to create-or-attach the same
+# release. See https://jon.sprig.gs/blog/post/2442.
 
 name: Release
 
@@ -43,8 +47,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  standalone:
+  create_release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      tag-name: ${{ steps.create_release.outputs.tag-name }}
+    steps:
+      - name: Create the GitHub Release (tag builds only)
+        id: create_release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+  build_release:
     name: Standalone (${{ matrix.platform }})
+    needs: create_release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -103,8 +124,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          tag-name: ${{ needs.create_release.outputs.tag-name }}
           files: |
             dist/*.tar.gz
             dist/*.zip
             dist/*.sha256
-          generate_release_notes: true
