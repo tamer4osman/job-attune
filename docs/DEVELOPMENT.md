@@ -4,8 +4,8 @@
 
 Everything a developer needs to work on Job Attune productively: how the
 codebase is organised, which quality gates protect it, how to extend the
-benchmark, and how to cut a release without breaking the determinism and
-audit guarantees.
+benchmark fixtures, and how to cut a release without breaking the determinism
+and audit guarantees.
 
 ## Code map
 
@@ -40,8 +40,8 @@ attune-engine/floors.py     vendored floors contract
                                  (data in data/floors_v1.json)
 attune-engine/make_report.py  ReportLab PDFs (invariant mode) + manifest
 attune-engine/floors_attune.json  floors contract (v1.0, frozen)
-bench/run_bench.py               bench cell runner (double-pass + sha256)
-bench/baselines.py               BooleanATS / TF-IDF / BM25 (candidate-blind)
+attune-data/casestudy-*/          shipped benchmark fixtures: frozen corpora,
+                                  job profiles + pre-registered expert rankings
 scripts/check_python_side.py     45-check release gate (Python side)
 scripts/smoke_test.py            fast health check: server + guard + all API
                                  routes + engine/reports + browser pass
@@ -84,8 +84,8 @@ speed) or `pip install wasmtime` for the portable WASM fallback - both tiers
 return byte-identical decisions (docs/LAYERED-KERNEL.md).
 Python 3.10+ (CI runs 3.12). On the native tier the spine features
 (docs/SPINE-FEATURES.md) engage automatically; the 13-check spine battery
-lives at `scripts/verify_spine_features.py` (evidence:
-`verification/spine_features.txt`), the replay auditor at
+lives at `scripts/verify_spine_features.py` (it prints per-check evidence),
+the replay auditor at
 `scripts/replay_audit.py` and the calibration report at
 `scripts/calibrate_report.py`.
 
@@ -107,8 +107,8 @@ python3 scripts/check_python_side.py
 - **C. Functional** — full engine run on the demo corpus **twice**; sha256
   determinism; descending ranking; all six primitives load-bearing; noul
   escalation present; PII persistence probes; enrichment, review-readiness,
-  accuracy-remediation (C27–C32), tuned-evidence (C33–C35) and bench-baseline
-  (C36–C38) probes.
+  accuracy-remediation (C27–C32), tuned-evidence (C33–C35) and case-study
+  fixture integrity (C36–C38) probes.
 - **D. Report** — `make_report.py` export run; every PDF parses (pypdf),
   page counts sane, manifest sha256 hashes match recomputed file hashes.
 
@@ -228,38 +228,50 @@ refactor re-save the baseline (`--update-baseline`) and commit it with
 your change — CI fails on a stale baseline so improvements are always
 locked in.
 
-## Adding a bench corpus
+## Adding a benchmark fixture
 
-A bench cell = corpus + job profile + frozen human ranking. Protocol
-(mandatory for any corpus used in claims):
+A fixture = corpus + job profile + ground truth + a pre-registered expert
+ranking. Protocol (mandatory for any fixture used in claims):
 
-1. Create `bench/corpora/<name>/` with `candidates/<folder>/cv.pdf` (one
-   folder per candidate), `profile.json` (job profile in the standard
-   schema), `manifest.json`.
-2. Write the human ranking **before** running the engine: `human_ranking.json`
-   as `{"ranking": ["folder-a", "folder-b", ...]}` — complete order, ties
-   expressed by your chosen convention, frozen thereafter.
-3. Freeze the pre-registration: `sha256sum profile.json human_ranking.json >
-   preregistration.sha256`. The ranking must never change after an engine run
-   touched the corpus.
-4. Run the cell (double-pass determinism is automatic):
+1. Create `attune-data/casestudy-<name>/` with `candidates/<folder>/cv.pdf`
+   (one folder per candidate), the job profile in the standard schema
+   (`profile-<role>.json`), and `ground_truth.json` recording each
+   candidate's true document roles, language and planted challenge.
+2. Write the expert rubric and ranking **before** running the engine:
+   `expert/expert_rubric.md` documents the criteria and their weights;
+   `expert/expert_ranking.json` holds the complete order, ties broken by
+   total descending, then folder name.
+3. Freeze the pre-registration: hash the rubric, ranking, ground truth and
+   profile into `preregistration.sha256`. The ranking must never change
+   after an engine run touched the corpus.
+4. Score the corpus with the engine, then re-run with the same salt
+   (the salt defaults to the run-directory name, so the second run must
+   name it explicitly):
 
 ```bash
-python3 bench/run_bench.py \
-  --corpus bench/corpora/<name>/candidates \
-  --profile bench/corpora/<name>/profile.json \
-  --human bench/corpora/<name>/human_ranking.json \
-  --name bench-<name> --salt task32-study \
-  --out /tmp/bench-<name>.json
+python3 attune-engine/engine.py \
+  --folder attune-data/casestudy-<name>/candidates \
+  --profile attune-data/casestudy-<name>/profile-<role>.json \
+  --run-dir attune-data/runs/casestudy-<name>
+
+python3 attune-engine/engine.py \
+  --folder attune-data/casestudy-<name>/candidates \
+  --profile attune-data/casestudy-<name>/profile-<role>.json \
+  --run-dir attune-data/runs/casestudy-<name>-determinism \
+  --salt casestudy-<name>
 ```
 
-5. Record results in `bench/README.md` (numbers + one-line mechanism note).
-   Report inconvenient cells openly — the harness exists to find them before
-   a customer does.
+5. Record the comparison metrics (Spearman rho, MAE, top-3 / bottom-3
+   overlap, per-candidate deltas) in `expert/comparison.json`, and report
+   inconvenient cells openly — the fixtures exist to find them before a
+   customer does.
 
-Synthetic CVs for holdouts are generated as text-layer PDFs (reportlab) so
-all systems rank the same extracted bytes; keep that property if you add
-corpora, or extraction differences will contaminate the comparison.
+Synthetic CVs are generated as text-layer PDFs (reportlab) so every replay
+ranks the same extracted bytes; keep that property if you add candidates, or
+extraction differences will contaminate the comparison. The release gate
+(C36–C38) checks that ground truth matches the candidate folders and files,
+that every ranking is a complete permutation with descending totals, and that
+the plumber preregistration hashes still match the frozen artifacts.
 
 ## Determinism rules for contributors
 
@@ -312,9 +324,10 @@ against it directly over end-to-end probes. If you experiment with forms,
 follow the calibration discipline: preregister a frozen search space and a
 selection rule, run the grid engine-native, and do not ship a default flip
 without the same rigor (publish wins AND losses in the CHANGELOG).
-The `must_have_gate` option (v1.3.3) extends the same framework: `hard`
-(default) keeps the historical flat 40/100 ceiling; `balanced` scales the
-ceiling by the met weight share of the must-have block
-(`0.40 + 0.60 * met_share`) — a profile-level policy choice, not a scoring
-change; see `docs/ENGINE-CLI.md` and
-`verification/case_study_plumber_1.3.3.txt`.
+The `must_have_gate` option extends the same framework: `hard` (default)
+keeps the historical flat 40/100 ceiling; `balanced` scales the ceiling by the
+met weight share of the must-have block (`0.40 + 0.60 * met_share`) — a
+profile-level policy choice, not a scoring change; see `docs/ENGINE-CLI.md`
+and the worked example in `attune-data/casestudy-plumber/` (profile plus
+`preregistration.sha256`). Current-engine regression values for both gates
+are recorded in `CHANGELOG.md`.

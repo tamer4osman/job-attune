@@ -142,9 +142,12 @@ security model live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Measured accuracy
 
-Spearman rho against **pre-registered, frozen human rankings**, candidate-blind
-bench, study salt `task32-study` (full protocol in
-[bench/README.md](bench/README.md)):
+Spearman rho against **pre-registered, frozen human rankings**, recorded with
+the candidate-blind harness under study salt `task32-study`. The harness itself
+has been retired; the tables below are preserved as historical reference, and
+the shipped case-study fixtures under [attune-data/](attune-data/) (frozen
+corpora, expert rankings, preregistration hashes, reproduction commands) are
+the current way to run the same protocol on a corpus you can inspect:
 
 | System | corpus20 (synthetic) | real40 (authentic CVs) | logistics14 | trades14 |
 |---|---|---|---|---|
@@ -178,7 +181,7 @@ required.
 | Scoring is stable across releases | 3-case regression lock against the frozen reference scoring lineage | Protocol in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 | The C11 kernel changes no scores | 36-case kernel A/B battery + full-engine leaf-identical replay | [docs/VERIFICATION-1.8.0.md](docs/VERIFICATION-1.8.0.md) |
 | No PII leaks into outputs | PII-redaction probes over all enriched outputs on every regression run | Probe lines in the 45-check gate output |
-| Benchmarks are candidate-blind & pre-registered | Frozen corpora, pinned human rankings, recorded study salt | [bench/README.md](bench/README.md) |
+| Benchmarks are candidate-blind & pre-registered | Frozen corpora, pinned human rankings, sha256 preregistration | [docs/GENERAL-RELIABILITY.md](docs/GENERAL-RELIABILITY.md) + [attune-data/](attune-data/) |
 | Nothing phones home | The kernel is pure C11 computation — no sockets, no HTTP; the UI binds to `127.0.0.1` only | Read it: [vendor/omnidecide-c/](vendor/omnidecide-c/) |
 | Every language ships behind static-analysis gates | `fallow` (JS), ruff/vulture/pylint/pip-audit/lizard (Python), cppcheck/flawfinder/lizard/jscpd (C) — hard gates plus shrink-only complexity ratchets, wired in `codebase-intel.yml` | [docs/CODEBASE-INTEL.md](docs/CODEBASE-INTEL.md) |
 | Every decision is attributable | Each run manifest records engine, kernel and floors versions plus the aggregation provenance block | Open any run directory under `attune-data/runs/` |
@@ -264,12 +267,12 @@ scan) is regenerated with
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, run lifecycle, data contracts, redaction pipeline, security model, diagrams |
 | [docs/LAYERED-KERNEL.md](docs/LAYERED-KERNEL.md) | The layered decision kernel: native tier, WASM fallback tier, `$ATTUNE_KERNEL` policy |
 | [docs/SPINE-FEATURES.md](docs/SPINE-FEATURES.md) | Kernel 2.0.0 spine features: content tag verification, decision pins + replay audit, calibration loop, `$ATTUNE_SPINE` policy |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Developer guide: QA pipelines, regression lock, adding bench corpora, release checklist |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Developer guide: QA pipelines, regression lock, adding benchmark fixtures, release checklist |
 | [docs/CODEBASE-INTEL.md](docs/CODEBASE-INTEL.md) | Codebase-intelligence gates: fallow + the Python/C analyzer stack, capability map, ratchet contract |
 | [docs/MARKETING.md](docs/MARKETING.md) | Sales playbook: positioning, comparison matrix, statistics, workflows, objection handling |
 | [docs/API.md](docs/API.md) | HTTP API reference (13 routes) incl. loopback-guard auth rules |
 | [docs/ENGINE-CLI.md](docs/ENGINE-CLI.md) | Engine + reporter CLI reference, aggregation profile keys, run-directory contract |
-| [bench/README.md](bench/README.md) | Bench harness: systems, determinism protocol, reference results, corpus format |
+| [attune-data/](attune-data/) | Case-study fixtures: frozen corpora, expert rankings, preregistration hashes and reproduction commands (plumber, trades, university) |
 | [CHANGELOG.md](CHANGELOG.md) | Version history (v1.0.1 — general-reliability round: profile vocabulary lint R0-R7, clause-scoped claim quality, PDF line-wrap tolerant alias matching, cross-lingual value-token packs; cold-start battery over six professions, mean Spearman 0.771 hard / 0.809 balanced; v1.3.3 — balanced must-have gate: profile-opt-in weight-proportional ceiling; v1.3.2 — plumber case-study fix round: negation guard, multilingual claim quality, compound matching; v1.3.1 — academic German values fold; v1.3.0 — spine features: content tag verification, decision pins, calibration loop) |
 | [docs/GENERAL-RELIABILITY.md](docs/GENERAL-RELIABILITY.md) | Cross-occupation generalization protocol + results: preregistered cold-start battery (nurse, accountant, electrician, baker, Kfz-Mechatroniker, MFA), mechanism checks, regression on tuned corpora, per-client lint workflow |
 | [attune-data/casestudy-uni/README.md](attune-data/casestudy-uni/README.md) | University case study: bilingual doctoral-hiring fixture (12 applicants / 22 PDFs), pilot iterations, reproduction commands |
@@ -290,8 +293,10 @@ attune-engine/              engine.py, ckernel.py (kernel resolver), floors.py
                             (floors_v1.json + spine_schemes.json)
 vendor/omnidecide-c/      omnidecide-c 2.0.0 C11 kernel (native tier)
 vendor/omnidecide-wasm/   official WASM dist of the same kernel (fallback tier)
-bench/                      candidate-blind benchmark harness + frozen corpora
-attune-data/                templates (runs/ is created at runtime)
+attune-data/                templates (runs/ is created at runtime) + shipped
+                            case-study fixtures (casestudy-plumber, -trades,
+                            -uni: frozen corpora, expert rankings,
+                            preregistration hashes, reproduction commands)
 attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
 scripts/                    QA gates, codebase-intel orchestrator, sample
                             generator, icon fetcher, standalone packager
@@ -313,7 +318,7 @@ Dockerfile                  multi-target build: full-stack image (default) +
 ```bash
 python3 scripts/check_python_side.py
 # 45-check release gate: static analysis, floors contract, two-pass engine
-# determinism, enrichment fields, PII-redaction probes, bench baselines,
+# determinism, enrichment fields, PII-redaction probes, fixture integrity,
 # 7-PDF export validation. Exit 0 = release-ready.
 
 python3 scripts/smoke_test.py
@@ -326,7 +331,8 @@ python3 scripts/smoke_test.py
 python3 scripts/verify_spine_features.py
 # 13-check spine battery: pins + replay audit (all 'exact'), spine-on/off
 # scoring identity, WASM degradation, mis-tag fixture detection, the
-# calibration loop. Evidence: verification/spine_features.txt.
+# calibration loop. Prints per-check evidence; protocol notes in
+# docs/SPINE-FEATURES.md.
 
 # regression lock vs the stored reference scoring runs (protocol in
 # docs/DEVELOPMENT.md): stored lineage runs must replay with zero

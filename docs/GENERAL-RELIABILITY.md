@@ -16,8 +16,9 @@ were written once from generic occupational vocabulary; expected rankings and
 mechanism expectations were preregistered with sha256 sidecars before any
 engine run; nothing was tuned after the runs.
 
-Results and root causes: `verification/genbattery_v1.txt` (+
-`genbattery_v1_summary.json`; round-1 files). Headline: mechanisms all
+Results and root causes were recorded in the round-1 evidence bundle
+(`genbattery_v1.txt` + `genbattery_v1_summary.json`, internal study files not
+part of the shipped tree). Headline: mechanisms all
 held (classification, negation guard, gating, pinning/replay, determinism,
 cross-tier identity, negative controls); profile vocabulary was the binding
 constraint (three counterfactual-confirmed alias defects) and two
@@ -62,8 +63,9 @@ line-wrap fix recovering candidates the engine had falsely capped, and the
 removal of a cross-language marker leak (English '(fluent)' scoping a German
 claim). Kernel binaries are byte-identical to 1.3.3.
 
-Mechanism checks: 37/45 as formulated; every FAIL is root-caused in
-`verification/genbattery_v2.txt` - the nurse
+Mechanism checks: 37/45 as formulated; every FAIL is root-caused in the
+round-2 evidence bundle (`genbattery_v2.txt`, internal study file not part of
+the shipped tree) - the nurse
 switcher check exposes exactly the CF1 profile artifact the lint now flags,
 the switcher formulation passes 5/6 in its zero-gap principle form, and the
 mfa F1 10/12 is the content classifier honestly abstaining on Polish while

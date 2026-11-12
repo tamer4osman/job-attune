@@ -44,7 +44,7 @@ untouched.
   the text a document contributes to scoring is unchanged.
 - Pins re-evaluate the exact request on the same deterministic kernel —
   a second identical computation, not a different one.
-- Verified empirically (`verification/spine_features.txt`): the canonical
+- Verified empirically by the spine battery: the canonical
   scoring payloads of a spine-on and a spine-off run are byte-identical
   once the annotations and the self-referential pass hashes are set aside,
   and the two-pass determinism guarantee holds with pinning active.
@@ -67,7 +67,7 @@ python3 scripts/replay_audit.py --run-dir attune-data/runs/<run-id>
 # calibration report over human sign-offs (one or many runs)
 python3 scripts/calibrate_report.py --run-dir attune-data/runs/<run-id>
 
-# full spine verification battery (13 checks; also in verification/)
+# full spine verification battery (13 checks)
 python3 scripts/verify_spine_features.py
 ```
 

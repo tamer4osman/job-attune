@@ -44,9 +44,9 @@ itself has always provided.
 
 Both tiers execute the omnidecide-c **2.0.0** decision engine — the same
 0.35/0.35/0.30 lexical blend, calibration scales and rounding. Upstream
-guarantees 2.0.0 replays 1.x decisions byte-identically, and this release
-verifies tier equivalence empirically (see `verification/` in the release
-bundle): a 39-case A/B battery across all six primitives (payloads and
+guarantees 2.0.0 replays 1.x decisions byte-identically, and the release
+pipeline verifies tier equivalence empirically: a 39-case A/B battery across
+all six primitives (payloads and
 error paths, English/German/Chinese, 13.7k-char contexts, near-tie
 compares) plus a full-engine run whose **spine-normalized scoring view**
 must be byte-identical across tiers: everything that constitutes a score,

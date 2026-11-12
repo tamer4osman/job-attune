@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
-# Job Attune 1.3.3 - source archive
+# Job Attune 1.0.1 - source archive
 
 GDPR-safe resume screening: a vanilla HTML/CSS/JS UI served by a stdlib-only
 Python server, driving a deterministic Python scoring engine that runs on
@@ -25,10 +25,12 @@ contain no raw PII.
                                 tagging/pins/calibration, docs/SPINE-FEATURES.md),
                                 PDF reporter, vendored floors contract
                                 (floors.py + data/)
-    bench/                      candidate-blind benchmark harness + frozen corpora
     vendor/omnidecide-c/      omnidecide-c 2.0.0 C11 kernel (native tier)
     vendor/omnidecide-wasm/   official WASM dist of the same kernel (fallback tier)
-    attune-data/                templates (runs/ is created at runtime)
+    attune-data/                templates (runs/ is created at runtime) + shipped
+                                case-study fixtures (casestudy-plumber, -trades,
+                                -uni: frozen corpora, expert rankings,
+                                preregistration hashes)
     attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
     scripts/                    QA gates, sample generator, JS check pipelines
     docs/                       architecture, API, CLI, developer guide, marketing
@@ -165,8 +167,8 @@ launcher before it is uploaded.
 
     python3 scripts/check_python_side.py
     # 45-check release gate: static analysis, floors contract, two-pass engine
-    # determinism, enrichment fields, PII-redaction probes, bench baselines
-    # (C36-C38), 7-PDF export validation. Exit 0 = all green.
+    # determinism, enrichment fields, PII-redaction probes, case-study fixture
+    # integrity (C36-C38), 7-PDF export validation. Exit 0 = all green.
 
     python3 scripts/smoke_test.py
     # 54-check fast health check (~10 s, self-contained): boots its own server,
@@ -201,13 +203,13 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 
 - `README.md` - project overview, measured accuracy, quickstart, repository layout
 - `docs/ARCHITECTURE.md` - components, run lifecycle, data contracts, security model, diagrams
-- `docs/DEVELOPMENT.md` - QA pipelines, regression lock, adding bench corpora, release checklist
+- `docs/DEVELOPMENT.md` - QA pipelines, regression lock, adding benchmark fixtures, release checklist
 - `docs/API.md` - HTTP API reference (all 13 routes + loopback-guard auth rules)
 - `docs/ENGINE-CLI.md` - engine + reporter CLI reference, aggregation profile keys
 - `docs/LAYERED-KERNEL.md` - the layered decision kernel (native first, WASM fallback)
 - `docs/MARKETING.md` - sales playbook: positioning, statistics, workflows, objection handling
-- `bench/README.md` - bench harness protocol and reference results
-- `CHANGELOG.md` - version history (v1.2.0 - layered kernel: omnidecide-c 2.0.0 + WASM fallback)
+- `attune-data/casestudy-*/` - shipped case-study fixtures: frozen corpora, expert rankings, preregistration hashes, reproduction commands
+- `CHANGELOG.md` - version history (v1.0.1 - reliability round; v1.3.x - layered kernel: omnidecide-c 2.0.0 + WASM fallback)
 - `docs/VERIFICATION-1.8.0.md` - kernel-migration verification evidence (historical record)
 - `LICENSE` / `NOTICE` - Apache License 2.0, copyright Tamer Osman
 - `vendor/omnidecide-c/README.md` - the C11 decision kernel the engine runs on

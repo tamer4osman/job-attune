@@ -9,8 +9,8 @@ and enterprise cloud suites — with verified statistics, ready-made workflows,
 and answers to the objections that actually come up in procurement.
 
 > **Traceability rule:** every number in this document comes from a shipped,
-> re-runnable artifact — the bench harness (`bench/`), the 45-check QA gate
-> (`scripts/check_python_side.py`), or the regression lock. No invented
+> re-runnable artifact — the case-study fixtures (`attune-data/`), the 45-check
+> QA gate (`scripts/check_python_side.py`), or the regression lock. No invented
 > benchmarks, no vendor math. See the appendix for the exact sources.
 
 ---
@@ -39,9 +39,9 @@ The three sentences that close deals:
    an audit, a candidate, or a court asks *why*, you re-run the decision.
 
 **Positioning:** stable — trial-ready. We ship behind a 45-check release
-gate, a scoring regression lock, and a candidate-blind benchmark harness
-that buyers can run on **their own corpus** during a pilot. We ask you to
-measure us, not believe us.
+gate, a scoring regression lock, and case-study fixtures — frozen corpora with
+expert rankings that buyers can reproduce on **their own corpus** during a
+pilot. We ask you to measure us, not believe us.
 
 ---
 
@@ -76,12 +76,10 @@ infrastructure.
 
 | Pillar | What it means for the customer |
 |---|---|
-| **Measured accuracy** | Engine ranking correlates with pre-registered human expert rankings at Spearman rho 0.931 (curated corpus) and 0.640 (authentic career-center CVs) — above every classical baseline we test against. The bench harness ships with the product; run it on your own corpus in the pilot. |
+| **Measured accuracy** | Engine ranking correlates with pre-registered human expert rankings at Spearman rho 0.931 (curated corpus) and 0.640 (authentic career-center CVs) — above every classical baseline we tested against. The case-study fixtures ship with the product; reproduce the protocol on your own corpus in the pilot. |
 | **Determinism & auditability** | Byte-identical re-runs (sha256-checked on every release), per-export sha256 manifests, append-only human review log. Screening becomes a defensible process instead of an opinion. |
 | **Privacy by architecture** | Local-only, loopback-bound, an engine with no network surface at all, pseudonymous candidate refs before scoring, PII probes in the release gate. No data-processor agreement needed because no processor gets the data. |
 | **Zero marginal cost** | No per-candidate API fees, no seat licences, no usage metering. After installation, screening 40 or 4,000 candidates costs the same: nothing extra. |
-
-![Job Attune architecture](diagrams/architecture.png)
 
 ---
 
@@ -89,7 +87,7 @@ infrastructure.
 
 | Capability | **Job Attune** | Boolean ATS screeners | Generic prompt-based screening (chatbot-style) | Enterprise cloud ATS |
 |---|---|---|---|---|
-| Ranking measured vs human reference | **Yes — shipped bench, frozen rankings** | No (keyword hit counts) | Anecdotal, prompt-dependent | Rarely published |
+| Ranking measured vs human reference | **Yes — shipped fixtures, frozen rankings** | No (keyword hit counts) | Anecdotal, prompt-dependent | Rarely published |
 | Deterministic (same input = same output) | **Yes, byte-identical, sha256-enforced** | Yes (trivially) | **No** — sampling variance | No guarantee exposed |
 | Evidence quality, not just keywords | **Yes — none/partial/good/strong claim grading** | No | Partial (unverifiable) | Partial |
 | Data leaves your infrastructure | **Never** | Yes (SaaS) | Yes (API + training concerns) | Yes (SaaS) |
@@ -109,31 +107,31 @@ cells is selling you the spreadsheet version of their product.
 
 ---
 
-## 5. The numbers (verified)
+## 5. The numbers (recorded)
 
 ![Benchmark: Spearman rho](diagrams/bench-spearman.png)
 
 | Metric | Value | Source artifact |
 |---|---|---|
-| Engine rho vs human, curated corpus (20 candidates) | **0.931** | reference table in [bench/README.md](../bench/README.md); frozen ranking, double-pass deterministic |
-| Engine rho vs human, authentic CVs (40 candidates) | **0.640** | reference table in [bench/README.md](../bench/README.md) |
-| Best keyword baseline on the same corpora | 0.725 / 0.574 | same artifacts (BM25) |
-| Engine rho, synthetic logistics holdout (14) | 0.802 | bench harness reference table ([bench/README.md](../bench/README.md)) |
-| Engine rho, synthetic trades holdout (14) | 0.877 | bench harness reference table ([bench/README.md](../bench/README.md)) |
-| Determinism | 12/12 bench cells sha256-identical across double passes; engine re-run reproduced a stored run at 12,316/12,316 content leaves | bench artifacts; recalibration purity proof |
-| Release gate | **45/45 checks green** (floors contract, two-pass determinism, PII probes, bench baselines, 7-PDF validation) | `scripts/check_python_side.py` |
+| Engine rho vs human, curated corpus (20 candidates) | **0.931** | historical reference table in [README.md](../README.md); frozen ranking, double-pass deterministic |
+| Engine rho vs human, authentic CVs (40 candidates) | **0.640** | historical reference table in [README.md](../README.md) |
+| Best keyword baseline on the same corpora | 0.725 / 0.574 | same recorded artifacts (BM25) |
+| Engine rho, synthetic logistics holdout (14) | 0.802 | historical harness reference table ([README.md](../README.md)) |
+| Engine rho, synthetic trades holdout (14) | 0.877 | historical harness reference table ([README.md](../README.md)) |
+| Determinism | 12/12 recorded benchmark cells sha256-identical across double passes; engine re-run reproduced a stored run at 12,316/12,316 content leaves | historical harness artifacts; recalibration purity proof |
+| Release gate | **45/45 checks green** (floors contract, two-pass determinism, PII probes, fixture integrity, 7-PDF validation) | `scripts/check_python_side.py` |
 | Scoring stability | 3/3 regression-lock PASS vs the frozen reference scoring lineage — zero unexpected diffs across three releases | regression lock record |
 | Decision kernel | omnidecide-c 2.0.0 C11 kernel (native tier, WASM fallback tier of the same engine); six decision primitives all load-bearing; confidence floors calibrated on 1,920 decision episodes | floors contract + calibration report |
-
-![Benchmark: MAE](diagrams/bench-mae.png)
 
 **How to read this in a sales conversation:** rho is the correlation between
 the system's ranking and a frozen expert ranking; 1.0 is perfect agreement.
 MAE is the average number of rank positions the system is off. On the
-authentic-CV corpus the engine places a candidate, on average, within about
-1.5 ranks of the expert; the best keyword baseline is 2+ ranks off — and a
-Boolean screener is meaningfully wrong on the candidates that matter most,
-the top of the stack.
+authentic-CV corpus the engine placed a candidate, on average, within about
+1.5 ranks of the expert; the best keyword baseline was 2+ ranks off — and a
+Boolean screener was meaningfully wrong on the candidates that matter most,
+the top of the stack. These cells were recorded by the retired harness; the
+shipped case studies under [attune-data/](../attune-data/) are the current
+reproduction path against a corpus you can inspect.
 
 ---
 
@@ -163,12 +161,16 @@ the top of the stack.
    trust — that becomes the frozen reference ranking.
 2. **Local install (under an hour).** The source zip runs from disk: Python
    engine + local web UI. No cloud account, no data room.
-3. **Blind bench on YOUR corpus.** Freeze your reference ranking, run the
-   shipped harness: `bench/run_bench.py` reports Job Attune vs Boolean ATS
-   vs TF-IDF vs BM25 against *your* ranking, with determinism double-pass.
-4. **Read the numbers together.** If the engine doesn't beat the baselines
-   on your corpus, that finding is the deliverable — you just learned
-   something about your reference corpus for free.
+3. **Blind benchmark on YOUR corpus.** Freeze your reference ranking (sha256
+   before any engine run), score the corpus with the engine, and compare the
+   resulting order against that ranking with Spearman rho / MAE and top-3 /
+   bottom-3 overlap, re-running with the same `--salt` to prove determinism.
+   The shipped fixtures under `attune-data/casestudy-*/` are worked examples
+   of exactly this protocol.
+4. **Read the numbers together.** If the engine's ranking does not agree with
+   your reference ranking better than your current process does, that finding
+   is the deliverable — you just learned something about your reference
+   corpus for free.
 5. **Go/no-go.** Trial licence, fixed scope, no per-candidate billing to
    unwind.
 
@@ -178,7 +180,7 @@ the top of the stack.
   aggregation provenance, and candidate pseudonymous refs.
 - Every export → `manifest.json` with sha256 over each PDF.
 - Every human decision → append-only `review_decisions.jsonl`.
-- Every release → 45-check gate + regression lock record + bench artifacts.
+- Every release → 45-check gate + regression lock record + benchmark artifacts.
 - Replaying any historical decision: same inputs + same run-dir salt +
   `--reference-year` → byte-identical outputs. Demonstrable live in minutes.
 
@@ -210,11 +212,11 @@ the top of the stack.
 |---|---|---|---|
 | Per-candidate fee / tokens | Yes, scales with volume | Bundled, scales with seats | **Zero** |
 | Data egress / residency work | Often required | Often required | **None** |
-| Pilot cost | Burn tokens + risk data | Sales cycle + sandbox setup | **Run the shipped bench** |
+| Pilot cost | Burn tokens + risk data | Sales cycle + sandbox setup | **Reproduce the shipped fixtures** |
 | Scaling 10x applicants | 10x API bill | New pricing tier | **Same machine, longer queue** |
 
-The pilot is deliberately cheap for the buyer because the benchmark harness
-is part of the product, not a consulting engagement. The only honest
+The pilot is deliberately cheap for the buyer because the benchmark fixtures
+are part of the product, not a consulting engagement. The only honest
 resource cost is one machine and under an hour of setup.
 
 ---
@@ -251,8 +253,8 @@ to get gate-heavy cells was to generate them — with the freeze (sha256)
 dated before any engine run. We label synthetic vs authentic everywhere, and
 the authentic-CV results are the ones we lead with.
 
-**"How do we know the demo isn't cherry-picked?"** The bench harness, the
-corpora manifest, the frozen rankings and the QA gate ship inside the same
+**"How do we know the demo isn't cherry-picked?"** The engine, the case-study
+fixtures with their frozen rankings, and the QA gate ship inside the same
 zip. Run everything yourself, on your hardware, against your corpus. If a
 number doesn't reproduce, that's a bug we want filed.
 
@@ -268,7 +270,7 @@ number doesn't reproduce, that's a bug we want filed.
 5. What does a 10x applicant spike do to your current screening cost?
 
 Answers 1–2 sell the time saving, 3 sells the privacy pillar, 4 sells the
-bench pilot, 5 sells the fixed-cost model.
+benchmark pilot, 5 sells the fixed-cost model.
 
 ---
 
@@ -276,10 +278,10 @@ bench pilot, 5 sells the fixed-cost model.
 
 | Claim in this document | Artifact |
 |---|---|
-| All Spearman rho / MAE values | published accuracy table in [bench/README.md](../bench/README.md) and [README.md](../README.md); regenerate any cell via `bench/run_bench.py` |
+| All Spearman rho / MAE values | historical accuracy table in [README.md](../README.md); reproduce the protocol on the shipped fixtures under [attune-data/](../attune-data/) |
 | 45/45 gate | `scripts/check_python_side.py`, SUMMARY line in any release log |
 | 3/3 regression lock | regression-lock protocol record ([docs/DEVELOPMENT.md](DEVELOPMENT.md)) |
 | 12,316/12,316 replay purity | stored-run replay purity proof (historical release record) |
 | 1,920-episode calibration | floors calibration provenance (`attune-engine/data/floors_v1.json`) |
-| 12/12 deterministic cells | bench runner double-pass sha256 fields, `bench/README.md` |
+| 12/12 deterministic cells | historical harness double-pass sha256 fields, [README.md](../README.md) |
 | Zero network at runtime | stdlib-only engine + C11 kernel with no network code + loopback-only app binding (docs/ARCHITECTURE.md) |

@@ -6,7 +6,7 @@ All notable changes to the Job Attune engine, UI and tooling.
 Engine version is the project's release version; every run manifest records
 the engine, decision-kernel and floors versions that produced it.
 
-## [1.0.1] - 2026-11-13
+## [1.0.1] - 2026-11-12
 
 General-reliability round: turns the cold-start generalization battery's
 root-caused findings into title-agnostic engine mechanisms. Goal per the

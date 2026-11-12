@@ -2,11 +2,15 @@
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
 # Manual-labor case study - Furniture Technician (Assembly & Service)
 
-A screening fixture built to test Job-Attune 1.3.1 on manual-labor hiring
-data AND to compare the tool's ranking against a human expert's ranking:
-12 fictional applicants, 25 PDFs (7 German), planted mistags, an extra
-certificates document, and a corpus of transferable-trade vocabulary
-(plumber, mover, hotel maintenance, gig assembler, career changer).
+A screening fixture built to compare Job-Attune's ranking against a human
+expert's ranking on manual-labor hiring data: 12 fictional applicants, 25
+PDFs (7 German documents), planted mistags, an extra certificates document,
+and a corpus of transferable-trade vocabulary (plumber, mover, hotel
+maintenance, gig assembler, career changer).
+
+The fixture is maintained under the current 1.0.1 release; the iteration
+notes below preserve the version labels the observations were recorded
+under.
 
 **Grounding.** Profile requirements are modelled on published criteria for
 comparable positions, retrieved 2026-11-11: Havertys "Furniture Service
@@ -21,23 +25,22 @@ Einrichtungswerke GmbH") and all applicants are fictional.
 
 `expert/expert_rubric.md` and `expert/expert_ranking.json` were committed
 BEFORE any engine run on this profile; `expert/comparison.json` holds the
-comparison metrics (Spearman, overlaps, per-candidate deltas) recomputed by
-`scripts/casestudy/trades_comparison.py`. The corpus and the expert ranking
-were never modified after tool output was seen.
+comparison metrics recorded during the original pilot loop (Spearman,
+overlaps, per-candidate deltas). The corpus and the expert ranking were never
+modified after tool output was seen. Current-engine regression values for
+all three tuned fixtures are recorded in the root `CHANGELOG.md`.
 
 ## Reproduce
 
 ```bash
-# corpus regeneration (deterministic PDFs)
-python3 scripts/casestudy/generate_trades_corpus.py
-
 # main run (native tier, spine auto)
 python3 attune-engine/engine.py \
   --folder attune-data/casestudy-trades/candidates \
   --profile attune-data/casestudy-trades/profile-furniture-technician.json \
   --run-dir attune-data/runs/casestudy-trades-native
 
-# determinism re-run (pass the same salt explicitly!)
+# determinism re-run (the salt defaults to the run-directory name,
+# so pass the original one explicitly)
 python3 attune-engine/engine.py --folder attune-data/casestudy-trades/candidates \
   --profile attune-data/casestudy-trades/profile-furniture-technician.json \
   --run-dir attune-data/runs/casestudy-trades-native-determinism \
@@ -49,17 +52,13 @@ ATTUNE_KERNEL=wasm python3 attune-engine/engine.py \
   --profile attune-data/casestudy-trades/profile-furniture-technician.json \
   --run-dir attune-data/runs/casestudy-trades-wasm --salt casestudy-trades-native
 
-# replay audit + calibration + reports + comparison + evidence log
-python3 scripts/replay_audit.py --run-dir attune-data/runs/casestudy-trades-native
-python3 scripts/calibrate_report.py --run-dir attune-data/runs/casestudy-trades-native \
-  --out attune-data/runs/casestudy-trades-native/calibration-report.json
+# report export
 python3 attune-engine/make_report.py --run-dir attune-data/runs/casestudy-trades-native
-python3 scripts/casestudy/trades_comparison.py   # metrics (+ optional chart path arg)
-python3 scripts/casestudy/trades_evidence.py     # -> verification/case_study_trades.txt
-
-# counterfactual (M4 line-break finding; does NOT modify the engine)
-python3 scripts/casestudy/counterfactual_tolerant_alias.py
 ```
+
+The pilot loop also used a local study harness (`scripts/casestudy/`, an
+internal workspace that is not part of the shipped tree). Its frozen outputs
+are committed here: the pilot profile and `expert/comparison.json`.
 
 ## Files
 
@@ -85,8 +84,9 @@ python3 scripts/casestudy/counterfactual_tolerant_alias.py
    `token_fraction`) remains and is documented.
 3. **Counterfactual** - whitespace-tolerant multi-word alias matching moves
    david_osei 40.0 -> 74.7 (rank 10 -> 5), matching the expert view;
-   recorded as the evidence base for the recommended engine 1.3.2 change.
+   recorded as the evidence base for the line-wrap-tolerant alias change
+   that followed.
 
 Run directories preserve every iteration (`casestudy-trades-run1-alias-gaps`,
 `-native`, `-native-determinism`, `-wasm`, `-counterfactual-tolerant`).
-Evidence: `verification/case_study_trades.txt`.
+`expert/comparison.json` is the frozen evidence artifact.

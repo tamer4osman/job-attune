@@ -6,10 +6,8 @@ Job Attune is a three-tier local application: a vanilla web UI + API layer
 (a stdlib-only Python HTTP server), a deterministic Python scoring engine,
 and a frozen decision library. All tiers
 run on one machine; no data leaves it. A fourth, orthogonal tier — the
-candidate-blind bench harness — verifies scoring quality without ever being
+shipped case-study fixtures — verifies scoring quality without ever being
 needed at runtime.
-
-![Architecture diagram](diagrams/architecture.png)
 
 ```
 +--------------------------------------------------------------+
@@ -39,7 +37,7 @@ needed at runtime.
                                   | WASM fallback, libomnidecide.so) |
                                   +----------------------------------+
   [offline QA tier]  scripts/check_python_side.py (45 checks)
-                     bench/run_bench.py + bench/baselines.py (candidate-blind)
+                     attune-data/casestudy-*/ (frozen corpora + rankings)
 ```
 
 ## Components
@@ -142,18 +140,22 @@ pseudonymous per-candidate dossier each, recorded in
 `exports/manifest.json` with sha256 hashes. `rl_config.invariant = 1` makes
 output byte-stable across runs and machines.
 
-### Bench harness (`bench/`, offline)
+### Case-study fixtures (`attune-data/casestudy-*`, offline)
 
-Candidate-blind benchmarking (`bench/run_bench.py`): ranks the same corpus
-with the engine and three baselines — Boolean ATS (must-have keyword veto +
-coverage), TF-IDF (cosine, sublinear tf, smoothed idf), BM25 (Okapi, k1=1.5
-b=0.75). Baseline keywords derive **only** from the job profile, never from
-candidate documents. Every cell runs twice per system and records sha256
-score projections; a cell ships only if both passes agree. Corpora with a
-frozen, pre-registered human ranking (sha256-pinned before any engine run)
-produce Spearman rho / MAE / top-3 / bottom-3 overlap against the human
-order. See [bench/README.md](../bench/README.md) and
-[docs/DEVELOPMENT.md](DEVELOPMENT.md) for the corpus authoring guide.
+Three shipped benchmark fixtures — plumber, trades and university — each hold
+a frozen corpus of candidate PDFs, the job profile used to score it, and,
+where the protocol was followed through, the pre-registered expert ranking
+(`expert/expert_ranking.json`) with its rubric and a `preregistration.sha256`
+freezing every artifact before any engine run. They replace the retired
+candidate-blind harness: instead of a runner that scored the corpus against
+Boolean ATS / TF-IDF / BM25 baselines, each fixture is a reproducible
+reference ranking you can re-derive with the engine and diff against the
+recorded expert order using Spearman rho / MAE / top-3 / bottom-3 overlap.
+The release gate checks fixture integrity (C36–C38): ground truth matches the
+candidate folders and files, rankings are complete permutations with
+descending totals, and the plumber preregistration hashes still match the
+frozen artifacts. See [attune-data/](../attune-data/) and
+[docs/DEVELOPMENT.md](DEVELOPMENT.md) for the fixture authoring guide.
 
 ## Run lifecycle
 
@@ -241,7 +243,7 @@ evidence dates survive, phone numbers do not.
 `scripts/check_python_side.py` is the release gate: 45 checks across static
 analysis, floors contract, functional engine behaviour (determinism, ranking
 order, primitives load-bearing, escalation, PII probes, enrichment fields,
-tuned-evidence overrides, bench baselines C36–C38) and PDF export
+tuned-evidence overrides, case-study fixture integrity C36–C38) and PDF export
 validation. The vanilla UI is walked end-to-end (scan -> profile -> run ->
 results -> export) by `scripts/e2e_check.py` in headless Chromium with a
 zero-console-error requirement, and checked fast (~10 s, 54 assertions:

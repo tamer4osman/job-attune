@@ -32,7 +32,7 @@ The job profile's `weights` block accepts three engine keys beyond the classic
 |---|---|---|
 | `weights.category_weighting` | `uniform` | `uniform` = unweighted mean of the six category averages (reference-lineage behaviour); `req_share` = category averages weighted by original requirement-weight share; `global` = single pooled evidence average |
 | `weights.zero_weight_factor` | `1.0` | Float in [0, 1]; a requirement with `evidence_score == 0.0` contributes `weight * factor` to its category average |
-| `weights.must_have_gate` | `hard` | Ceiling for candidates with unresolved must-haves. `hard` = the historical flat 40/100 cap (default, unchanged behaviour). `balanced` (v1.3.3) = the ceiling interpolates between the hard floor and full credit by the MET weight share of the must-have block, `cap = 0.40 + 0.60 * (met weight / must-have weight)` — expresses the rubric judgement that a candidate meeting most of the must-have weight is not the same case as one meeting almost none. Gate verdict semantics (evidence ≥ 0.6), review-queue flags, shortlist exclusion and gap lists are unchanged; balanced runs add `gate_ceiling` / `gate_binding` per candidate for explainability. Introduced for the plumber case study (`verification/case_study_plumber_1.3.3.txt`); keep `hard` for compliance-first screening. |
+| `weights.must_have_gate` | `hard` | Ceiling for candidates with unresolved must-haves. `hard` = the historical flat 40/100 cap (default, unchanged behaviour). `balanced` = the ceiling interpolates between the hard floor and full credit by the MET weight share of the must-have block, `cap = 0.40 + 0.60 * (met weight / must-have weight)` — expresses the rubric judgement that a candidate meeting most of the must-have weight is not the same case as one meeting almost none. Gate verdict semantics (evidence ≥ 0.6), review-queue flags, shortlist exclusion and gap lists are unchanged; balanced runs add `gate_ceiling` / `gate_binding` per candidate for explainability. Introduced for the plumber case study (`attune-data/casestudy-plumber/`, where the profile opts in); current-engine values for both gates are in `CHANGELOG.md`. Keep `hard` for compliance-first screening. |
 
 ```json
 {
@@ -48,7 +48,7 @@ The job profile's `weights` block accepts three engine keys beyond the classic
 
 Calibration verdict (preregistered grid): the defaults above are the
 calibrated optimum; change them only with corpus-level evidence (see
-`docs/DEVELOPMENT.md`, bench harness).
+`docs/DEVELOPMENT.md`, case-study fixtures).
 
 Exit code `0` = run complete; non-zero = validation or processing failure
 (including floors-contract violations and determinism-critical input errors).
@@ -60,7 +60,7 @@ Exit code `0` = run complete; non-zero = validation or processing failure
 | `progress.json` | `{ "progress": { "stage", "pct", "message" } }`, written atomically per stage |
 | `results.json` | Full outcome: per-candidate dossiers (profile card, skills inventory, interview prompts, verdict labels, score decomposition, tenure, cohort percentiles), ranking, comparison block, market gaps, bench strength, talent pool, review queue, statistics, run manifest |
 
-The manifest block inside `results.json` records `engine` (1.3.3),
+The manifest block inside `results.json` records `engine` (1.0.1),
 `omnidecide_version` (`omnidecide-c 2.0.0` - the active tier of the layered
 kernel, native or WASM; see docs/LAYERED-KERNEL.md), `floors_version`
 (1.0), the aggregation
@@ -151,6 +151,6 @@ validates the vendored floors contract and its pinned calibration data,
 pins the active decision-kernel version (omnidecide-c),
 probes
 all enrichment fields, tuned-evidence overrides and PII redaction, verifies
-the bench baseline systems (C36-C38), then exports and validates 7 PDFs.
+the case-study fixture integrity (C36-C38), then exports and validates 7 PDFs.
 45 checks total; exit `0` = all green. This is the release gate for every
 engine change.
