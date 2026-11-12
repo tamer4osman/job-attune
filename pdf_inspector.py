@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Inspect PDFs using Playwright/Chrome DevTools to identify layout issues."""
+"""Inspect PDFs using Playwright/Chrome DevTools to identify layout issues.
 
+Usage: python3 pdf_inspector.py <pdf-file>
+"""
+
+import sys
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
-
-BATCH_REPORT = Path("D:/Projects/job-attune-1.0.0/attune-data/runs/run-20261103140420/exports/batch-report.pdf")
-CANDIDATE_PDF = Path("D:/Projects/job-attune-1.0.0/attune-data/runs/run-20261103140420/exports/candidate-08a20e4edb.pdf")
 
 # A4 dimensions
 PAGE_WIDTH_PT = 595.28
@@ -137,14 +138,19 @@ def analyze_pdf(pdf_path: Path, title: str) -> dict:
 def main():
     print("PDF Layout Inspector - Using Playwright/Chrome DevTools")
     print("=" * 60)
-    
+
+    if len(sys.argv) < 2:
+        print("usage: python3 pdf_inspector.py <pdf-file>")
+        return {}
+    batch_report = Path(sys.argv[1])
+
     results = {}
-    
-    # Inspect batch report
-    if BATCH_REPORT.exists():
-        results['batch'] = analyze_pdf(BATCH_REPORT, "Batch Report")
+
+    # Inspect the requested PDF
+    if batch_report.exists():
+        results['batch'] = analyze_pdf(batch_report, batch_report.name)
     else:
-        print(f"Batch report not found: {BATCH_REPORT}")
+        print(f"PDF not found: {batch_report}")
     
     # Close any remaining processes
     import subprocess
@@ -155,5 +161,4 @@ def main():
 if __name__ == "__main__":
     results = main()
     print("\n" + "=" * 60)
-    print("INSPERATION COMPLETE")
-    print("Table of contents saved for further analysis")
+    print("INSPECTION COMPLETE")
