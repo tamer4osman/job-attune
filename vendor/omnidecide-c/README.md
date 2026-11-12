@@ -54,7 +54,7 @@ Docs: [SPINE-API.md](docs/SPINE-API.md) (spine API + sidecar),
 [EXTENSION.md](docs/EXTENSION.md) (the customization seam),
 [REPLAY.md](docs/REPLAY.md) (replay semantics),
 [UPGRADE-2.0.md](docs/UPGRADE-2.0.md) (1.x → 2.0, all breaking changes
-itemized), [golden/spine/README.md](golden/spine/README.md) (corpus
+itemized), [docs/GOLDEN.md](docs/GOLDEN.md) (corpus
 discipline). Run the proof: `./build/synthetic_example`, then
 `make v2-gates`.
 

@@ -14,7 +14,7 @@ make golden-check          # re-runs every case; exit 0 only if all are byte-ide
 
 The v2.0.0 spine engines have their own corpus: `golden/spine/` (35 cases,
 checked with `make spine-golden-check`), documented in
-[golden/spine/README.md](../golden/spine/README.md).
+[docs/GOLDEN.md](docs/GOLDEN.md#spine-engines-corpus).
 
 ## 1. Files
 
