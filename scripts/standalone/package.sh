@@ -71,9 +71,10 @@ case "$(uname -s)" in
     # every odk_* symbol reachable from the DLL.
     KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-Wl,--export-all-symbols"
     # MSVC build (python-build-standalone 20241016 lacks GNU builds for Windows).
-    # Use shared variant: the Python DLL is required for ctypes bridge to work
-    # with the C11 kernel DLL (exports odk_* symbols for runtime integration).
-    PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
+    # Use full install_only variant: the shared variant (~38MB) is missing the
+    # Python stdlib needed by the attune engine. Full build (~66MB) includes
+    # all stdlib modules required for proper operation.
+    PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-pc-windows-msvc-install_only.tar.gz"
     ARCHIVE_EXT="zip"; PY_BIN="python.exe"; ZIP=1
     ;;
   *)
