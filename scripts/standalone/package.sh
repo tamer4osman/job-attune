@@ -30,7 +30,7 @@ PYTHON_VERSION="3.12.7"  # CPython the engine is tested on (3.10+ supported)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-# On Windows runners (shell: bash = Git Bash/MSYS) pwd yields POSIX-style
+# On Windows runners (shell: bash = Git Bash/MSYS), pwd yields POSIX-style
 # paths like /d/a/repo/repo. Native Windows programs - above all the bundled
 # CPython that loads the kernel via OMNIDECIDE_C_LIB and receives staging
 # paths inside heredocs - cannot resolve MSYS-style paths, and env vars are
@@ -39,7 +39,9 @@ cd "$ROOT"
 # MSYS coreutils (cp, tar, find...) and Windows Python accept. cygpath only
 # exists under MSYS, so Linux/macOS are untouched.
 if command -v cygpath >/dev/null 2>&1; then
-  ROOT="$(cygpath -m "$ROOT")"
+  ROOT_WIN="$(cygpath -m "$ROOT")"
+else
+  ROOT_WIN="$ROOT"
 fi
 
 if [ ! -f server.py ] || [ ! -d web ]; then
@@ -87,14 +89,30 @@ DIST_NAME="job-attune-standalone-$PLATFORM"
 DIST_ROOT="$ROOT/dist"
 echo "==> platform: $PLATFORM (kernel: $KERNEL_LIB, archive: $ARCHIVE_EXT)"
 
-TMP="$(mktemp -d)"
-# Same MSYS normalization for the temp root: every Python-facing path in the
-# staging heredocs and the engine smoke derives from $TMP.
+# On Windows runners (shell: bash = Git Bash/MSYS), pwd yields POSIX-style
+# paths like /d/a/repo/repo. MSYS-core utilities (tar, cp, find, rm) work
+# correctly with these paths, but native Windows programs need Windows-style
+# paths (d:/a/repo/repo with forward slashes).
+# 
+# Strategy: Keep POSIX paths for MSYS utilities, convert to Windows style
+# only when invoking native Windows programs (like the bundled CPython).
 if command -v cygpath >/dev/null 2>&1; then
-  TMP="$(cygpath -m "$TMP")"
+  ROOT_WIN="$(cygpath -m "$ROOT")"
+  TMP_WIN="$(cygpath -m "$(mktemp -d)")"
+else
+  # Non-Windows: no conversion needed
+  ROOT_WIN="$ROOT"
+  TMP_WIN="$(mktemp -d)"
 fi
+
+# POSIX path for MSYS utilities (tar, cp, find, rm) - works for all platforms
+TMP="$(mktemp -d)"
+# On Windows, also keep staging/dist paths with dual-path handling
+STAGE="$TMP/stage"
+STAGE_WIN="$TMP_WIN/stage"
+DIST_WIN="$ROOT_WIN/dist"
 mkdir -p "$TMP/rt"
-trap 'rm -rf "$TMP"' EXIT
+trap 'rm -rf "$TMP" "$TMP_WIN"' EXIT
 
 # ------------------------------------------------------------------ kernel
 # Same sources and flags as scripts/build-kernel.sh, the repo's canonical
@@ -145,8 +163,16 @@ fi
 # Prove this platform's kernel + the bundled python run the real engine
 # BEFORE packaging anything.
 echo "==> engine smoke (bundled python + $KERNEL_LIB)"
-export OMNIDECIDE_C_LIB="$ROOT/vendor/omnidecide-c/build/$KERNEL_LIB"
-SMOKE="$TMP/smoke-run"
+# Python needs Windows path for the kernel library on Windows
+if [ "$PLATFORM" = "windows-x64" ]; then
+  export OMNIDECIDE_C_LIB="$ROOT_WIN/vendor/omnidecide-c/build/$KERNEL_LIB"
+  PY="$TMP_WIN/rt/python/$PY_BIN"
+  SMOKE="$TMP_WIN/smoke-run"
+else
+  export OMNIDECIDE_C_LIB="$ROOT/vendor/omnidecide-c/build/$KERNEL_LIB"
+  PY="$TMP/rt/python/$PY_BIN"
+  SMOKE="$TMP/smoke-run"
+fi
 "$PY" attune-engine/engine.py \
   --folder attune-sample-data/candidates \
   --profile attune-data/templates/example-senior-data-engineer.json \
@@ -163,12 +189,19 @@ PYEOF
 # ------------------------------------------------------------------ staging
 echo "==> staging the distribution"
 STAGE="$TMP/stage"
+STAGE_WIN="$TMP_WIN/stage"
 APP="$STAGE/$DIST_NAME/app"
+APP_WIN="$STAGE_WIN/$DIST_NAME/app"
 mkdir -p "$APP" "$STAGE/$DIST_NAME/runtime"
 
 # Python runtime with the preinstalled PDF-export packages.
 mv "$TMP/rt/python" "$STAGE/$DIST_NAME/runtime/python"
-PY="$STAGE/$DIST_NAME/runtime/python/$PY_BIN"
+# Python needs Windows path on Windows
+if [ "$PLATFORM" = "windows-x64" ]; then
+  PY="$STAGE_WIN/$DIST_NAME/runtime/python/$PY_BIN"
+else
+  PY="$STAGE/$DIST_NAME/runtime/python/$PY_BIN"
+fi
 
 # ------------------------------------------------------------- slim runtime
 # The install_only build carries developer-facing extras the packaged app
@@ -210,10 +243,18 @@ echo "==> runtime slimmed: $(du -sh "$RT" | cut -f1)"
 # The vanilla web app: the stdlib-only server plus static frontend. Python
 # copytree materializes symlinks as real files, which survives platforms
 # where plain cp -r can trip.
+# Python needs Windows-style paths on Windows
+if [ "$PLATFORM" = "windows-x64" ]; then
+  ROOT_PY="$ROOT_WIN"
+  APP_PY="$APP_WIN"
+else
+  ROOT_PY="$ROOT"
+  APP_PY="$APP"
+fi
 "$PY" - <<PYEOF
 import shutil
-shutil.copy("$ROOT/server.py", "$APP/server.py")
-shutil.copytree("$ROOT/web", "$APP/web", symlinks=False, dirs_exist_ok=True)
+shutil.copy("$ROOT_PY/server.py", "$APP_PY/server.py")
+shutil.copytree("$ROOT_PY/web", "$APP_PY/web", symlinks=False, dirs_exist_ok=True)
 print("web app staged")
 PYEOF
 
@@ -247,29 +288,40 @@ find "$STAGE" -name ".DS_Store" -delete 2>/dev/null || true
 echo "==> creating the archive"
 mkdir -p "$DIST_ROOT"
 ART="$DIST_ROOT/$DIST_NAME.$ARCHIVE_EXT"
+ART_WIN="$DIST_WIN/$DIST_NAME.$ARCHIVE_EXT"
+STAGE_WIN="$TMP_WIN/stage/$DIST_NAME"
 rm -f "$ART" "$ART.sha256"
 if [ "$ZIP" -eq 1 ]; then
-  "$PY" - "$ART" "$STAGE/$DIST_NAME" <<'PYEOF'
+  # Python needs Windows-style path on Windows for zipfile module
+  ART_ZIP="${ART_WIN:-$ART}"
+  STAGE_ZIP="${STAGE_WIN:-$STAGE/$DIST_NAME}"
+  "$PY" - "$ART_ZIP" "$STAGE_ZIP" <<'PYEOF'
 import os, sys, zipfile
 art, src = sys.argv[1], sys.argv[2]
 with zipfile.ZipFile(art, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
-    for base, dirs, files in os.walk(src):
-        for f in sorted(files):
-            p = os.path.join(base, f)
-            zf.write(p, os.path.relpath(p, os.path.dirname(src)))
+  for base, dirs, files in os.walk(src):
+    for f in sorted(files):
+      p = os.path.join(base, f)
+      zf.write(p, os.path.relpath(p, os.path.dirname(src)))
 print(f"zip: {os.path.getsize(art) / 1e6:.1f} MB")
 PYEOF
 else
-  # tar preserves the executable bits on the launchers
-  tar -czf "$ART" -C "$STAGE" "$DIST_NAME"
+  # tar preserves the executable bits on the launchers using POSIX paths
+  tar -czf "$ART" -C "$TMP/stage" "$DIST_NAME"
 fi
 
-"$PY" - "$ART" <<'PYEOF'
+# sha256 calculation - Python reads the archive and writes sha256.
+# Use Windows-style path on Windows, POSIX on Unix.
+ART_SHA="$ART"
+if [ "$PLATFORM" = "windows-x64" ]; then
+  ART_SHA="$ART_WIN"
+fi
+"$PY" - "$ART_SHA" <<'PYEOF'
 import hashlib, os, sys
 p = sys.argv[1]
 h = hashlib.sha256(open(p, "rb").read()).hexdigest()
 with open(p + ".sha256", "w") as f:
-    f.write(h + "  " + os.path.basename(p) + "\n")
+  f.write(h + "  " + os.path.basename(p) + "\n")
 print("sha256:", h)
 PYEOF
 
