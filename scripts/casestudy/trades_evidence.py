@@ -54,7 +54,6 @@ def main() -> int:
     gt = load(CS / "ground_truth.json")
     res = load(RUN / "results.json")
     gt_by = {c["folder"]: c for c in gt["candidates"]}
-    ref2folder = {c["candidate_ref"]: c["folder_name"] for c in res["candidates"]}
     folders = {c["folder_name"] for c in res["candidates"]}
 
     say("Job-Attune manual-labor (furniture technician) case study - verification evidence")
@@ -127,8 +126,8 @@ def main() -> int:
     say()
 
     say("[5] decision pins + replay audit")
-    pins_a = [json.loads(l) for l in (RUN / "spine_pins.jsonl").read_text().splitlines() if l.strip()]
-    pins_b = [json.loads(l) for l in (RUN_DET / "spine_pins.jsonl").read_text().splitlines() if l.strip()]
+    pins_a = [json.loads(line) for line in (RUN / "spine_pins.jsonl").read_text().splitlines() if line.strip()]
+    pins_b = [json.loads(line) for line in (RUN_DET / "spine_pins.jsonl").read_text().splitlines() if line.strip()]
     diff_fields = set()
     for pa, pb in zip(pins_a, pins_b):
         for k in pa:

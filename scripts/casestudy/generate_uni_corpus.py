@@ -19,11 +19,10 @@ from pathlib import Path
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.pdfbase.pdfmetrics import registerFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from personas import PERSONAS  # noqa: E402
+from personas import PERSONAS
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "attune-data" / "casestudy-uni"

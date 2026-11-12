@@ -27,7 +27,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from plumber_personas import PERSONAS  # noqa: E402
+from plumber_personas import PERSONAS
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "attune-data" / "casestudy-plumber"

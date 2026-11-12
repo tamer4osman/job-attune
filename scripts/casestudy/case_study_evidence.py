@@ -115,8 +115,8 @@ def main() -> int:
     say()
 
     say("[5] decision pins + replay audit")
-    pins_a = [json.loads(l) for l in (RUN / "spine_pins.jsonl").read_text().splitlines() if l.strip()]
-    pins_b = [json.loads(l) for l in (RUN_DET / "spine_pins.jsonl").read_text().splitlines() if l.strip()]
+    pins_a = [json.loads(line) for line in (RUN / "spine_pins.jsonl").read_text().splitlines() if line.strip()]
+    pins_b = [json.loads(line) for line in (RUN_DET / "spine_pins.jsonl").read_text().splitlines() if line.strip()]
     diff_fields = set()
     for pa, pb in zip(pins_a, pins_b):
         for k in pa:
@@ -142,7 +142,6 @@ def main() -> int:
 
     say("[7] calibration loop (F4) from HR sign-offs")
     cal = load(RUN / "calibration-report.json")
-    pairs = cal.get("pairs", cal.get("n_pairs", cal.get("count")))
     say(f"    sign-offs reviewed: review_decisions.jsonl = "
         f"{len((RUN / 'review_decisions.jsonl').read_text().splitlines())} entries")
     rep = cal.get("report", cal)

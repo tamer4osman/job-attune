@@ -116,7 +116,6 @@ def main() -> int:
     eo = expert["expert_ranking_order"]
     e_tot = {c["folder"]: c["total"] for c in expert["candidates"]}
     by = {c["folder_name"]: c for c in res["candidates"]}
-    old_by = {c["folder_name"]: c for c in old["candidates"]}
     agg = res["aggregation"]
 
     say("Job-Attune plumber/SHK case study - BALANCED-GATE verification (v1.3.3)")
