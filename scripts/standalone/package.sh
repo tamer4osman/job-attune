@@ -54,6 +54,7 @@ case "$(uname -s)" in
   Linux*)
     PLATFORM="linux-x64"
     KERNEL_CC="cc"; KERNEL_LIB="libomnidecide.so"; KERNEL_ARCH_FLAGS=""
+    KERNEL_MATH="-lm"; KERNEL_STATIC_FLAGS=""
     PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-unknown-linux-gnu-install_only.tar.gz"
     ARCHIVE_EXT="tar.gz"; PY_BIN="bin/python3"; ZIP=0
     ;;
@@ -63,6 +64,7 @@ case "$(uname -s)" in
     # the bundled Python is arm64 (see START-HERE.txt).
     PLATFORM="macos-arm64"
     KERNEL_CC="cc"; KERNEL_LIB="libomnidecide.dylib"; KERNEL_ARCH_FLAGS="-arch arm64 -arch x86_64"
+    KERNEL_MATH="-lm"; KERNEL_STATIC_FLAGS=""
     PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-aarch64-apple-darwin-install_only.tar.gz"
     ARCHIVE_EXT="tar.gz"; PY_BIN="bin/python3"; ZIP=0
     ;;
@@ -74,7 +76,16 @@ case "$(uname -s)" in
     # libgcc_s_seh-1.dll, libwinpthread-1.dll, libmingwex-1.dll, libmingw-1.dll.
     # GNU ld auto-exports symbols with --export-all-symbols.
     KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"
-    KERNEL_ARCH_FLAGS="-static-libgcc -static-libstdc++ -Wl,--export-all-symbols -Wl,-Bstatic -lmingw -lmingwex -Wl,-Bdynamic"
+    KERNEL_ARCH_FLAGS="-static-libgcc -static-libstdc++ -Wl,--export-all-symbols"
+    # MinGW runtime libraries must be statically linked as separate flags at the
+    # end of the compile line. This prevents runtime DLL dependency on
+    # libgcc_s_seh-1.dll, libwinpthread-1.dll, libmingwex-1.dll, libmingw-1.dll.
+    # Note: -static-libgcc handles libgcc_s, but -lmingw, -lmingwex, -lwinpthread
+    # must be explicitly linked statically via -Wl,-Bstatic.
+    # On Windows, -lm is not needed (math is in C runtime via msvcrt.dll or
+    # mingwex). The -static-libgcc and the static libmingwex below handle this.
+    KERNEL_MATH=""
+    KERNEL_STATIC_FLAGS="-Wl,-Bstatic -lmingwex -lmingw -lwinpthread -Wl,-Bdynamic"
     # MSVC build (python-build-standalone 20241016 lacks GNU builds for Windows).
     # Use full install_only variant: the shared variant (~38MB) is missing the
     # Python stdlib needed by the attune engine. Full build (~66MB) includes
@@ -120,11 +131,12 @@ trap 'rm -rf "$TMP"' EXIT
 echo "==> compiling the C11 kernel ($KERNEL_CC, -std=c11 -ffp-contract=off)"
 mkdir -p vendor/omnidecide-c/build
 # shellcheck disable=SC2086  # KERNEL_ARCH_FLAGS is a deliberate multi-flag list
+# shellcheck disable=SC2086  # KERNEL_STATIC_FLAGS is a deliberate multi-flag list
 "$KERNEL_CC" -std=c11 -ffp-contract=off -O2 -Wall -fPIC -shared $KERNEL_ARCH_FLAGS \
   -Ivendor/omnidecide-c/include \
   -Ivendor/omnidecide-c/odk-core -Ivendor/omnidecide-c/odk-brain -Ivendor/omnidecide-c/odk-spine \
   vendor/omnidecide-c/odk-core/*.c vendor/omnidecide-c/odk-brain/*.c vendor/omnidecide-c/odk-spine/*.c \
-  -lm \
+  $KERNEL_MATH $KERNEL_STATIC_FLAGS \
   -o "vendor/omnidecide-c/build/$KERNEL_LIB"
 ls -la "vendor/omnidecide-c/build/$KERNEL_LIB"
 
