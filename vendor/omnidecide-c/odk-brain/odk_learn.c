@@ -1110,6 +1110,9 @@ int odk_brain_evaluate_choice_ex(odk_brain *brain, odk_kernel *kernel,
                 links = brain->links;
             }
         }
+        if (explain_json != NULL) {
+            *explain_json = NULL;
+        }
         if (explain_json != NULL && links != NULL) {
             if (sb_init(&explain) != 0) {
                 goto oom;
@@ -2282,13 +2285,6 @@ static odk_brain *learn_load_core(const char *path, odk_text_mode mode,
     if (lang < ODK_LANG_UND || lang > ODK_LANG_UR) {
         learn_fail_data(err, errx, ODK_ERR_ARGUMENT,
                         "unknown language", NULL);
-        odk_json_free(root);
-        return NULL;
-    }
-    if (snapshot_version == 1 && lang != ODK_LANG_UND) {
-        learn_fail_data(err, errx, ODK_ERR_ARGUMENT,
-                        "snapshot has no language provenance",
-                        "v1 snapshot cannot load with a concrete language");
         odk_json_free(root);
         return NULL;
     }

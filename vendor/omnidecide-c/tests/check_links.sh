@@ -8,8 +8,8 @@
 cd "$(dirname "$0")/.." || exit 2
 bad=$(mktemp) || exit 2
 count=$(mktemp) || exit 2
-find . -name '*.md' -not -path './build/*' -not -path './out/*' \
-       -not -path './.git/*' | sort | while read -r file; do
+find . \( -name node_modules -o -name build -o -name out -o -name .git \) -prune \
+       -o -name '*.md' -print | sort | while read -r file; do
     dir=$(dirname "$file")
     grep -o '\]([^)]*)' "$file" | sed 's/^](//; s/)$//' | while read -r link; do
         case "$link" in

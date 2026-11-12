@@ -13,7 +13,7 @@ platform and compiler you used. Reports are handled on a best-effort basis.
 
 ## Supported versions
 
-Only the latest 1.x release receives fixes.
+Only the latest release (currently 2.0.0) receives fixes.
 
 ## What the library does and does not touch
 
@@ -23,8 +23,10 @@ Only the latest 1.x release receives fixes.
 - It performs **no network access** and reads no environment variables.
 - The only file access is to paths you pass explicitly: brain snapshots
   (`odk_brain_save_file` writes `<path>.tmp` then renames it; `odk_brain_load_file`
-  reads) and the optional stopword and lexicon loaders. Validate and restrict
-  those paths in your application.
+  reads), scoring model files (`odk_kernel_load_model`), the optional stopword
+  and lexicon loaders, and data registered from a path through the extension
+  API (`odk_spine_register_file`). Validate and restrict those paths in your
+  application.
 - Snapshot loading caps entry counts and key lengths. The JSON parser limits
   nesting to 64 levels (deeper input, up to 2 million levels in our test, is
   rejected without crashing). Context and chunk limits are enforced and
@@ -32,11 +34,14 @@ Only the latest 1.x release receives fixes.
 
 ## Hardening that has been done
 
-Warning-free builds under gcc, clang and musl with `-Wall -Wextra -Werror
--pedantic`; a 2,013-case golden corpus; a 5,443-check hostile-input runner that
-also covers corrupt model files; AddressSanitizer, UndefinedBehaviorSanitizer, LeakSanitizer, valgrind
-and ThreadSanitizer runs; and a randomized robustness run over the text, JSON,
-snapshot and client entry points. **There has been no independent security audit.**
+Warning-free builds with `-Wall -Wextra -Werror
+-pedantic`; a 2,013-case v1 golden corpus and a 35-case v2 spine corpus, both
+byte-checked; a 5,443-check hostile-input runner that also covers corrupt
+model files; a 6,135-check stress suite whose seeded fuzz marathon drives the
+text, JSON, snapshot and client entry points at scale; AddressSanitizer,
+UndefinedBehaviorSanitizer, LeakSanitizer and ThreadSanitizer runs (valgrind
+at 1.0.0); and a browser end-to-end suite over the sidecar's HTTP surface.
+**There has been no independent security audit.**
 Treat the library accordingly when exposing it to hostile input, for example by
 running it in a sandboxed process with memory and time limits.
 

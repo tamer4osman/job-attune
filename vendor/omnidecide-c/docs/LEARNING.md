@@ -77,7 +77,7 @@ to `<path>.tmp` and is renamed. A snapshot records the text configuration it
 was made with:
 
 ```json
-{"version":3,"semantics_version":"1.0.0","unicode_version":"15.1.0",
+{"version":3,"semantics_version":"2.0.0","unicode_version":"15.1.0",
  "text_mode":"ascii_compat","stopwords":"en", ...}
 ```
 

@@ -31,8 +31,10 @@
 /* Evidence stamp embedded in the text the client pipeline evaluates
  * ("OmniDecide <stamp>").  It is part of the scored evidence (the
  * character-trigram channel), so it is a FIXED constant that identifies the
- * scoring semantics, not the library version: it stays "1.0.0" for the whole
- * 1.x series, so client decisions do not shift between 1.x releases.  A build
+ * scoring semantics, not the library version: it stayed "1.0.0" through the
+ * whole 1.x series and is deliberately NOT bumped in 2.0.0, so that 1.x-era
+ * decision bytes keep replaying bit-identically (docs/UPGRADE-2.0.md).  New
+ * v2 records carry kernel_version "2.0.0" instead.  A build
  * may override it with -DODK_STAMP_VERSION='"x.y.z"'. */
 #ifndef ODK_STAMP_VERSION
 #define ODK_STAMP_VERSION "1.0.0"

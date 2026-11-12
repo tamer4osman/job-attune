@@ -10,19 +10,26 @@ Thanks for helping. This is a small library with one overriding rule:
 
 ```sh
 make CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" all examples
-make CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" test golden-check hostile thread-probe docs-check
+make CFLAGS="-O2 -Wall -Wextra -Werror -pedantic" test golden-check spine-golden-check \
+     hostile thread-probe stress docs-check version-check
+make v2-gates   # the full 2.0.0 aggregate: tests, corpora, hostile, stress,
+                # determinism, sanitizers, seam, schema, default build, bench
 ```
 
-Please also try `CC=clang`, and, for memory safety, build the tests with
-`-fsanitize=address,undefined`. A change is ready when:
+Please also try `CC=clang`, and, for memory safety, run `make sanitize` and
+`make stress-asan` (ASan + UBSan over the spine and stress suites). A change
+is ready when:
 
 1. it compiles without warnings under gcc and clang with the flags above;
-2. `make test`, `make golden-check`, `make hostile`, `make thread-probe`,
-   `make docs-check` and `make version-check` all pass (each exits non-zero on failure);
+2. `make test`, `make golden-check`, `make spine-golden-check`, `make hostile`,
+   `make thread-probe`, `make stress`, `make docs-check` and
+   `make version-check` all pass (each exits non-zero on failure), or simply
+   `make v2-gates`;
 3. `make golden-check` stays byte-identical, unless the change is *meant* to
    alter an output; in that case follow [docs/GOLDEN.md](docs/GOLDEN.md)
    section 5 and explain every changed output in the CHANGELOG;
-4. you added or updated a check in `tests/smoke_test.c` for new behavior.
+4. you added or updated a check in `tests/smoke_test.c` (kernel) or
+   `tests/spine_test.c` (spine) for the new behavior.
 
 ## Rules that protect determinism
 
@@ -48,7 +55,7 @@ change all three places and run `make version-check`:
 2. `project(omnidecide VERSION ...)` in `CMakeLists.txt`;
 3. a new top entry `## x.y.z - title` in `CHANGELOG.md`.
 
-Do **not** change the evidence stamp in `src/odk_internal.h` within a major
+Do **not** change the evidence stamp in `odk-core/odk_internal.h` within a major
 version: it is part of the scored evidence, so changing it shifts client scores.
 Patch and minor releases must keep `make golden-check` byte-identical; a change
 that alters an output belongs in a major release (see
@@ -67,7 +74,7 @@ that alters an output belongs in a major release (see
 
 Changes to stopwords, normalization tables or language rules should come from a
 native speaker where possible, with examples. See [docs/LANGUAGES.md](docs/LANGUAGES.md).
-The Unicode tables in `src/odk_unicode_data.c` are generated from the Unicode
+The Unicode tables in `odk-core/odk_unicode_data.c` are generated from the Unicode
 Character Database; do not edit them by hand.
 
 ## License

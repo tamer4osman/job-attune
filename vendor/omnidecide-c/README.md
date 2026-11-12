@@ -10,7 +10,7 @@ the evidence behind an answer.
 
 - **Deterministic.** The same input gives the same output, bit for bit, on a
   given platform: no randomness, no locale or environment dependence, no
-  network. (The one exception is the client pipeline's
+  network, no model weights. (The one exception is the client pipeline's
   `execution_time_ms` metadata field, which reports wall-clock time.)
 - **Explainable.** Every decision comes with a full probability distribution
   over the options and a confidence value.
@@ -23,9 +23,44 @@ the evidence behind an answer.
 
 License: [Apache-2.0](LICENSE).
 
+## v2.0.0: from decision library to decision platform
+
+Version 2.0.0 keeps the deterministic kernel exactly as it was (same
+decisions, byte for byte) and wraps it in an application-agnostic
+integration spine:
+
+- **`odk_classify`** — multi-scheme classification from declarative,
+  versioned scheme data; two labeled tiers (A: deterministic lexical
+  rules; B: brain-assisted paraphrase resilience, disableable).
+- **Temporal validity** — reclassification appends; as-of queries answer
+  from stored intervals.
+- **`odk_decompose`** — parameterized, versioned decomposition templates.
+- **Calibration reports** — predicted confidence vs observed outcomes,
+  binned, byte-identical for the same log.
+- **Schema-first types** — `schema/omnidecide.schema` is the single
+  source of truth; C types and JSON (de)serialization are generated;
+  pins record the schema fingerprint.
+- **Integration surface** — a sidecar speaking JSONL over stdio or HTTP,
+  decision pinning with `exact` / `semantic` / `foreign` replay classes,
+  and the `worldState(variables, scope, t)` context contract.
+- **Extension API** — schemes, templates, vocabularies, corpora and
+  brain snapshots are registered as versioned data; the shipped build
+  contains zero registered customizations.
+- **E2E tested** — a Playwright + Chromium suite (`e2e/`) drives the
+  sidecar's HTTP surface and a browser harness page end to end
+  (`make e2e`).
+
+Docs: [SPINE-API.md](docs/SPINE-API.md) (spine API + sidecar),
+[EXTENSION.md](docs/EXTENSION.md) (the customization seam),
+[REPLAY.md](docs/REPLAY.md) (replay semantics),
+[UPGRADE-2.0.md](docs/UPGRADE-2.0.md) (1.x → 2.0, all breaking changes
+itemized), [golden/spine/README.md](golden/spine/README.md) (corpus
+discipline). Run the proof: `./build/synthetic_example`, then
+`make v2-gates`.
+
 ## Read this first: what it is, and what it is not
 
-OmniDecide is an **evidence-matching engine**. It scores
+OmniDecide is an **evidence-matching engine, not a language model**. It scores
 how well each option is supported by the context you give it, using lexical
 signals (word overlap, character trigrams, context chunks). It does not
 understand meaning. That makes it fast, auditable and reproducible, and it also
@@ -49,8 +84,8 @@ pure-accounting flag that never changes the decision). Raise the limits, use
 `ODK_OVERLIMIT_HEAD_TAIL`, or use Unicode mode, and see
 [docs/TEXT-MODES.md](docs/TEXT-MODES.md#limits-and-what-happens-past-them).
 
-Use it as a fast, deterministic, explainable first pass, as an offline
-fallback, or as an auditable component beside other systems. Do not
+Use it as a fast, deterministic, explainable first pass, as a fallback when no
+model is available, or as an auditable component beside other systems. Do not
 use it as the only judge where a wrong answer is costly, and test it on your own
 data first.
 
@@ -145,14 +180,21 @@ vCPU, so multi-core scaling was not measured. The default ASCII limits (20 KB
 of context, 40 KB of chunk source) start to apply to larger contexts, so
 measure and configure those yourself (see the warning above).
 
+Spine baseline at 2.0.0 (`make bench`, same measurement rules): a Tier A
+classification decision costs 0.28 ms at a 2 KB context (budget ≤ 1 ms),
+classification throughput is ≈ 22,000 classifications/s at 2 KB, and one
+pin + replay round-trip is ≈ 0.7 ms. Regressions beyond 10 % against this
+baseline require written justification (see
+[docs/SPINE-API.md](docs/SPINE-API.md#benchmarks)).
+
 ## Install and integrate
 
 **Make** (Linux, macOS, BSD; a POSIX.1-2008 environment is required):
 
 ```sh
 make                  # build/libomnidecide.a
-make test             # build and run the smoke test
-sudo make install     # /usr/local/lib/libomnidecide.a and include/omnidecide.h
+make test             # build and run the kernel and spine tests
+sudo make install     # /usr/local/lib/libomnidecide.a and both public headers
 cc -std=c11 myapp.c -lomnidecide -lm -o myapp
 ```
 
@@ -163,7 +205,8 @@ add_subdirectory(omnidecide-c)
 target_link_libraries(my_app PRIVATE omnidecide::omnidecide)
 ```
 
-**Drop-in sources:** add every `src/*.c` to your build with `-Iinclude -Isrc`.
+**Drop-in sources:** add every `odk-core/*.c`, `odk-brain/*.c` and
+`odk-spine/*.c` to your build with `-Iinclude -Iodk-core -Iodk-brain -Iodk-spine`.
 
 **Keep `-ffp-contract=off`** when you compile the library. It stops the
 compiler from fusing floating-point operations, which keeps results
@@ -258,53 +301,73 @@ See [docs/MODEL.md](docs/MODEL.md) and the experimental extra features in
 | [docs/MODEL.md](docs/MODEL.md) | scoring model files, loader rules, trust |
 | [docs/FEATURES.md](docs/FEATURES.md) | the experimental extra features of feature set 1 |
 | [docs/GOLDEN.md](docs/GOLDEN.md) | the golden regression corpus |
+| [docs/SPINE-API.md](docs/SPINE-API.md) | the v2 spine: classify, temporal validity, decompose, calibration, sidecar |
+| [docs/EXTENSION.md](docs/EXTENSION.md) | the customization seam: registering versioned data (F7) |
+| [docs/REPLAY.md](docs/REPLAY.md) | decision pinning and replay semantics |
+| [docs/UPGRADE-2.0.md](docs/UPGRADE-2.0.md) | upgrading 1.x → 2.0, every breaking change itemized |
 | [CHANGELOG.md](CHANGELOG.md) | release notes |
 | [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) | contributing and vulnerability reporting |
 
 ## Status and verification
 
-Current version: **1.0.0**, the first public release.
+Current version: **2.0.0**, the platform release. Kernel decisions are
+unchanged from 1.0.0: the full v1 golden corpus still replays byte for byte.
 
-- Builds without warnings under `-Wall -Wextra -Werror -pedantic` with gcc 13,
-  clang 18 and musl-gcc on Linux. macOS is covered by the CI workflow but has
-  not been run yet. Windows and MSVC are not supported: the library uses POSIX
-  `clock_gettime` and `strdup`.
-- `make test` runs a 373-check smoke test covering every primitive, all ten
-  languages, bad input, truncation reporting, the explain API, model files, the
-  JSON contract, the image channel and the brain.
-- `make golden-check` replays 2,013 frozen cases and requires byte-identical
-  output; it passes on gcc and clang at -O0 to -O3 and on musl.
-  `make hostile` runs 5,443 hostile-input checks, `make thread-probe` shares
-  one kernel (with and without a loaded model) across 8 threads, and
-  `make docs-check` verifies the documentation links, and `make version-check`
-  that the header, CMake and CHANGELOG agree on the version.
-- The same code is clean under AddressSanitizer, UndefinedBehaviorSanitizer,
-  LeakSanitizer, valgrind and ThreadSanitizer.
+- Builds without warnings under `-Wall -Wextra -Werror -pedantic` with gcc
+  (verified on the 2.0.0 tree with gcc 14); the 1.0.0 release was also
+  verified with clang 18 and musl-gcc. macOS is covered by the CI workflow
+  but has not been run yet. Windows and MSVC are not supported: the library
+  uses POSIX `clock_gettime` and `strdup`.
+- `make test` runs the 373-check kernel smoke test (every primitive, all ten
+  languages, bad input, truncation reporting, the explain API, model files,
+  the JSON contract, the image channel, the brain) and the 210-check spine
+  test suite.
+- `make golden-check` replays the 2,013-case v1 corpus and
+  `make spine-golden-check` the 35-case v2 spine corpus, both requiring
+  byte-identical output; the v1 corpus passed on gcc and clang at -O0 to -O3
+  and on musl at 1.0.0, and replays byte-identically on the 2.0.0 tree.
+- `make hostile` runs 5,443 hostile-input checks and `make thread-probe`
+  shares one kernel (with and without a loaded model) across 8 threads.
+  `make stress` drives a 6,135-check stress suite: contract-boundary abuse,
+  a seeded fuzz marathon with pairwise byte-identical transcripts across
+  four kernels, truncation/caps/work-budget sweeps, an 8-thread concurrency
+  storm over all six primitives, spine lineage/as-of/pin/replay/calibration
+  endurance, and a lifecycle churn soak with an RSS watch. `make stress-asan`
+  reruns it under ASan + UBSan, and the suite is race-clean under TSan.
+- `make e2e` drives the sidecar's HTTP surface and the browser harness page
+  from Playwright + Chromium (13 tests). `make docs-check` verifies the
+  documentation links, `make version-check` that the header, CMake and
+  CHANGELOG agree on the version, and `make v2-gates` runs the full
+  verification aggregate.
+- The code is clean under AddressSanitizer, UndefinedBehaviorSanitizer,
+  LeakSanitizer and ThreadSanitizer (valgrind-clean at 1.0.0).
 - No independent third-party audit has been done.
 
 ## Versioning
 
-OmniDecide follows [semantic versioning](https://semver.org) from 1.0.0. The
-version is `ODK_LIBRARY_VERSION` in `include/omnidecide.h`.
+OmniDecide follows [semantic versioning](https://semver.org). The version is
+`ODK_LIBRARY_VERSION` in `include/omnidecide.h`.
 
-- **Patch releases (1.0.x)** fix bugs only. Decisions, scores and JSON output
+- **Patch releases (x.y.z)** fix bugs only. Decisions, scores and JSON output
   for existing inputs do not change; `make golden-check` must stay
   byte-identical.
-- **Minor releases (1.x.0)** add features. The API in `omnidecide.h` stays
+- **Minor releases (x.y.0)** add features. The public API stays
   source-compatible and existing results do not change, except for new fields
   appended to output.
-- **Major releases (2.0.0 and later)** may change decisions, scores or the API.
+- **Major releases (x.0.0)** may change decisions, scores or the API.
 - **No ABI guarantee.** Public structs may grow in minor releases, so link
   statically or rebuild your application when you upgrade.
-- Snapshot and model-file formats carry their own format numbers. Every format
-  version a release writes stays readable by later 1.x releases.
+- Snapshot, model-file and schema formats carry their own format numbers or
+  fingerprints, so upgrading the library never forces a data migration:
+  1.x-era brain snapshots still load, and 1.x-era client decisions still
+  replay on the 2.x kernel.
 
 ## Provenance
 
 Author, owner and copyright holder: Tamer Osman
 ([GitHub](https://github.com/tamer4osman),
 [LinkedIn](https://www.linkedin.com/in/tamer4osman)). The
-Unicode tables in `src/odk_unicode_data.c` are derived from the Unicode
+Unicode tables in `odk-core/odk_unicode_data.c` are derived from the Unicode
 Character Database 15.1.0 under the Unicode License; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [NOTICE](NOTICE). Keep
 `LICENSE`, `NOTICE` and `THIRD_PARTY_NOTICES.md` with any redistribution.

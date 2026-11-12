@@ -5,7 +5,7 @@
 
 ## Unicode Character Database (UCD) 15.1.0
 
-The derived tables committed in `src/odk_unicode_data.c` (generated
+The derived tables committed in `odk-core/odk_unicode_data.c` (generated
 from the UCD data files, which are not part of this package) are
 subject to the Unicode License.  The copyright and permission notice below is
 reproduced VERBATIM from https://www.unicode.org/license.txt

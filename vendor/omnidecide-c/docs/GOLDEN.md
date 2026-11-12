@@ -12,6 +12,10 @@ accidental behavior change in a deterministic library.
 make golden-check          # re-runs every case; exit 0 only if all are byte-identical
 ```
 
+The v2.0.0 spine engines have their own corpus: `golden/spine/` (35 cases,
+checked with `make spine-golden-check`), documented in
+[golden/spine/README.md](../golden/spine/README.md).
+
 ## 1. Files
 
 - `golden/inputs.jsonl`: one JSON object per case, fully describing one API call

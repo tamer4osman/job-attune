@@ -8,6 +8,12 @@ which is safe to include from C and C++. This guide explains the function
 families and how they fit together; the header comments are the detailed
 reference.
 
+The v2.0.0 integration spine (`odk_spine*`: multi-scheme classification,
+temporal validity, decomposition, calibration, pinning and replay, the
+sidecar runtime) is declared in `include/odk_spine.h` and documented
+separately in [SPINE-API.md](SPINE-API.md). The kernel API below is
+unchanged in 2.0.0.
+
 Contents: [Conventions](#conventions) · [Kernel](#the-kernel) ·
 [Primitives](#the-six-primitives) · [Results](#results) ·
 [Per-call options](#per-call-options) · [Queries and the dispatcher](#queries-and-the-dispatcher) ·
@@ -236,7 +242,7 @@ The output has exactly five top-level keys:
 ```json
 {"file_name": "direct_string_input", "file_type": "text",
  "metadata": { "analysis_mode": "hybrid", "kernel_backend": "embedded-fallback",
-               "library_version": "1.0.0", "raw_tokens": 82, "compressed_tokens": 80,
+               "library_version": "2.0.0", "raw_tokens": 82, "compressed_tokens": 80,
                "token_reduction_pct": 2.44, "execution_time_ms": 0.33, "...": "..." },
  "extracted_markdown": "---\nfile_name: direct_string_input\n...",
  "decisions": {"fix": {"primitive": "choice", "result": "restart the service",
@@ -322,4 +328,4 @@ The brain API (`odk_brain_*`) is covered in [LEARNING.md](LEARNING.md).
 | `-ffp-contract=off` | **required** for bit-identical floating-point results (applied by the bundled Makefile and CMakeLists) |
 | `-DODK_NO_LANG_<CODE>` | omit one language pack, for example `-DODK_NO_LANG_UR`. A language built without its pack falls back to the generic behavior |
 | `-DODK_ZH_VARIANTS=1` | enable the opt-in simplified/traditional Chinese folding table (off by default; unreviewed) |
-| `-DODK_STAMP_VERSION='"x.y.z"'` | override the fixed evidence stamp that the **client pipeline** embeds in the text it scores. The stamp is a constant ("1.0.0" for the whole 1.x series), so client decisions do not shift between releases; override it only to reproduce scores from a build that used another stamp. Direct `odk_evaluate_*` calls never use it |
+| `-DODK_STAMP_VERSION='"x.y.z"'` | override the fixed evidence stamp that the **client pipeline** embeds in the text it scores. The stamp is a constant ("1.0.0" for the whole 1.x series, unchanged in 2.0.0), so client decisions do not shift between releases; override it only to reproduce scores from a build that used another stamp. Direct `odk_evaluate_*` calls never use it |

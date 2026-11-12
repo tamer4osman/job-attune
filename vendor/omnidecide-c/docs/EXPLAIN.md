@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
+
 # The explain API
 
 The explain API is read-only introspection: it returns every intermediate the
