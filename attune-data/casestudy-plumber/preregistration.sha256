@@ -1,0 +1,11 @@
+# Preregistration - plumber/SHK manual-labor case study
+# frozen: 2026-11-11T00:32:59+00:00
+# statement: NO Job-Attune engine run has been executed on this corpus
+# before this file was written; profile v1 pilot and expert ranking are frozen below.
+# corpus candidates were generated before the expert ranking; neither corpus nor
+# ranking is modified after the first engine run. (v1 freeze corrected a sub-score
+# arithmetic slip in gordon_miles before any engine run; totals unchanged.)
+expert_rubric.md sha256  = 720bb6a671e6daf7a77114cd859e7d81dbd36814214c565394a574af6e570f1b
+expert_ranking.json sha256 = 69fc460f75d9b4043dbb19df82b8e223e6bb0f751ff29b36c74ea1bf6c6bc36d
+ground_truth.json sha256 = 5594ab58d63b3afa2c6f73def04b7d146c1da308b9f73436312ef69f5b83bf8b
+profile-plumber-pilot.json sha256 = 7ca8fd94ffc0272cfc281c13f7e83f6b3d3a738120284cda09b8e8a8127f6ab4

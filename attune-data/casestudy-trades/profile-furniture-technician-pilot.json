@@ -1,0 +1,225 @@
+{
+  "profile_name": "Furniture Technician (Assembly & Service) - Kantholz Einrichtungswerke GmbH, Berlin (case study)",
+  "company": {
+    "name": "Kantholz Einrichtungswerke GmbH, Berlin",
+    "summary": "A mid-sized Berlin furniture company that produces and installs made-to-measure kitchens, fitted wardrobes and office furniture. Its assembly and service team works at private and commercial customer sites in two-person crews: installing, adjusting and repairing furniture, and representing the company directly in front of the customer.",
+    "values_text": "safety; teamwork; quality; reliable; communication"
+  },
+  "job": {
+    "title": "Furniture Technician (Assembly & Service)",
+    "description": "You will install kitchens, fitted wardrobes and office furniture at customer sites in two-person teams, carry out furniture repair and adjustment service calls, work from assembly instructions and installation plans, measure on site (Aufmass), and represent the company in front of customers. The eligibility requirements follow the standard published for comparable furniture technician, furniture service technician and furniture installer positions (including Havertys Furniture Service Technician, Cushman & Wakefield Workplace Services Technician, and German Kuechen- und Moebelmonteur postings on the Bundesagentur fuer Arbeit job board, retrieved 2026-11-11): completed vocational training in carpentry or a comparable trade, proven furniture assembly experience, confident use of hand and power tools, ability to read assembly instructions and installation plans, a valid class B driver's licence, customer-facing service skills and good German for customer contact."
+  },
+  "categories": {
+    "soft_skills": [
+      {
+        "skill": "customer service",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "customer service",
+          "kundenservice",
+          "customer contact",
+          "kundenkontakt",
+          "kundenbetreuung",
+          "customer handover",
+          "kundenuebergabe",
+          "customer-facing",
+          "at customer sites",
+          "customer homes",
+          "beim kunden",
+          "kundengespraech"
+        ]
+      },
+      {
+        "skill": "communication",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "communication",
+          "communicate",
+          "kommunikation",
+          "kommunizieren"
+        ]
+      },
+      {
+        "skill": "teamwork",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "teamwork",
+          "team player",
+          "im team",
+          "zusammenarbeit",
+          "teamfaehigkeit",
+          "two-person crew",
+          "im zweierteam",
+          "zweikoepfigen team"
+        ]
+      }
+    ],
+    "technical_skills": [
+      {
+        "skill": "furniture assembly",
+        "weight": 3.0,
+        "must_have": true,
+        "aliases": [
+          "furniture assembly",
+          "furniture installation",
+          "assembling furniture",
+          "assembled furniture",
+          "installing furniture",
+          "installation of furniture",
+          "moebelmontage",
+          "kuechenmontage",
+          "kitchen installation",
+          "kitchen fitting",
+          "kitchen installer",
+          "einbaukuechen",
+          "flat-pack assembly",
+          "fitted wardrobes"
+        ]
+      },
+      {
+        "skill": "hand and power tools",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "hand and power tools",
+          "hand tools",
+          "power tools",
+          "cordless drill",
+          "akkuschrauber",
+          "jigsaw",
+          "stichsaege",
+          "circular saw",
+          "kreissaege",
+          "werkzeug"
+        ]
+      },
+      {
+        "skill": "assembly plans and instructions",
+        "weight": 2.0,
+        "must_have": true,
+        "aliases": [
+          "assembly instructions",
+          "assembly plans",
+          "installation plans",
+          "installation drawings",
+          "technical drawings",
+          "blueprints",
+          "floor plans",
+          "montageanleitung",
+          "montageanleitungen",
+          "werkzeichnung",
+          "werkzeichnungen",
+          "bauplan",
+          "bauplaene",
+          "aufmass"
+        ]
+      },
+      {
+        "skill": "furniture repair and carpentry",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "carpentry",
+          "carpenter",
+          "tischler",
+          "schreiner",
+          "tischlerei",
+          "schreinerei",
+          "joinery",
+          "joiner",
+          "woodworking",
+          "holzbearbeitung",
+          "furniture repair",
+          "moebelreparatur",
+          "cabinetmaking",
+          "cabinetmaker",
+          "restoration",
+          "innenausbau"
+        ]
+      },
+      {
+        "skill": "driving and logistics",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "driver's license",
+          "driving license",
+          "drivers license",
+          "fuehrerschein",
+          "class b",
+          "klasse b",
+          "van",
+          "transporter",
+          "delivery driving"
+        ]
+      }
+    ],
+    "languages": [
+      {
+        "skill": "German",
+        "weight": 2.0,
+        "must_have": true,
+        "aliases": [
+          "german",
+          "deutsch"
+        ]
+      },
+      {
+        "skill": "English",
+        "weight": 0.5,
+        "must_have": false,
+        "aliases": [
+          "english",
+          "englisch"
+        ]
+      }
+    ],
+    "degrees": [],
+    "certifications": [
+      {
+        "skill": "vocational training in a furniture-related trade",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "apprenticeship",
+          "ausbildung",
+          "vocational training",
+          "vocational qualification",
+          "gesellenbrief",
+          "journeyman certificate",
+          "meisterschule",
+          "meisterpruefung",
+          "master craftsman",
+          "tischlerausbildung",
+          "schreinerausbildung",
+          "carpentry apprenticeship"
+        ]
+      },
+      {
+        "skill": "safety and equipment certificates",
+        "weight": 0.5,
+        "must_have": false,
+        "aliases": [
+          "forklift",
+          "staplerschein",
+          "safety training",
+          "arbeitsschutz",
+          "arbeitssicherheit",
+          "first aid",
+          "erstehilfe",
+          "scissor lift",
+          "ppe"
+        ]
+      }
+    ]
+  },
+  "weights": {
+    "categories_total": 0.85,
+    "values_fit": 0.15
+  },
+  "pseudonymous": true,
+  "role_overrides": {}
+}

@@ -1,0 +1,224 @@
+{
+  "corpus": "manual-labor-case-study-plumber",
+  "role": "Plumber / Sanitary & Heating Technician (SHK)",
+  "profile": "profile-plumber.json",
+  "profile_grounding": "Requirements modelled on published criteria for comparable positions: German Anlagenmechaniker SHK (sanitary, heating and climate) postings on the Bundesagentur fuer Arbeit job board (completed SHK vocational training, drinking-water and drainage installation, heating systems, on-call rotation, Fuehrerschein Klasse B), and standard English-language service-plumber postings (installation and repair of water supply lines, drains and fixtures, water heaters, leak diagnosis, customer-facing service calls), all retrieved 2026-11-11.",
+  "candidates": [
+    {
+      "folder": "stefan_richter",
+      "language": "de",
+      "strength": "very high",
+      "challenge": "german-language packet; extra document zeugnisse.pdf (certificates, neither CV nor cover letter)",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        },
+        {
+          "name": "zeugnisse.pdf",
+          "true_role": "certificates",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "marek_kowalczyk",
+      "language": "en",
+      "strength": "high",
+      "challenge": "baseline English packet; EU-cross-border plumber with German B1 (learned for cross-border crews)",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "aylin_demir",
+      "language": "de",
+      "strength": "high",
+      "challenge": "baseline German packet (solid all-round journeywoman with gas, boiler service and on-call routine)",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "abdul_rahimi",
+      "language": "de",
+      "strength": "mid-high (language gap)",
+      "challenge": "master-level heating technician trained abroad, German A2 (B1 course ongoing) - trade-strong, must-have language gap",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "julia_krause",
+      "language": "de",
+      "strength": "mid (no SHK qualification)",
+      "challenge": "service-heavy facility-maintenance profile with hands-on minor plumbing repairs, no SHK apprenticeship (must-have qualification gap)",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "thomas_schreiber",
+      "language": "de",
+      "strength": "mid (career changer)",
+      "challenge": "career changer: self-taught bathroom renovations in own rentals plus helper stints, no apprenticeship (must-have qualification gap)",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "motivation.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "felix_gruenwald",
+      "language": "de",
+      "strength": "junior (thin evidence)",
+      "challenge": "junior: freshly completed apprenticeship, thin evidence volume",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "denis_marek",
+      "language": "en",
+      "strength": "low (switching trades)",
+      "challenge": "electrician switching trades: generic installation wording may overmatch aliases, zero real plumbing experience",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "anton_velasco",
+      "language": "en",
+      "strength": "mid (language gap)",
+      "challenge": "experienced sanitary installer from Spain, German A2 (trade-strong, must-have language gap); English packet",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "motivation.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "petra_lindner",
+      "language": "de",
+      "strength": "mid-strong (mistags planted)",
+      "challenge": "PLANTED MISTAGS: cv.pdf contains the cover letter, dokumente.pdf contains the CV",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        },
+        {
+          "name": "dokumente.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "bogdan_ionescu",
+      "language": "de",
+      "strength": "mid (mixed single document)",
+      "challenge": "single mixed application document bewerbung.pdf (cover letter + CV in one file)",
+      "files": [
+        {
+          "name": "bewerbung.pdf",
+          "true_role": "mixed",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "gordon_miles",
+      "language": "en",
+      "strength": "very low (negative control)",
+      "challenge": "negative control: sanitary ceramics sales background without hands-on installation evidence; must-fail on installation, tools, qualification, German",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    }
+  ]
+}

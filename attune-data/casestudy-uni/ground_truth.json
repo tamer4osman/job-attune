@@ -1,0 +1,213 @@
+{
+  "corpus": "university-case-study",
+  "profile": "profile-doctoral-researcher-ml.json",
+  "profile_grounding": "Requirements modelled on the published eligibility criteria of the TU Berlin Machine Learning Group (web.ml.tu-berlin.de/jobs), retrieved 2026-11-11.",
+  "candidates": [
+    {
+      "folder": "jana_weber",
+      "language": "en",
+      "strength": "high",
+      "challenge": "baseline",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "lukas_hoffmann",
+      "language": "de",
+      "strength": "high",
+      "challenge": "german-language packet",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "sara_klein",
+      "language": "en",
+      "strength": "mid-high",
+      "challenge": "PLANTED MISTAG #1: the file named anschreiben.pdf is actually the CV",
+      "files": [
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "motivation_final_v2.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "daniel_osman",
+      "language": "en",
+      "strength": "mid",
+      "challenge": "PLANTED MISTAGS #2+#3: cover letter saved as cv.pdf, CV saved as dokumente.pdf",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        },
+        {
+          "name": "dokumente.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "priya_sharma",
+      "language": "en",
+      "strength": "high",
+      "challenge": "industry-to-PhD switcher",
+      "files": [
+        {
+          "name": "resume.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "tom_brandt",
+      "language": "en",
+      "strength": "weak",
+      "challenge": "must-have degree failure (BSc only, bootcamp)",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "emine_yildiz",
+      "language": "de",
+      "strength": "mid",
+      "challenge": "single-document packet (no cover letter)",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "marco_ricci",
+      "language": "en",
+      "strength": "mid",
+      "challenge": "cryptic filenames (scan.pdf, bewerbung.pdf) - fallback guessing confirmed by F1",
+      "files": [
+        {
+          "name": "scan.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "bewerbung.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "anna_kowalska",
+      "language": "en",
+      "strength": "top",
+      "challenge": "strongest candidate (publications, RA experience)",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "motivation.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "felix_baumann",
+      "language": "en",
+      "strength": "mid-low",
+      "challenge": "physics degree path (tests degree aliases), no publications",
+      "files": [
+        {
+          "name": "CV_Physics.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "Cover_Letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "nora_falk",
+      "language": "en",
+      "strength": "mid-low",
+      "challenge": "coursework ML only, honest mid-low profile",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "omar_haddad",
+      "language": "en",
+      "strength": "mid",
+      "challenge": "combined letter+CV in one PDF (mixed content)",
+      "files": [
+        {
+          "name": "application.pdf",
+          "true_role": "mixed",
+          "lang": "en"
+        }
+      ]
+    }
+  ]
+}

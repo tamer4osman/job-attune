@@ -1,0 +1,229 @@
+{
+  "corpus": "manual-labor-case-study",
+  "role": "Furniture Technician (Assembly & Service)",
+  "profile": "profile-furniture-technician.json",
+  "profile_grounding": "Requirements modelled on published criteria for comparable positions: Havertys Furniture Service Technician (jobs.havertys.com), Cushman & Wakefield Workplace Services Technician (careers.cushmanwakefield.com), furniture installer postings (reading assembly instructions and layout plans), and German Kuechen- und Moebelmonteur / Tischler postings on the Bundesagentur fuer Arbeit job board (10001-1003465780-S), all retrieved 2026-11-11.",
+  "candidates": [
+    {
+      "folder": "marcel_dittrich",
+      "language": "de",
+      "strength": "very high",
+      "challenge": "german-language packet; extra document zeugnisse.pdf (certificates, neither CV nor cover letter)",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        },
+        {
+          "name": "zeugnisse.pdf",
+          "true_role": "certificates",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "tobias_lenz",
+      "language": "de",
+      "strength": "high",
+      "challenge": "baseline German packet",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "aisha_ndiaye",
+      "language": "en",
+      "strength": "high",
+      "challenge": "baseline English packet; trade training from warehouse logistics, not carpentry",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "grzegorz_nowak",
+      "language": "en",
+      "strength": "high-mid",
+      "challenge": "EU-cross-border joiner; German B1 (good command), English packet",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "david_osei",
+      "language": "en",
+      "strength": "mid-high",
+      "challenge": "service-heavy profile (hotel maintenance), no carpentry apprenticeship",
+      "files": [
+        {
+          "name": "resume.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "marco_bianchi",
+      "language": "en",
+      "strength": "mid-high craft, German must-have gap",
+      "challenge": "master-level restorer/cabinetmaker with weak German (A2, B1 in progress)",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "julian_reuter",
+      "language": "en",
+      "strength": "junior",
+      "challenge": "junior: freshly completed apprenticeship, thin evidence volume",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "lena_hartmann",
+      "language": "en",
+      "strength": "mid, no formal vocational training",
+      "challenge": "career changer: proven gig assembly practice, but no apprenticeship (must-have gap)",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "hakan_yilmaz",
+      "language": "de",
+      "strength": "mid, adjacent trade (plumber)",
+      "challenge": "plumber switching trades: all must-have words present via transferable claims, but zero furniture experience",
+      "files": [
+        {
+          "name": "lebenslauf.pdf",
+          "true_role": "cv",
+          "lang": "de"
+        },
+        {
+          "name": "anschreiben.pdf",
+          "true_role": "cover",
+          "lang": "de"
+        }
+      ]
+    },
+    {
+      "folder": "kevin_slomka",
+      "language": "en",
+      "strength": "mid-weak",
+      "challenge": "PLANTED MISTAGS #1+#2: cv.pdf contains the cover letter, dokumente.pdf contains the CV",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        },
+        {
+          "name": "dokumente.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "colin_murphy",
+      "language": "en",
+      "strength": "mid-weak for this role",
+      "challenge": "experienced installer with German A2 (beginner) - trade-strong, must-have language gap",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    },
+    {
+      "folder": "sofia_popescu",
+      "language": "en",
+      "strength": "low (negative control)",
+      "challenge": "negative control: design graduate without hands-on assembly evidence; decoy-free but must-fail on assembly, tools, training, German",
+      "files": [
+        {
+          "name": "cv.pdf",
+          "true_role": "cv",
+          "lang": "en"
+        },
+        {
+          "name": "cover_letter.pdf",
+          "true_role": "cover",
+          "lang": "en"
+        }
+      ]
+    }
+  ]
+}

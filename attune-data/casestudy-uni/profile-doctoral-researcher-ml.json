@@ -1,0 +1,210 @@
+{
+  "profile_name": "Doctoral Researcher (PhD) in Machine Learning - Faculty of EECS, Universitaet Alt-Moabit (case study, profile v2 - DE alias coverage (values via engine E1 fold))",
+  "company": {
+    "name": "Universitaet Alt-Moabit, Faculty of Electrical Engineering and Computer Science",
+    "summary": "A public research university in Berlin. The Machine Learning group at the faculty conducts research in the design, development, and analysis of novel data mining and machine learning methods, from statistical learning theory to applied research with interdisciplinary partners in medicine and mobility.",
+    "values_text": "scientific integrity; academic excellence; open science; interdisciplinary collaboration; responsible supervision and teaching"
+  },
+  "job": {
+    "title": "Doctoral Researcher (PhD) in Machine Learning",
+    "description": "You will pursue a doctorate within the Machine Learning group: designing, developing, and analyzing novel machine learning methods, publishing in peer-reviewed venues, contributing to interdisciplinary projects, and assisting in teaching. The eligibility criteria for this position follow the published standard of comparable Berlin ML groups: a Master's degree in computer science, physics, or a related field; proven programming experience; and excellent communication skills."
+  },
+  "categories": {
+    "soft_skills": [
+      {
+        "skill": "communication",
+        "weight": 2.0,
+        "must_have": true,
+        "aliases": [
+          "communicate",
+          "presentation skills",
+          "writing skills",
+          "presenting",
+          "kommunikation",
+          "kommunizieren"
+        ]
+      },
+      {
+        "skill": "collaboration",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "teamwork",
+          "interdisciplinary",
+          "cooperative",
+          "cross-functional",
+          "collaborative",
+          "zusammenarbeit",
+          "teamfaehigkeit",
+          "im team"
+        ]
+      },
+      {
+        "skill": "teaching assistance",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "teaching",
+          "tutor",
+          "teaching assistant",
+          "supervision of students",
+          "lehre"
+        ]
+      }
+    ],
+    "technical_skills": [
+      {
+        "skill": "Python",
+        "weight": 3.0,
+        "must_have": true,
+        "aliases": [
+          "python3",
+          "numpy",
+          "pandas"
+        ]
+      },
+      {
+        "skill": "Deep learning frameworks",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "pytorch",
+          "tensorflow",
+          "jax",
+          "deep learning framework"
+        ]
+      },
+      {
+        "skill": "machine learning methods",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "machine learning",
+          "data mining",
+          "deep learning",
+          "statistical learning",
+          "maschinelles lernen"
+        ]
+      },
+      {
+        "skill": "Git",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "version control",
+          "github",
+          "gitlab"
+        ]
+      },
+      {
+        "skill": "statistics and probability",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "statistics",
+          "statistical inference",
+          "probability theory",
+          "stochastik",
+          "statistik",
+          "wahrscheinlichkeitstheorie"
+        ]
+      },
+      {
+        "skill": "C++ / Rust / Julia",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "c++",
+          "rust",
+          "julia"
+        ]
+      }
+    ],
+    "languages": [
+      {
+        "skill": "English C1",
+        "weight": 2.0,
+        "must_have": true,
+        "aliases": [
+          "english fluent",
+          "english c1",
+          "english professional",
+          "englisch",
+          "english"
+        ]
+      },
+      {
+        "skill": "German",
+        "weight": 0.5,
+        "must_have": false,
+        "aliases": [
+          "german b2",
+          "german",
+          "deutsch"
+        ]
+      }
+    ],
+    "degrees": [
+      {
+        "skill": "MSc Computer Science or Physics",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "master of science",
+          "msc computer science",
+          "msc physics",
+          "master in computer science",
+          "master in physics",
+          "m.sc.",
+          "diplom informatik",
+          "diplom physik",
+          "msc data science",
+          "msc physics",
+          "master's degree in physics",
+          "master's degree in computer science",
+          "msc informatik",
+          "master in informatik",
+          "msc physik",
+          "master in physik"
+        ]
+      }
+    ],
+    "certifications": [
+      {
+        "skill": "peer-reviewed publication",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "peer-reviewed",
+          "conference paper",
+          "first author",
+          "workshop paper",
+          "journal paper",
+          "publications",
+          "publikationen",
+          "konferenzbeitrag",
+          "erstautor"
+        ]
+      }
+    ],
+    "bootcamps": [
+      {
+        "skill": "ML summer school",
+        "weight": 0.5,
+        "must_have": false,
+        "aliases": [
+          "summer school",
+          "research school",
+          "doctoral school",
+          "graduate school on machine learning"
+        ]
+      }
+    ]
+  },
+  "weights": {
+    "categories_total": 0.85,
+    "values_fit": 0.15
+  },
+  "pseudonymous": true,
+  "role_overrides": {}
+}

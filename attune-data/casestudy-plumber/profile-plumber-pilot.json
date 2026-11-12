@@ -1,0 +1,179 @@
+{
+  "profile_name": "Plumber / Sanitary & Heating Technician (SHK) - Klarwasser SHK Technik GmbH, Berlin (case study, profile v1 pilot)",
+  "company": {
+    "name": "Klarwasser SHK Technik GmbH, Berlin",
+    "summary": "A Berlin plumbing and heating contractor serving residential and commercial customers across the city: installation and modernisation of bathrooms, drinking-water and drainage systems, condensing boilers and heat pumps, plus a 24/7 emergency callout service. Its service crews work at customer sites in two-person teams and represent the company directly in front of the customer.",
+    "values_text": "safety; quality craftsmanship; reliable service; customer care; teamwork"
+  },
+  "job": {
+    "title": "Plumber / Sanitary & Heating Technician (SHK)",
+    "description": "You will install and service drinking-water, drainage and heating systems at customer sites in two-person teams, carry out bathroom renovations and boiler service calls, detect and repair leaks, take part in the on-call and emergency rotation, and represent the company in front of customers. The eligibility requirements follow the standard published for comparable service-plumber and Anlagenmechaniker SHK positions (including German Anlagenmechaniker SHK postings on the Bundesagentur fuer Arbeit job board and standard English-language service-plumber postings, retrieved 2026-11-11): completed vocational training as Anlagenmechaniker SHK or plumber, proven installation experience in sanitary and heating systems, a valid class B driver's licence, good German for customer-facing work and participation in the on-call rotation."
+  },
+  "categories": {
+    "technical_skills": [
+      {
+        "skill": "water supply and drainage installation",
+        "weight": 3.0,
+        "must_have": true,
+        "aliases": [
+          "water supply installation",
+          "trinkwasserinstallation",
+          "drainage installation",
+          "abwasserinstallation",
+          "sanitary installation",
+          "sanitaerinstallation",
+          "pipework installation"
+        ]
+      },
+      {
+        "skill": "heating systems installation and service",
+        "weight": 3.0,
+        "must_have": true,
+        "aliases": [
+          "heating systems",
+          "heizungsanlagen",
+          "heating installation",
+          "heizungsinstallation",
+          "boiler installation",
+          "condensing boiler",
+          "brennwerttherme",
+          "heizungstechnik"
+        ]
+      },
+      {
+        "skill": "bathroom renovation and fixture installation",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "bathroom renovation",
+          "badmodernisierung",
+          "fixture installation",
+          "wc installation",
+          "washbasin",
+          "waschtisch",
+          "shower installation",
+          "duscheinbau"
+        ]
+      },
+      {
+        "skill": "leak detection and pipe repair",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "leak detection",
+          "leckagesuche",
+          "pipe repair",
+          "rohrbruch",
+          "leak repair"
+        ]
+      },
+      {
+        "skill": "gas line installation",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "gas line",
+          "gasinstallation",
+          "gas boiler",
+          "gastherme",
+          "gas fitting"
+        ]
+      }
+    ],
+    "certifications": [
+      {
+        "skill": "vocational qualification in the plumbing/SHK trade",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "anlagenmechaniker shk",
+          "apprenticeship as plumber",
+          "plumbing apprenticeship",
+          "journeyman certificate",
+          "gesellenbrief",
+          "vocational training plumbing",
+          "sanitaerinstallateur"
+        ]
+      },
+      {
+        "skill": "class B driving licence",
+        "weight": 1.5,
+        "must_have": true,
+        "aliases": [
+          "driving licence",
+          "fuehrerschein",
+          "driver's licence",
+          "fuehrerschein klasse b"
+        ]
+      }
+    ],
+    "languages": [
+      {
+        "skill": "German for customer-facing work",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "deutsch",
+          "german language",
+          "german"
+        ]
+      },
+      {
+        "skill": "English",
+        "weight": 1.0,
+        "must_have": false,
+        "aliases": [
+          "english",
+          "basic english"
+        ]
+      }
+    ],
+    "soft_skills": [
+      {
+        "skill": "customer service and handover",
+        "weight": 2.5,
+        "must_have": true,
+        "aliases": [
+          "customer service",
+          "kundenservice",
+          "kundenkontakt",
+          "customer communication",
+          "kundenuebergabe",
+          "customer handover",
+          "kundengespraech"
+        ]
+      },
+      {
+        "skill": "on-call and emergency readiness",
+        "weight": 1.5,
+        "must_have": false,
+        "aliases": [
+          "on-call",
+          "bereitschaftsdienst",
+          "emergency service",
+          "notdienst",
+          "emergency callouts"
+        ]
+      },
+      {
+        "skill": "work safety compliance",
+        "weight": 2.0,
+        "must_have": false,
+        "aliases": [
+          "work safety",
+          "arbeitsschutz",
+          "safety regulations",
+          "unfallverhuetung",
+          "risk assessment"
+        ]
+      }
+    ]
+  },
+  "weights": {
+    "categories_total": 0.85,
+    "values_fit": 0.15
+  },
+  "pseudonymous": true,
+  "role_overrides": {},
+  "study_note": "Manual-labor case study holdout (plumber/SHK). v1 pilot profile frozen BEFORE any engine run together with the expert ranking; v2 may add aliases (data-only, uniform across candidates) after run1."
+}

@@ -1,0 +1,85 @@
+{
+  "method": "expert (analyst) personal ranking committed before any engine run; rubric in expert_rubric.md",
+  "committed_at": null,
+  "committed_before_engine_run": true,
+  "corpus": "attune-data/casestudy-trades/candidates (12 synthetic applicants, 25 documents)",
+  "protocol": "Single-reviewer holistic reference over SYNTHETIC candidates against the criterion table A-G in expert_rubric.md; the ranking and totals below were frozen before the first engine run on this profile.",
+  "restoration_note": "I10 file hygiene: this file was accidentally overwritten with comparison output. Restored on 2026-11-12 from the frozen expert table in verification/case_study_trades.txt (section [8]) cross-checked against expert/comparison.json (expert_order + expert_score). Per-criterion sub-scores (A-G) were not preserved anywhere and are intentionally omitted.",
+  "restored_at": "2026-11-12",
+  "expert_ranking_order": [
+    "marcel_dittrich",
+    "tobias_lenz",
+    "grzegorz_nowak",
+    "aisha_ndiaye",
+    "david_osei",
+    "colin_murphy",
+    "marco_bianchi",
+    "julian_reuter",
+    "hakan_yilmaz",
+    "lena_hartmann",
+    "kevin_slomka",
+    "sofia_popescu"
+  ],
+  "candidates": [
+    {
+      "folder": "marcel_dittrich",
+      "language": "de",
+      "total": 99
+    },
+    {
+      "folder": "tobias_lenz",
+      "language": "de",
+      "total": 91
+    },
+    {
+      "folder": "grzegorz_nowak",
+      "language": "en",
+      "total": 79
+    },
+    {
+      "folder": "aisha_ndiaye",
+      "language": "en",
+      "total": 78
+    },
+    {
+      "folder": "david_osei",
+      "language": "en",
+      "total": 75
+    },
+    {
+      "folder": "colin_murphy",
+      "language": "en",
+      "total": 73
+    },
+    {
+      "folder": "marco_bianchi",
+      "language": "en",
+      "total": 72
+    },
+    {
+      "folder": "julian_reuter",
+      "language": "en",
+      "total": 67
+    },
+    {
+      "folder": "hakan_yilmaz",
+      "language": "de",
+      "total": 64
+    },
+    {
+      "folder": "lena_hartmann",
+      "language": "en",
+      "total": 61
+    },
+    {
+      "folder": "kevin_slomka",
+      "language": "en",
+      "total": 53
+    },
+    {
+      "folder": "sofia_popescu",
+      "language": "en",
+      "total": 20
+    }
+  ]
+}

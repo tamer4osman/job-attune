@@ -1,0 +1,215 @@
+{
+  "method": "expert (analyst) personal ranking committed before any engine run; rubric in expert_rubric.md; sub-scores per criteria A-G",
+  "committed_at": "2026-11-11T23:55:00+01:00",
+  "committed_before_engine_run": true,
+  "corpus": "attune-data/casestudy-plumber/candidates (12 synthetic applicants, 24 documents)",
+  "protocol": "Single-reviewer holistic reference over SYNTHETIC candidates: total = sum of criteria A-G per expert_rubric.md (max 100). Frozen (sha256 in preregistration.sha256) BEFORE any 1.3.1 engine run for this corpus. Ties broken by total desc, then folder name.",
+  "expert_ranking_order": [
+    "stefan_richter",
+    "aylin_demir",
+    "marek_kowalczyk",
+    "abdul_rahimi",
+    "anton_velasco",
+    "julia_krause",
+    "petra_lindner",
+    "bogdan_ionescu",
+    "thomas_schreiber",
+    "felix_gruenwald",
+    "denis_marek",
+    "gordon_miles"
+  ],
+  "candidates": [
+    {
+      "folder": "stefan_richter",
+      "name": "Stefan Richter",
+      "language": "de",
+      "total": 96,
+      "subscores": {
+        "A_installation": 29,
+        "B_qualification": 15,
+        "C_heating": 12,
+        "D_customer": 14,
+        "E_mobility": 8,
+        "F_german": 12,
+        "G_application": 6
+      },
+      "rationale": "Meister SHK, 15 years full-spectrum drinking-water/drainage/heating incl. gas with inspection, leak detection, bathroom modernisation, weekend on-call; foreman of a three-person crew; native German; calm professional letter. No material gap."
+    },
+    {
+      "folder": "aylin_demir",
+      "name": "Aylin Demir",
+      "language": "de",
+      "total": 88,
+      "subscores": {
+        "A_installation": 27,
+        "B_qualification": 13,
+        "C_heating": 10,
+        "D_customer": 14,
+        "E_mobility": 8,
+        "F_german": 12,
+        "G_application": 4
+      },
+      "rationale": "Nine years Berlin sanitary+heating crew work, bathroom modernisation end-to-end, condensing-boiler swaps, on-call rotation, native German, current manufacturer trainings; letter shows real customer-dialogue maturity. Not a Meister, less gas depth than #1."
+    },
+    {
+      "folder": "marek_kowalczyk",
+      "name": "Marek Kowalczyk",
+      "language": "en",
+      "total": 84,
+      "subscores": {
+        "A_installation": 27,
+        "B_qualification": 12,
+        "C_heating": 10,
+        "D_customer": 14,
+        "E_mobility": 8,
+        "F_german": 7,
+        "G_application": 6
+      },
+      "rationale": "Twelve years plumbing incl. running his own two-person crew since 2018 (bathrooms, boilers, leak repair, handover routine); German B1 in daily cross-border use with B2 course planned; Polish journeyman qualification. Entrepreneurial reliability; B1 is a workable but real constraint."
+    },
+    {
+      "folder": "abdul_rahimi",
+      "name": "Abdul Rahimi",
+      "language": "de",
+      "total": 78,
+      "subscores": {
+        "A_installation": 26,
+        "B_qualification": 12,
+        "C_heating": 12,
+        "D_customer": 12,
+        "E_mobility": 7,
+        "F_german": 3,
+        "G_application": 6
+      },
+      "rationale": "Eleven years heating-focused, Turkish master certificate (2019), condensing boilers, radiators, winter on-call; German A2 with B1 course running; licence converted 2024. Trade depth is top-4; A2 keeps him out of solo customer dialogue for now - interview with language plan."
+    },
+    {
+      "folder": "anton_velasco",
+      "name": "Anton Velasco",
+      "language": "en",
+      "total": 74,
+      "subscores": {
+        "A_installation": 26,
+        "B_qualification": 11,
+        "C_heating": 9,
+        "D_customer": 12,
+        "E_mobility": 7,
+        "F_german": 3,
+        "G_application": 6
+      },
+      "rationale": "Nine years full bathroom renovations drainage-to-washbasin, boiler replacements, leak repair in occupied flats, two-person crew routine; German A2 beginner. Same logic as #4: trade-strong, language-limited; letters realistic."
+    },
+    {
+      "folder": "julia_krause",
+      "name": "Julia Krause",
+      "language": "de",
+      "total": 70,
+      "subscores": {
+        "A_installation": 18,
+        "B_qualification": 8,
+        "C_heating": 3,
+        "D_customer": 15,
+        "E_mobility": 7,
+        "F_german": 12,
+        "G_application": 7
+      },
+      "rationale": "Six years technical building services with daily sanitary minor repairs (taps, cisterns, siphons, interim leak sealing) and coordination of specialist firms; outstanding tenant communication incl. complaints; native German. Missing SHK apprenticeship is a real must-have gap, but the service half of this job she already masters."
+    },
+    {
+      "folder": "petra_lindner",
+      "name": "Petra Lindner",
+      "language": "de",
+      "total": 68,
+      "subscores": {
+        "A_installation": 20,
+        "B_qualification": 13,
+        "C_heating": 4,
+        "D_customer": 10,
+        "E_mobility": 7,
+        "F_german": 12,
+        "G_application": 2
+      },
+      "rationale": "SHK Gesellin, seven years drinking-water/drainage in occupied stock, fixture swaps, bathroom modernisation participation, on-call participation; native German. Solid but evidence volume and heating depth shown are moderate; application packet is thin (and mis-tagged files are a packet-hygiene flag)."
+    },
+    {
+      "folder": "bogdan_ionescu",
+      "name": "Bogdan Ionescu",
+      "language": "de",
+      "total": 65,
+      "subscores": {
+        "A_installation": 20,
+        "B_qualification": 10,
+        "C_heating": 8,
+        "D_customer": 9,
+        "E_mobility": 7,
+        "F_german": 10,
+        "G_application": 1
+      },
+      "rationale": "Ten years heating/sanitary incl. two years Vienna with German as working language (B2); boilers, leak search, on-call winters. Content is real; the single mixed letter+CV file is a messy packet and costs application points and HR goodwill."
+    },
+    {
+      "folder": "thomas_schreiber",
+      "name": "Thomas Schreiber",
+      "language": "de",
+      "total": 58,
+      "subscores": {
+        "A_installation": 18,
+        "B_qualification": 0,
+        "C_heating": 3,
+        "D_customer": 10,
+        "E_mobility": 8,
+        "F_german": 12,
+        "G_application": 7
+      },
+      "rationale": "Career changer: four self-renovated bathrooms with independent sign-off, summer helper stints at a relative's firm, logistics customer-service background, native German, C+B licences. Real but narrow, self-taught, unverified evidence; open to external examination - mid-table with interview."
+    },
+    {
+      "folder": "felix_gruenwald",
+      "name": "Felix Gruenwald",
+      "language": "de",
+      "total": 55,
+      "subscores": {
+        "A_installation": 11,
+        "B_qualification": 13,
+        "C_heating": 2,
+        "D_customer": 6,
+        "E_mobility": 7,
+        "F_german": 12,
+        "G_application": 4
+      },
+      "rationale": "Fresh Gesellenbrief (2026), one employer, supervised sanitary installs and one first bathroom; motivated letter with concrete plan (on-call early, Meister long-term). High potential, low proven volume - hire-for-potential only if a senior crew slot exists."
+    },
+    {
+      "folder": "denis_marek",
+      "name": "Denis Marek",
+      "language": "en",
+      "total": 40,
+      "subscores": {
+        "A_installation": 2,
+        "B_qualification": 4,
+        "C_heating": 0,
+        "D_customer": 10,
+        "E_mobility": 7,
+        "F_german": 12,
+        "G_application": 5
+      },
+      "rationale": "Eight years electrician: installation discipline, plan reading, occupied-site conduct and customer routine transfer; zero drinking-water/drainage/heating evidence, honest about it. Retraining project, not a plumber - below the line for this opening."
+    },
+    {
+      "folder": "gordon_miles",
+      "name": "Gordon Miles",
+      "language": "en",
+      "total": 12,
+      "subscores": {
+        "A_installation": 0,
+        "B_qualification": 0,
+        "C_heating": 0,
+        "D_customer": 4,
+        "E_mobility": 6,
+        "F_german": 0,
+        "G_application": 2
+      },
+      "rationale": "Negative control: ceramics sales account manager, knows the product catalogue, has never installed anything; no German. Courteous letter, unsupported claims for a hands-on SHK crew."
+    }
+  ]
+}

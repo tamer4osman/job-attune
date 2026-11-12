@@ -1,0 +1,279 @@
+{
+  "method": "expert ranking committed before any engine run (see expert_ranking.json)",
+  "runs": {
+    "run1_pilot": "casestudy-plumber-run1-alias-gaps",
+    "v2_native": "casestudy-plumber-native",
+    "counterfactual_tolerant_alias": "casestudy-plumber-counterfactual-tolerant"
+  },
+  "expert_order": [
+    "stefan_richter",
+    "aylin_demir",
+    "marek_kowalczyk",
+    "abdul_rahimi",
+    "anton_velasco",
+    "julia_krause",
+    "petra_lindner",
+    "bogdan_ionescu",
+    "thomas_schreiber",
+    "felix_gruenwald",
+    "denis_marek",
+    "gordon_miles"
+  ],
+  "tool_order_v2": [
+    "marek_kowalczyk",
+    "denis_marek",
+    "stefan_richter",
+    "aylin_demir",
+    "abdul_rahimi",
+    "bogdan_ionescu",
+    "felix_gruenwald",
+    "thomas_schreiber",
+    "anton_velasco",
+    "petra_lindner",
+    "julia_krause",
+    "gordon_miles"
+  ],
+  "tool_order_run1": [
+    "stefan_richter",
+    "abdul_rahimi",
+    "aylin_demir",
+    "marek_kowalczyk",
+    "anton_velasco",
+    "denis_marek",
+    "bogdan_ionescu",
+    "petra_lindner",
+    "thomas_schreiber",
+    "felix_gruenwald",
+    "julia_krause",
+    "gordon_miles"
+  ],
+  "tool_order_counterfactual": [
+    "marek_kowalczyk",
+    "denis_marek",
+    "stefan_richter",
+    "aylin_demir",
+    "abdul_rahimi",
+    "bogdan_ionescu",
+    "felix_gruenwald",
+    "thomas_schreiber",
+    "anton_velasco",
+    "petra_lindner",
+    "julia_krause",
+    "gordon_miles"
+  ],
+  "candidates": [
+    {
+      "folder": "stefan_richter",
+      "expert_rank": 1,
+      "expert_score": 96,
+      "tool_rank_v2": 3,
+      "tool_score_v2": 54.6,
+      "tool_rank_run1": 1,
+      "tool_score_run1": 51.7,
+      "tool_rank_counterfactual": 3,
+      "tool_score_counterfactual": 54.6,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.2,
+      "language": "de",
+      "delta_v2": 2
+    },
+    {
+      "folder": "aylin_demir",
+      "expert_rank": 2,
+      "expert_score": 88,
+      "tool_rank_v2": 4,
+      "tool_score_v2": 51.9,
+      "tool_rank_run1": 3,
+      "tool_score_run1": 47.6,
+      "tool_rank_counterfactual": 4,
+      "tool_score_counterfactual": 51.9,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.2,
+      "language": "de",
+      "delta_v2": 2
+    },
+    {
+      "folder": "marek_kowalczyk",
+      "expert_rank": 3,
+      "expert_score": 84,
+      "tool_rank_v2": 1,
+      "tool_score_v2": 74.6,
+      "tool_rank_run1": 4,
+      "tool_score_run1": 37.0,
+      "tool_rank_counterfactual": 1,
+      "tool_score_counterfactual": 74.6,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.2,
+      "language": "en",
+      "delta_v2": -2
+    },
+    {
+      "folder": "abdul_rahimi",
+      "expert_rank": 4,
+      "expert_score": 78,
+      "tool_rank_v2": 5,
+      "tool_score_v2": 51.0,
+      "tool_rank_run1": 2,
+      "tool_score_run1": 47.8,
+      "tool_rank_counterfactual": 5,
+      "tool_score_counterfactual": 51.0,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.2,
+      "language": "de",
+      "delta_v2": 1
+    },
+    {
+      "folder": "anton_velasco",
+      "expert_rank": 5,
+      "expert_score": 74,
+      "tool_rank_v2": 9,
+      "tool_score_v2": 37.0,
+      "tool_rank_run1": 5,
+      "tool_score_run1": 37.0,
+      "tool_rank_counterfactual": 9,
+      "tool_score_counterfactual": 37.0,
+      "must_have_missing_v2": [
+        "German for customer-facing work",
+        "vocational qualification in the plumbing/SHK trade"
+      ],
+      "values_fit_v2": 0.2,
+      "language": "en",
+      "delta_v2": 4
+    },
+    {
+      "folder": "julia_krause",
+      "expert_rank": 6,
+      "expert_score": 70,
+      "tool_rank_v2": 11,
+      "tool_score_v2": 28.1,
+      "tool_rank_run1": 11,
+      "tool_score_run1": 27.7,
+      "tool_rank_counterfactual": 11,
+      "tool_score_counterfactual": 28.1,
+      "must_have_missing_v2": [
+        "water supply and drainage installation",
+        "heating systems installation and service",
+        "vocational qualification in the plumbing/SHK trade"
+      ],
+      "values_fit_v2": 0.2,
+      "language": "de",
+      "delta_v2": 5
+    },
+    {
+      "folder": "petra_lindner",
+      "expert_rank": 7,
+      "expert_score": 68,
+      "tool_rank_v2": 10,
+      "tool_score_v2": 30.8,
+      "tool_rank_run1": 8,
+      "tool_score_run1": 29.5,
+      "tool_rank_counterfactual": 10,
+      "tool_score_counterfactual": 30.8,
+      "must_have_missing_v2": [
+        "heating systems installation and service"
+      ],
+      "values_fit_v2": 0.0,
+      "language": "de",
+      "delta_v2": 3
+    },
+    {
+      "folder": "bogdan_ionescu",
+      "expert_rank": 8,
+      "expert_score": 65,
+      "tool_rank_v2": 6,
+      "tool_score_v2": 45.1,
+      "tool_rank_run1": 7,
+      "tool_score_run1": 30.6,
+      "tool_rank_counterfactual": 6,
+      "tool_score_counterfactual": 45.1,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.0,
+      "language": "de",
+      "delta_v2": -2
+    },
+    {
+      "folder": "thomas_schreiber",
+      "expert_rank": 9,
+      "expert_score": 58,
+      "tool_rank_v2": 8,
+      "tool_score_v2": 43.8,
+      "tool_rank_run1": 9,
+      "tool_score_run1": 29.1,
+      "tool_rank_counterfactual": 8,
+      "tool_score_counterfactual": 44.0,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.0,
+      "language": "de",
+      "delta_v2": -1
+    },
+    {
+      "folder": "felix_gruenwald",
+      "expert_rank": 10,
+      "expert_score": 55,
+      "tool_rank_v2": 7,
+      "tool_score_v2": 44.8,
+      "tool_rank_run1": 10,
+      "tool_score_run1": 28.7,
+      "tool_rank_counterfactual": 7,
+      "tool_score_counterfactual": 45.1,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.0,
+      "language": "de",
+      "delta_v2": -3
+    },
+    {
+      "folder": "denis_marek",
+      "expert_rank": 11,
+      "expert_score": 40,
+      "tool_rank_v2": 2,
+      "tool_score_v2": 59.1,
+      "tool_rank_run1": 6,
+      "tool_score_run1": 35.1,
+      "tool_rank_counterfactual": 2,
+      "tool_score_counterfactual": 59.1,
+      "must_have_missing_v2": [],
+      "values_fit_v2": 0.2,
+      "language": "en",
+      "delta_v2": -9
+    },
+    {
+      "folder": "gordon_miles",
+      "expert_rank": 12,
+      "expert_score": 12,
+      "tool_rank_v2": 12,
+      "tool_score_v2": 20.4,
+      "tool_rank_run1": 12,
+      "tool_score_run1": 20.4,
+      "tool_rank_counterfactual": 12,
+      "tool_score_counterfactual": 21.3,
+      "must_have_missing_v2": [
+        "water supply and drainage installation",
+        "heating systems installation and service",
+        "German for customer-facing work",
+        "vocational qualification in the plumbing/SHK trade",
+        "class B driving licence"
+      ],
+      "values_fit_v2": 0.0,
+      "language": "en",
+      "delta_v2": 0
+    }
+  ],
+  "metrics": {
+    "spearman_expert_vs_tool_v2": 0.448,
+    "spearman_expert_vs_tool_run1": 0.797,
+    "spearman_expert_vs_counterfactual": 0.448,
+    "spearman_run1_vs_v2": 0.755,
+    "top4_overlap_v2": [
+      "aylin_demir",
+      "marek_kowalczyk",
+      "stefan_richter"
+    ],
+    "bottom3_overlap_v2": [
+      "gordon_miles"
+    ],
+    "exact_agreement_v2": [
+      "gordon_miles"
+    ],
+    "max_rank_gap_v2": 9
+  }
+}
