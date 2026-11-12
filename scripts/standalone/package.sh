@@ -30,6 +30,18 @@ PYTHON_VERSION="3.12.7"  # CPython the engine is tested on (3.10+ supported)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
+# On Windows runners (shell: bash = Git Bash/MSYS) pwd yields POSIX-style
+# paths like /d/a/repo/repo. Native Windows programs - above all the bundled
+# CPython that loads the kernel via OMNIDECIDE_C_LIB and receives staging
+# paths inside heredocs - cannot resolve MSYS-style paths, and env vars are
+# NOT path-converted by the MSYS runtime. cygpath -m normalizes to the
+# drive-letter form with forward slashes (d:/a/repo/repo), which BOTH the
+# MSYS coreutils (cp, tar, find...) and Windows Python accept. cygpath only
+# exists under MSYS, so Linux/macOS are untouched.
+if command -v cygpath >/dev/null 2>&1; then
+  ROOT="$(cygpath -m "$ROOT")"
+fi
+
 if [ ! -f server.py ] || [ ! -d web ]; then
   echo "ERROR: server.py / web/ missing - run me from the repo root" >&2
   exit 1
@@ -54,7 +66,10 @@ case "$(uname -s)" in
     ;;
   MINGW*|MSYS*|CYGWIN*)
     PLATFORM="windows-x64"
-    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-static-libgcc"
+    # mingw-w64 gcc (runner image default via Strawberry Perl). GNU ld does
+    # auto-export symbols, but we make it explicit - the ctypes bridge needs
+    # every odk_* symbol reachable from the DLL.
+    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-static-libgcc -Wl,--export-all-symbols"
     PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
     ARCHIVE_EXT="zip"; PY_BIN="python.exe"; ZIP=1
     ;;
@@ -69,15 +84,27 @@ DIST_ROOT="$ROOT/dist"
 echo "==> platform: $PLATFORM (kernel: $KERNEL_LIB, archive: $ARCHIVE_EXT)"
 
 TMP="$(mktemp -d)"
+# Same MSYS normalization for the temp root: every Python-facing path in the
+# staging heredocs and the engine smoke derives from $TMP.
+if command -v cygpath >/dev/null 2>&1; then
+  TMP="$(cygpath -m "$TMP")"
+fi
 mkdir -p "$TMP/rt"
 trap 'rm -rf "$TMP"' EXIT
 
 # ------------------------------------------------------------------ kernel
+# Same sources and flags as scripts/build-kernel.sh, the repo's canonical
+# build line: odk-core + odk-brain + odk-spine with -std=c11
+# -ffp-contract=off. -ffp-contract=off is what keeps decisions bit-identical
+# across compilers and platforms (the engine's determinism contract).
 echo "==> compiling the C11 kernel ($KERNEL_CC, -std=c11 -ffp-contract=off)"
 mkdir -p vendor/omnidecide-c/build
-"$KERNEL_CC" -std=c11 -ffp-contract=off -O2 -fPIC -shared $KERNEL_ARCH_FLAGS \
-  -Ivendor/omnidecide-c/include -Ivendor/omnidecide-c/src \
-  vendor/omnidecide-c/src/*.c -lm \
+# shellcheck disable=SC2086  # KERNEL_ARCH_FLAGS is a deliberate multi-flag list
+"$KERNEL_CC" -std=c11 -ffp-contract=off -O2 -Wall -fPIC -shared $KERNEL_ARCH_FLAGS \
+  -Ivendor/omnidecide-c/include \
+  -Ivendor/omnidecide-c/odk-core -Ivendor/omnidecide-c/odk-brain -Ivendor/omnidecide-c/odk-spine \
+  vendor/omnidecide-c/odk-core/*.c vendor/omnidecide-c/odk-brain/*.c vendor/omnidecide-c/odk-spine/*.c \
+  -lm \
   -o "vendor/omnidecide-c/build/$KERNEL_LIB"
 ls -la "vendor/omnidecide-c/build/$KERNEL_LIB"
 
@@ -121,7 +148,7 @@ import json, sys
 run = sys.argv[1]
 m = json.load(open(run + "/results.json"))
 ver = m.get("omnidecide_version") or m.get("audit", {}).get("manifest", {}).get("omnidecide_version")
-assert ver == "omnidecide-c 1.0.0", f"unexpected kernel id in manifest: {ver!r}"
+assert ver == "omnidecide-c 2.0.0", f"unexpected kernel id in manifest: {ver!r}"
 print("engine smoke OK:", ver)
 PYEOF
 
@@ -134,6 +161,43 @@ mkdir -p "$APP" "$STAGE/$DIST_NAME/runtime"
 # Python runtime with the preinstalled PDF-export packages.
 mv "$TMP/rt/python" "$STAGE/$DIST_NAME/runtime/python"
 PY="$STAGE/$DIST_NAME/runtime/python/$PY_BIN"
+
+# ------------------------------------------------------------- slim runtime
+# The install_only build carries developer-facing extras the packaged app
+# never loads: full DWARF debug info in libpython (the single largest block,
+# ~200 MB), Tcl/Tk + Tix + IDLE, lib2to3, ensurepip wheels, C headers,
+# pkg-config data, terminfo/man pages and build-only config dirs. Trim them
+# so the archive ships only what the app needs to run. Every removal is
+# best-effort (guarded) because layouts differ slightly per platform.
+RT="$STAGE/$DIST_NAME/runtime/python"
+PY_LIB="$(echo "$RT"/lib/python3.* | tr ' ' '\n' | head -1)"
+rm -rf "$RT/include" "$RT/lib/pkgconfig" "$RT/share/terminfo" "$RT/share/man" \
+       "$RT/lib/libpython3.so" \
+       "$RT/lib/tcl8" "$RT/lib/tcl8.6" "$RT/lib/tk8.6" "$RT/lib/Tix8.4.3" \
+       "$RT/lib/itcl4.2.2" "$RT/lib/thread2.8.7" "$RT/tcl" "$RT/tk" \
+       "$RT/bin/python3.12-config" 2>/dev/null || true
+if [ -d "$PY_LIB" ]; then
+  rm -rf "$PY_LIB/test" "$PY_LIB/idlelib" "$PY_LIB/pydoc_data" \
+         "$PY_LIB/tkinter" "$PY_LIB/turtledemo" "$PY_LIB/lib2to3" \
+         "$PY_LIB/ensurepip" \
+         "$PY_LIB"/config-3.* \
+         "$PY_LIB"/lib-dynload/_tkinter.*.so \
+         "$PY_LIB"/lib-dynload/_tkinter*.pyd 2>/dev/null || true
+fi
+rm -f "$RT/bin"/idle3* "$RT/bin"/2to3* "$RT/bin"/pydoc3* 2>/dev/null || true
+# Strip debug symbols from the runtime binaries. Windows runners have no
+# strip (and MSVC builds carry no DWARF anyway), so this is guarded.
+if command -v strip >/dev/null 2>&1; then
+  case "$(uname -s)" in
+    Darwin) STRIP_FLAGS="-x" ;;
+    *)      STRIP_FLAGS="--strip-unneeded" ;;
+  esac
+  # shellcheck disable=SC2086  # STRIP_FLAGS is a deliberate multi-flag list
+  find "$RT/bin" "$RT/lib" -maxdepth 1 -type f \
+    \( -name "python*" -o -name "libpython*" \) \
+    -exec strip $STRIP_FLAGS {} + 2>/dev/null || true
+fi
+echo "==> runtime slimmed: $(du -sh "$RT" | cut -f1)"
 
 # The vanilla web app: the stdlib-only server plus static frontend. Python
 # copytree materializes symlinks as real files, which survives platforms

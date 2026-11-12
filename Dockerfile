@@ -18,7 +18,7 @@
 #                bind-mounted at /app at run time, so code changes take
 #                effect without rebuilding:
 #                  docker build --target engine -t job-attune-engine .
-#                  docker run --rm -v D:/Projects/job-attune-1.1.0:/app \
+#                  docker run --rm -v D:/Projects/job-attune-1.0.1:/app \
 #                    -w /app job-attune-engine          # full QA gate
 #
 #   fullstack  - production-style image of the whole app (default target):
@@ -29,7 +29,7 @@
 #                  docker build -t job-attune-full .
 #                  docker run --rm -d -p 127.0.0.1:3000:3000 job-attune-full
 #                Use -v to persist or inspect run artifacts:
-#                  -v D:/Projects/job-attune-1.1.0/attune-data/runs:/app/attune-data/runs
+#                  -v D:/Projects/job-attune-1.0.1/attune-data/runs:/app/attune-data/runs
 
 # ---------- Stage 1: compile the C decision kernel ----------
 FROM debian:bookworm-slim AS kernel-build
@@ -40,13 +40,16 @@ WORKDIR /src
 COPY vendor/omnidecide-c/ .
 RUN mkdir -p /out \
  && cc -std=c11 -ffp-contract=off -O2 -Wall -Wextra -pedantic -fPIC -shared \
-      -Iinclude -Isrc src/*.c \
+      -Iinclude -Iodk-core -Iodk-brain -Iodk-spine \
+      odk-core/*.c odk-brain/*.c odk-spine/*.c \
       -lm -o /out/libomnidecide.so
 
 # ---------- Stage 2: Python engine base (shared) ----------
 FROM python:3.12-slim AS engine-base
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# wasmtime enables the WASM fallback tier inside containers too (the native
+# kernel above stays the default; docs/LAYERED-KERNEL.md).
+RUN pip install --no-cache-dir -r requirements.txt wasmtime
 COPY --from=kernel-build /out/libomnidecide.so /opt/attune/libomnidecide.so
 ENV OMNIDECIDE_C_LIB=/opt/attune/libomnidecide.so
 ENV PYTHONUNBUFFERED=1
@@ -68,6 +71,8 @@ COPY server.py ./server.py
 COPY web ./web
 # Python engine and its vendored data floors/calibration files
 COPY attune-engine ./attune-engine
+# WASM fallback tier (usable if the baked native kernel is removed)
+COPY vendor/omnidecide-wasm ./vendor/omnidecide-wasm
 # Kernel version header: ckernel.py reads ODK_LIBRARY_VERSION from
 # vendor/omnidecide-c/include/omnidecide.h relative to the repo root to
 # build the KERNEL_ID recorded in run manifests. Take it from the exact

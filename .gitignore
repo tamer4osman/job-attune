@@ -49,3 +49,6 @@ attune-data/runs/
 # Codebase-intelligence workflow artifacts
 pydiff.md
 sarif/
+
+# Standalone packaging output (scripts/standalone/package.sh)
+/dist/
