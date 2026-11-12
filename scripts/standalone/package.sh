@@ -163,11 +163,13 @@ fi
 # Prove this platform's kernel + the bundled python run the real engine
 # BEFORE packaging anything.
 echo "==> engine smoke (bundled python + $KERNEL_LIB)"
-# Python needs Windows path for the kernel library on Windows
+# Python needs Windows path for the kernel library on Windows, but tar
+# extracts to POSIX paths ($TMP) even on Windows (MSYS), so we keep
+# POSIX paths for Python executable and run directory.
 if [ "$PLATFORM" = "windows-x64" ]; then
   export OMNIDECIDE_C_LIB="$ROOT_WIN/vendor/omnidecide-c/build/$KERNEL_LIB"
-  PY="$TMP_WIN/rt/python/$PY_BIN"
-  SMOKE="$TMP_WIN/smoke-run"
+  PY="$TMP/rt/python/$PY_BIN"
+  SMOKE="$TMP/smoke-run"
 else
   export OMNIDECIDE_C_LIB="$ROOT/vendor/omnidecide-c/build/$KERNEL_LIB"
   PY="$TMP/rt/python/$PY_BIN"
@@ -189,19 +191,13 @@ PYEOF
 # ------------------------------------------------------------------ staging
 echo "==> staging the distribution"
 STAGE="$TMP/stage"
-STAGE_WIN="$TMP_WIN/stage"
 APP="$STAGE/$DIST_NAME/app"
-APP_WIN="$STAGE_WIN/$DIST_NAME/app"
 mkdir -p "$APP" "$STAGE/$DIST_NAME/runtime"
 
 # Python runtime with the preinstalled PDF-export packages.
 mv "$TMP/rt/python" "$STAGE/$DIST_NAME/runtime/python"
-# Python needs Windows path on Windows
-if [ "$PLATFORM" = "windows-x64" ]; then
-  PY="$STAGE_WIN/$DIST_NAME/runtime/python/$PY_BIN"
-else
-  PY="$STAGE/$DIST_NAME/runtime/python/$PY_BIN"
-fi
+# Use POSIX path for Python executable (tar extracts to POSIX paths on Windows)
+PY="$STAGE/$DIST_NAME/runtime/python/$PY_BIN"
 
 # ------------------------------------------------------------- slim runtime
 # The install_only build carries developer-facing extras the packaged app
@@ -242,19 +238,11 @@ echo "==> runtime slimmed: $(du -sh "$RT" | cut -f1)"
 
 # The vanilla web app: the stdlib-only server plus static frontend. Python
 # copytree materializes symlinks as real files, which survives platforms
-# where plain cp -r can trip.
-# Python needs Windows-style paths on Windows
-if [ "$PLATFORM" = "windows-x64" ]; then
-  ROOT_PY="$ROOT_WIN"
-  APP_PY="$APP_WIN"
-else
-  ROOT_PY="$ROOT"
-  APP_PY="$APP"
-fi
+# where plain cp -r can trip. Use POSIX paths (MSYS works with both).
 "$PY" - <<PYEOF
 import shutil
-shutil.copy("$ROOT_PY/server.py", "$APP_PY/server.py")
-shutil.copytree("$ROOT_PY/web", "$APP_PY/web", symlinks=False, dirs_exist_ok=True)
+shutil.copy("$ROOT/server.py", "$APP/server.py")
+shutil.copytree("$ROOT/web", "$APP/web", symlinks=False, dirs_exist_ok=True)
 print("web app staged")
 PYEOF
 
@@ -289,12 +277,12 @@ echo "==> creating the archive"
 mkdir -p "$DIST_ROOT"
 ART="$DIST_ROOT/$DIST_NAME.$ARCHIVE_EXT"
 ART_WIN="$DIST_WIN/$DIST_NAME.$ARCHIVE_EXT"
-STAGE_WIN="$TMP_WIN/stage/$DIST_NAME"
 rm -f "$ART" "$ART.sha256"
 if [ "$ZIP" -eq 1 ]; then
-  # Python needs Windows-style path on Windows for zipfile module
+  # Python zipfile needs Windows-style path for the output archive on Windows,
+  # but can read POSIX paths for input (MSYS Python handles this).
   ART_ZIP="${ART_WIN:-$ART}"
-  STAGE_ZIP="${STAGE_WIN:-$STAGE/$DIST_NAME}"
+  STAGE_ZIP="$STAGE/$DIST_NAME"
   "$PY" - "$ART_ZIP" "$STAGE_ZIP" <<'PYEOF'
 import os, sys, zipfile
 art, src = sys.argv[1], sys.argv[2]
