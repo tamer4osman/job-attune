@@ -223,7 +223,7 @@ def folder_name_scrubber(results) -> object:
 def build_styles():
     ss = getSampleStyleSheet()
     h1 = ParagraphStyle("H1", parent=ss["Title"], fontName=_DISPLAY, fontSize=26,
-                        textColor=FOREST, spaceAfter=3 * mm, alignment=0)
+                        leading=32, textColor=FOREST, spaceAfter=3 * mm, alignment=0)
     h2 = ParagraphStyle("H2", parent=ss["Heading2"], fontName=_SANS_BOLD, fontSize=13,
                         textColor=ORANGE, spaceBefore=6 * mm, spaceAfter=2.5 * mm, alignment=0)
     h3 = ParagraphStyle("H3", parent=ss["Heading3"], fontName=_SANS_BOLD, fontSize=10.5,
@@ -773,9 +773,9 @@ def main() -> int:
     # Cover block: Boldonse display title + Playfair Display italic subtitle,
     # matching the web header's typography and the cream/orange/forest palette.
     cover_title = ParagraphStyle("CoverTitle", fontName=_DISPLAY, fontSize=30,
-                                 textColor=FOREST, spaceAfter=4 * mm, alignment=1)
+                                 leading=38, textColor=FOREST, spaceAfter=4 * mm, alignment=1)
     cover_sub = ParagraphStyle("CoverSub", fontName=_LABEL_ITALIC, fontSize=14,
-                               textColor=ORANGE, spaceAfter=2 * mm, alignment=1)
+                               leading=18, textColor=ORANGE, spaceAfter=2 * mm, alignment=1)
     story.append(Spacer(1, 18 * mm))
     story.append(Paragraph(safe(prof.get("title", "Position")), cover_title))
     story.append(Paragraph(safe(prof.get("company", "")), cover_sub))
@@ -869,7 +869,7 @@ def main() -> int:
         c = by_ref[ref]
         label = label_for(c, pseudonymous)
         cand_title = ParagraphStyle("CandTitle", fontName=_DISPLAY, fontSize=22,
-                                    textColor=FOREST, spaceAfter=3 * mm, alignment=1)
+                                    leading=27, textColor=FOREST, spaceAfter=3 * mm, alignment=1)
         story2 = [Paragraph(safe(f"Candidate Report - {esc(label)}"), cand_title),
                   Spacer(1, 3 * mm),
                   Paragraph(safe(f"{prof.get('title', '')} - {prof.get('company', '')} | Run {results['run_id']}"), small)]

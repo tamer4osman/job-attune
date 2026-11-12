@@ -8,7 +8,9 @@ CHANGELOG.md at the repository root. This file is the whole scoring
 pipeline (stdlib-only Python); the web UI is not needed for screening.
 
 Consumes the omnidecide-c C11 decision kernel (vendored under
-vendor/omnidecide-c/, reached through the ctypes bridge ckernel.py; the
+vendor/omnidecide-c/ at 2.0.0, reached through the layered kernel resolver
+ckernel.py: native ctypes tier first, WASM fallback tier when no native
+library can be loaded - docs/LAYERED-KERNEL.md; the
 floors contract ships as attune-engine/floors.py with its calibration
 data in attune-engine/data/floors_v1.json) and turns a
 folder of applicant PDFs into a deterministic, fully auditable screening
@@ -94,14 +96,21 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Decision-library resolution. One kernel ships with the tree:
-#   vendor/omnidecide-c  the omnidecide-c C11 kernel, reached through
-#                          the ctypes bridge in ckernel.py
+# Decision-library resolution. The vendored kernel ships in two interchangeable
+#   tiers behind ckernel.py (docs/LAYERED-KERNEL.md):
+#   vendor/omnidecide-c      omnidecide-c 2.0.0 C11 kernel -> native ctypes
+#                            tier (ckernel_native.py), full native speed
+#   vendor/omnidecide-wasm   official omnidecide-wasm dist of the same
+#                            kernel -> portable WASM tier (wasm_kernel.py),
+#                            used automatically when no native library loads
 # The floors contract is vendored at attune-engine/floors.py (data in
 # data/floors_v1.json). Paths resolve relative to this file so the tree
-# stays relocatable; OMNIDECIDE_C_LIB overrides the compiled C library
-# location (see ckernel.py).
+# stays relocatable; $ATTUNE_KERNEL pins a tier (auto|native|wasm) and
+# OMNIDECIDE_C_LIB / OMNIDECIDE_WASM override artifact locations
+# (see ckernel.py).
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # ckernel.py + floors.py
+
+import spine_kernel
 
 import ckernel
 from floors import (
@@ -111,11 +120,12 @@ from floors import (
     should_escalate,
 )
 
-# Kernel: the omnidecide-c C11 kernel is the only kernel (see CHANGELOG.md).
+# Kernel: omnidecide-c 2.0.0 via the layered resolver (native tier or the
+# byte-identical WASM fallback - see docs/LAYERED-KERNEL.md).
 DeterministicDecisionKernel = ckernel.DeterministicDecisionKernel
-ACTIVE_KERNEL_ID = ckernel.KERNEL_ID  # e.g. "omnidecide-c 1.0.0"
+ACTIVE_KERNEL_ID = ckernel.KERNEL_ID  # e.g. "omnidecide-c 2.0.0"
 
-ENGINE_VERSION = "1.0.0"
+ENGINE_VERSION = "1.0.1"
 # Pinned wall-clock anchor: open date ranges ("present") resolve to this year so
 # runs stay byte-reproducible across calendar years. Override via --reference-year
 # (audit: datetime.now().year leaking into deterministic fields).
@@ -152,14 +162,23 @@ CATEGORY_KEYS = {
     "bootcamps": "Training Bootcamps",
 }
 CATEGORY_WEIGHTING_FORMS = ("uniform", "req_share", "global")
-AGGREGATION_DEFAULTS = {"category_weighting": "uniform", "zero_weight_factor": 1.0}
+AGGREGATION_DEFAULTS = {"category_weighting": "uniform", "zero_weight_factor": 1.0,
+                        "must_have_gate": "hard"}
+MUST_HAVE_GATE_MODES = ("hard", "balanced")
+# Balanced-gate ceiling anchors (plumber case study, v1.3.3): the floor is the
+# historical hard cap (met-weight share 0 must degrade to today's behavior),
+# the ceiling is full credit (met-weight share 1 means no gap is left, where
+# the cap is never applied anyway). Linear in between, no other parameters.
+GATE_CEILING_FLOOR = 0.40
+GATE_CEILING_SPAN = 0.60
 
 
 def aggregation_config(profile: dict) -> dict:
     """Single source of truth for the aggregation variant in effect.
 
     Read from profile['weights'] optional keys, falling back to the release
-    defaults. Unknown forms and out-of-range factors fail fast."""
+    defaults. Unknown forms, out-of-range factors and unknown gate modes fail
+    fast."""
     weights = profile.get("weights") or {}
     form = weights.get("category_weighting", AGGREGATION_DEFAULTS["category_weighting"])
     if form not in CATEGORY_WEIGHTING_FORMS:
@@ -167,7 +186,10 @@ def aggregation_config(profile: dict) -> dict:
     dz = float(weights.get("zero_weight_factor", AGGREGATION_DEFAULTS["zero_weight_factor"]))
     if not 0.0 <= dz <= 1.0:
         raise ValueError(f"zero_weight_factor out of range [0, 1]: {dz!r}")
-    return {"category_weighting": form, "zero_weight_factor": dz}
+    gate = weights.get("must_have_gate", AGGREGATION_DEFAULTS["must_have_gate"])
+    if gate not in MUST_HAVE_GATE_MODES:
+        raise ValueError(f"unknown must_have_gate mode: {gate!r} (expected one of {MUST_HAVE_GATE_MODES})")
+    return {"category_weighting": form, "zero_weight_factor": dz, "must_have_gate": gate}
 
 
 CV_ALIASES = {"resume", "cv", "lebenslauf", "curriculumvitae", "curriculum", "vitae"}
@@ -202,20 +224,145 @@ ASPIRATION_RE = re.compile(
     r"would\s+love|looking\s+forward|ready|willing)\b[^.;:!?]{0,40}\bto\b"
     r"[^.;:!?]{0,15}\b(?:learn|learning|grow|growing|develop|developing|"
     r"pick\s+up|gain)\b|\b(?:mochte|freue)\b[^.;:!?]{0,30}\b(?:lernen|"
-    r"dazulernen)\b",
+    r"dazulernen)\b"
+    # career-switcher forms (plumber case study: "open to retraining into
+    # sanitary and heating installation" must read as intent, not experience);
+    # German Umschulung/retraining vocabulary is prospective by nature
+    r"|\bopen\s+to\b[^.;:!?]{0,40}\b(?:retrain(?:ing)?|learn(?:ing)?|"
+    r"train(?:ing)?|switch(?:ing)?|transition(?:ing)?|mov(?:e|ing))\b"
+    r"|\bretrain(?:ing)?\s+(?:in)?to\b"
+    r"|\bumschul(?:ung|en)\b|\bumqualifizier(?:ung|en)\b",
     re.IGNORECASE,
 )
+# claim-quality markers are multilingual since v1.3.2 (issue I3, plumber case
+# study): German proficiency/self-assessment vocabulary must count like its
+# English counterparts, or a native speaker writing 'Deutsch (Muttersprache)'
+# scores below one writing 'German (native)'. CEFR A1/A2 self-ratings are low
+# -proficiency claims (a must-have language gap must stay a gap); B1+ stay
+# direct claims - the requirement gate, not the claim quality, judges them.
 LOWPROF_RE = re.compile(
     r"\b(?:basic|basics|fundamentals|fundamental|familiar|beginner|novice|"
-    r"limited|exposure|grundkenntnisse|basiskenntnisse)\b",
+    r"limited|exposure|grundkenntnisse|grundkenntnissen|basiskenntnisse|"
+    r"schulenglisch|anfaenger|a1|a2)\b",
     re.IGNORECASE,
 )
 HIGHPROF_RE = re.compile(
-    r"\b(?:strong|advanced|expert|fluent|extensive|deep|proficient|solid)\b",
+    r"\b(?:strong|advanced|expert|fluent|extensive|deep|proficient|solid|"
+    r"vertieft|fundierte?n?|umfangreich(?:e|r)?|sehr\s+gut(?:e)?|"
+    r"verhandlungssicher(?:e|ste)?|muttersprache|muttersprachler|"
+    r"muttersprachlich(?:e|r|es)?|fliessend|flie\u00dfend|geschaeftssicher|"
+    r"gesch\u00e4ftssicher|festangestellt|taeglich|t\u00e4glich|beruflich|"
+    r"firmenwagen|eigene\s+werkzeugausstattung)\b",
     re.IGNORECASE,
 )
 CLAIM_CAPS = {"aspirational": 0.30, "qualified_low": 0.35}
 QUALITY_PRECEDENCE = {"direct": 2, "qualified_low": 1, "aspirational": 0}
+
+# CEFR self-ratings are explicit proficiency declarations wherever they
+# appear ("Deutsch (A2, B1-Kurs laeuft)", "German (B1 - daily use)"); a hit
+# whose sentence carries one is a more informative claim than a bare mention
+# (most-informative-declaration-wins, evidence_for)
+CEFR_LEVEL_RE = re.compile(r"\b(?:a1|a2|b1|b2|c1|c2)\b", re.IGNORECASE)
+
+# compound continuations that form a well-known proper noun or unrelated word
+# instead of a domain compound never count as alias matches ("Deutschland" is
+# a country, not a German-language claim)
+COMPOUND_EXCLUDED_CONTINUATIONS = {"deutsch": ("land",)}
+
+# negation / disclaimer guard (I1/I8, plumber case study): an alias hit whose
+# own sentence NEGATES the requirement ("... and I am honest: I have not done
+# them yet", "Mir ist klar, dass mir die Ausbildung ... fehlt.", "German
+# (none)") is NOT evidence of the skill. The scan is asymmetric on purpose:
+# BACKWARD it may not cross a line break (a credential line following
+# "Spanish (basic)." must not inherit a cue from the line above), FORWARD it
+# may cross PDF line wraps and colons but stops at a real sentence end, so
+# the multi-line "... its own rules -\ndrinking water, ... - and I am honest:
+# I have not done them yet" disclaimer is still caught. "not only / nicht
+# nur" pivots introduce a positive contrast, not a negation. Every skipped
+# hit is counted (requirement item field 'negated_hits') so the guard stays
+# fully auditable.
+NEGATION_CUE_RE = re.compile(
+    r"\b(?:not|never|no|none|nothing|without|zero|unfortunately|"
+    r"haven't|hasn't|hadn't|didn't|don't|cannot|can't|couldn't|yet\s+to|"
+    r"still\s+need|"
+    r"nicht|nie|niemals|kein|keine|keiner|keinem|keinen|keines|ohne|"
+    r"fehlt|fehlen|fehlend|fehlende|fehlender|fehlendes|mangelt|mangelhaft|"
+    r"leider|weder|noch\s+nicht|bisher\s+nicht|bislang\s+nicht)\b",
+    re.IGNORECASE,
+)
+NEGATION_PIVOT_RE = re.compile(
+    r"\b(?:not|nicht)\s+(?:only|just|merely|nur|bloss|blo\u00df)\b",
+    re.IGNORECASE,
+)
+# contrast pivots: a negated-out phrase is explicitly replaced ("... ist kein
+# Poster in der Werkstatt, sondern Arbeitsschutz beim Heben", "not a plumber,
+# but I do installations"). In the BACKWARD span everything before such a
+# pivot is the negated-out phrase, so only cues after the last pivot can
+# negate the hit itself. In the FORWARD span only German 'sondern' flips the
+# reading (its negated constituent sits between cue and pivot, which cannot
+# contain the hit); English 'but' after a cue stays a negation ("I have not
+# done them yet, but I learn fast" remains a disclaimer).
+CONTRAST_PIVOT_RE = re.compile(r"\b(?:sondern|but)\b", re.IGNORECASE)
+SONDERN_RE = re.compile(r"\bsondern\b", re.IGNORECASE)
+
+
+def _negation_span_backward(text: str, start: int) -> str:
+    """Cue search span BEFORE the hit: same visual line AND same sentence,
+    max 60 chars. PDF text layers reflow soft line breaks away, so the
+    sentence bound (not just the line bound) is what keeps a credential line
+    like 'Driving licence class B.' from inheriting 'German (none)' from the
+    reflowed line above. A window start that lands mid-word is advanced to
+    the next word start so cue tokens are never truncated."""
+    line_start = text.rfind("\n", 0, start) + 1
+    w0 = max(line_start, start - 60)
+    if w0 > line_start and text[w0 - 1].isalpha() and text[w0].isalpha():
+        while w0 < start and text[w0].isalpha():
+            w0 += 1
+    window = text[w0:start]
+    cut = max(window.rfind(ch) for ch in ".;:?!")
+    window = window[cut + 1:] if cut != -1 else window
+    pivots = list(CONTRAST_PIVOT_RE.finditer(window))
+    if pivots:
+        window = window[pivots[-1].end():]
+    return window
+
+
+def _negation_span_forward(text: str, end: int) -> str:
+    """Cue search span AFTER the hit: max 140 chars; PDF line wraps and colons
+    are allowed, real sentence ends (. ! ?) and closing parentheses stop the
+    scan (a parenthetical aside belongs to its own list item, so 'English
+    (native), German (none)' cannot negate the English claim). A limit that
+    lands mid-word is extended to the word end - the truncation would
+    otherwise create a phantom token boundary ('Notdienst' -> 'Not')."""
+    limit = min(len(text), end + 140)
+    i = end
+    while i < limit and text[i] not in ".!?)":
+        i += 1
+    if i >= limit and i < len(text) and text[i].isalpha():
+        while i < len(text) and (text[i].isalpha() or text[i] in "'-"):
+            i += 1
+    span = text[end:i]
+    return span
+
+
+def is_negated_hit(text: str, start: int, end: int) -> bool:
+    """True when the sentence context of an alias hit negates the requirement
+    (deterministic, multilingual; see NEGATION_CUE_RE above)."""
+    back = _negation_span_backward(text, start)
+    if back and NEGATION_CUE_RE.search(back) and not NEGATION_PIVOT_RE.search(back):
+        return True
+    fwd = _negation_span_forward(text, end)
+    if not fwd:
+        return False
+    cue = NEGATION_CUE_RE.search(fwd)
+    if cue is None or NEGATION_PIVOT_RE.search(fwd):
+        return False
+    # German 'kein X, sondern Y': the negated constituent sits between the
+    # cue and the pivot, which is after the hit - the hit itself is the
+    # positive contrast, not the negated phrase
+    if SONDERN_RE.search(fwd, cue.end()):
+        return False
+    return True
 
 # tuned-evidence overlay (fine-tuning, soup-style): a reviewer-calibrated
 # table reclassifies the claim quality of (candidate, requirement) pairs where
@@ -282,12 +429,88 @@ VALUES_TOKEN_SYNONYMS = {
     "offene": "open", "offen": "open", "offenen": "open",
     "kommunikation": "communication", "kommunizieren": "communication",
     "kommunikationsstarke": "communication", "kommunikativ": "communication",
+    # academic-context value vocabulary (university case study, v1.3.1):
+    # German value terms folded onto their English counterparts so a German
+    # application is scored on equal footing with an English one
+    "wissenschaft": "science", "wissenschaftliche": "scientific",
+    "wissenschaftlichen": "scientific", "integritaet": "integrity",
+    "akademische": "academic", "akademischen": "academic",
+    "exzellenz": "excellence",
+    "interdisziplinaere": "interdisciplinary",
+    "interdisziplinaeren": "interdisciplinary",
+    "interdisziplinaren": "interdisciplinary",
+    "interdisziplinaerer": "interdisciplinary",
+    "betreuung": "supervision", "lehre": "teaching",
+    "verantwortungsvolle": "responsible", "verantwortungsvoller": "responsible",
     "eigenverantwortung": "ownership", "verantwortung": "accountability",
     "verantwortungsuebernahme": "accountability",
     "verantwortungsbewusstsein": "accountability",
     "teamfaehigkeit": "teamwork", "zusammenarbeit": "teamwork",
     "qualitaet": "quality", "lernbereitschaft": "learning",
     "wissensweitergabe": "mentoring", "wissensteilung": "mentoring",
+    # trades & service value vocabulary (plumber case study, v1.3.2, I4):
+    # craft and customer-service German folds onto the same English value
+    # tokens, and English service phrasing folds onto the value phrases it
+    # evidences; spellings reflect ASCII-folded PDF text (umlauts stripped by
+    # the producer), with both spellings kept where real PDFs may keep them
+    "handwerk": "craftsmanship", "handwerkliche": "craftsmanship",
+    "handwerklicher": "craftsmanship", "handwerkskunst": "craftsmanship",
+    "workmanship": "craftsmanship",
+    "sauber": "quality", "saubere": "quality", "sauberen": "quality",
+    "sauberer": "quality", "sauberes": "quality",
+    "sorgfalt": "care", "sorgfaeltig": "care", "sorgfaeltige": "care",
+    "sorgfaeltigen": "care",
+    "kundennaehe": "customer", "kundenorientierung": "customer",
+    "kundenorientiert": "customer", "kundenzufriedenheit": "customer",
+    "kundendialog": "customer", "kundenkommunikation": "customer",
+    "kundenbetreuung": "customer",
+    "kundenservice": "service", "kundendienst": "service",
+    "dienstleistung": "service", "dienstleistungs": "service",
+    "serviceorientierung": "service", "serviceorientiert": "service",
+    "teamgeist": "teamwork", "kollegial": "teamwork",
+    "kollegialitaet": "teamwork", "team": "teamwork",
+    "arbeitsschutz": "safety", "arbeitssicherheit": "safety",
+    "gesundheitsschutz": "safety", "schutzausruestung": "safety",
+    "puenktlichkeit": "reliable", "puenktlich": "reliable",
+    "termintreu": "reliable", "gewissenhaft": "reliable",
+    "gewissenhafte": "reliable",
+    # healthcare & social-care value vocabulary (generalization battery v1,
+    # engine-level finding 2b): German care packets lost the whole 15% values
+    # weight outside the trades/service folds because German expresses the
+    # same values with domain nouns (Einfuehlung, Wuerde, Pflege). Generic
+    # German->English folds, title-agnostic by construction - they carry no
+    # occupation-specific vocabulary, only the value domain itself.
+    "einfuehlung": "empathy", "empathie": "empathy",
+    "empathisch": "empathy", "mitgefuehl": "empathy",
+    "mitgefuehlsvoll": "empathy", "anteilnahme": "empathy",
+    "wuerde": "dignified", "wuerdevoll": "dignified",
+    "wuerdevolle": "dignified", "wuerdevoller": "dignified",
+    "wuerdevollen": "dignified",
+    "pflege": "care", "pflegerisch": "care", "pflegerische": "care",
+    "fuersorge": "care", "achtsamkeit": "care", "beistand": "care",
+    # office & finance value vocabulary (same finding, finance domain):
+    "verschwiegenheit": "discretion", "diskretion": "discretion",
+    "diskret": "discretion", "vertraulichkeit": "discretion",
+    "vertraulich": "discretion", "datengeheimnis": "discretion",
+    "genauigkeit": "accuracy", "genau": "accuracy", "akkurat": "accuracy",
+    "akkurate": "accuracy", "praezision": "accuracy", "praezise": "accuracy",
+    "pruefgenau": "accuracy", "pruefgenaue": "accuracy",
+    "fehlerfrei": "accuracy", "fehlerfreie": "accuracy",
+    "fristgerecht": "deadlines", "fristtreu": "deadlines",
+    "fristen": "deadlines", "fristmanagement": "deadlines",
+    "terminsicherheit": "deadlines",
+    "mandant": "client", "mandanten": "client", "mandantin": "client",
+    "mandantinnen": "client", "mandatsbetreuung": "client",
+    "gastfreundschaft": "hospitality", "herzlichkeit": "warmth",
+    "respekt": "respect", "respektvoll": "respect",
+    "geduld": "patience", "geduldig": "patience",
+    # English nominal variants of existing targets (v1.0.1): profile value
+    # phrases are written in natural nominal form ('reliability') while the
+    # folds target the base form ('reliable'); the phrase side is normalized
+    # through the same dictionary (values_fit_score), so both sides meet.
+    "reliability": "reliable", "verlaesslichkeit": "reliable",
+    "empfindung": "empathy",
+    "communication": "care",
 }
 
 # --------------------------------------------------------------------------- #
@@ -317,11 +540,19 @@ DEGREE_FAMILIES = [
 ]
 CANONICAL_LANGUAGES = ("english", "german", "french", "spanish", "italian", "dutch", "polish", "portuguese", "turkish", "russian", "ukrainian", "arabic", "hindi", "czech", "greek")
 LANG_ALIASES = {"deutsch": "german", "franzosisch": "french", "francais": "french", "spanisch": "spanish", "espanol": "spanish", "italienisch": "italian", "polnisch": "polish", "niederlandisch": "dutch", "russisch": "russian", "tschechisch": "czech", "griechisch": "greek", "turkisch": "turkish", "englisch": "english"}
+# language level vocabulary for the profile enrichment language table;
+# German equivalents added in v1.3.2 (issue I3): 'Deutsch (Muttersprache)'
+# and 'verhandlungssicher' must band like 'native'/'fluent'
 LEVEL_BANDS = [
-    ("native", ("native", "bilingual", "mother tongue", "muttersprachler")),
-    ("fluent", ("c2", "c1", "fluent", "proficient", "advanced", "professional")),
-    ("intermediate", ("b2", "b1", "intermediate", "conversational", "good knowledge")),
-    ("basic", ("a2", "a1", "basic", "beginner")),
+    ("native", ("native", "bilingual", "mother tongue", "muttersprachler",
+                "muttersprache")),
+    ("fluent", ("c2", "c1", "fluent", "proficient", "advanced", "professional",
+                "verhandlungssicher", "verhandlungssichere", "fliessend",
+                "flie\u00dfend", "geschaeftssicher", "gesch\u00e4ftssicher")),
+    ("intermediate", ("b2", "b1", "intermediate", "conversational",
+                      "good knowledge", "gute kenntnisse")),
+    ("basic", ("a2", "a1", "basic", "beginner", "grundkenntnisse",
+               "grundkenntnissen", "schulenglisch")),
 ]
 ACHIEVEMENT_VERBS = ("increased", "decreased", "reduced", "improved", "saved", "grew", "automated", "migrated", "scaled", "optimized", "optimised", "cut", "boosted", "delivered", "launched", "built", "designed", "led", "introduced", "streamlined")
 CERT_KEYWORDS = ("certified", "certification", "certificate", "zertifiziert", "associate", "specialty", "professional certificate")
@@ -438,7 +669,34 @@ def phrase_tokens(phrase: str) -> list:
 
 
 def alias_regex(alias: str) -> re.Pattern:
-    return re.compile(r"(?<![a-z0-9])" + re.escape(alias.lower().strip()) + r"(?![a-z0-9])", re.IGNORECASE)
+    """Whole-word alias matcher with German compound tolerance (I5, plumber
+    case study): a single-word alias of >= 5 letters may continue into a
+    longer compound or plural ("heizung" matches "Heizungsservice",
+    "trinkwasser" matches "Trinkwasserinstallation"), capped at 18
+    continuation letters (covers 'installationen', 'verordnung',
+    'kundendienst'). Short aliases stay strict to avoid English false hits
+    ("gas" in "gasket"), and multi-word aliases keep the exact boundary
+    (they are already specific phrases).
+
+    v1.0.1 (generalization battery, nurse finding): multi-word aliases match
+    across PDF line wraps - extractors reflow paragraphs, so "full patient
+    care" arrives as "full patient\ncare" and the old space-joined pattern
+    silently missed EVERY such occurrence (title- and language-agnostic
+    false-negative class). Runs of whitespace inside the alias therefore
+    match any whitespace run in the document; word boundaries themselves are
+    unchanged."""
+    words = alias.lower().strip().split()
+    if not words:
+        return re.compile(r"(?!)x")  # never matches; caller filters empties
+    core = re.escape(words[0]) if len(words) == 1 else r"[\s]+".join(
+        re.escape(w) for w in words)
+    tail = r"(?![a-z0-9])"
+    folded = alias.lower().strip()
+    if re.fullmatch(r"[a-z]{5,}", folded):
+        tail = r"(?![0-9])(?![a-z]{19})"
+        for bad in COMPOUND_EXCLUDED_CONTINUATIONS.get(folded, ()):
+            tail = "(?!" + re.escape(bad) + ")" + tail
+    return re.compile(r"(?<![a-z0-9])" + core + tail, re.IGNORECASE)
 
 
 # --------------------------------------------------------------------------- #
@@ -482,6 +740,51 @@ def extract_pdf_text(path: Path) -> dict:
 # evidence scoring (deterministic, explainable app logic)
 # --------------------------------------------------------------------------- #
 
+_SENTENCE_BREAKS = ".;!?\n"
+
+# Clause separators (v1.0.1, generalization battery finding 2a): within one
+# sentence, a proficiency marker belongs to the CLAIM IN ITS OWN CLAUSE.
+# English CV prose and German noun lists concentrate several claims in one
+# comma-separated sentence; the +/-45/40-char marker windows used to leak
+# across those commas ('medication administration, basic wound care' capped
+# medication administration with the 'basic' that scopes wound care -
+# nurse battery, rachel_owens). Parentheses are deliberately NOT separators:
+# 'Python (basic scripts)' keeps its marker attached to the claim, and
+# hyphenated compounds ('e-Medication', 'DATEV-Kanzlei-Rechnungswesen') are
+# never split - only spaced dashes and en/em dashes are.
+_CLAUSE_SPLIT_RE = re.compile(r"(?:\s[-\u2013\u2014]\s|,)")
+
+
+def _sentence_bounds(text: str, start: int, end: int) -> tuple:
+    """Same-sentence span around [start, end): claim-quality windows must not
+    leak across a sentence or line boundary (I7: 'Driving licence class B.'
+    inherited qualified_low from 'Spanish (basic).' on the previous line)."""
+    back = [text.rfind(ch, max(0, start - 400), start) for ch in _SENTENCE_BREAKS]
+    seg_start = max(back) + 1
+    fwd = [p for p in (text.find(ch, end, min(len(text), end + 400))
+                       for ch in _SENTENCE_BREAKS) if p != -1]
+    seg_end = min(fwd) if fwd else len(text)
+    return seg_start, seg_end
+
+
+def _clause_bounds(text: str, start: int, end: int) -> tuple:
+    """Same-CLAUSE span around [start, end) (v1.0.1): the sentence bounds
+    narrowed to the comma/dash-separated clause that contains the hit.
+    Deterministic, order-stable, and identical to _sentence_bounds wherever
+    a sentence has no internal separator (the common German noun-line case,
+    so existing short-sentence behaviour is untouched by construction)."""
+    seg_start, seg_end = _sentence_bounds(text, start, end)
+    lo, hi = seg_start, seg_end
+    for m in _CLAUSE_SPLIT_RE.finditer(text, seg_start, seg_end):
+        if m.end() <= start:
+            if m.end() > lo:
+                lo = m.end()
+        elif m.start() >= end:
+            hi = m.start()
+            break
+    return lo, hi
+
+
 def _claim_quality(text: str, start: int, end: int) -> str:
     """Classify the claim surrounding an alias hit (D4, deterministic).
 
@@ -490,10 +793,16 @@ def _claim_quality(text: str, start: int, end: int) -> str:
                     doing it; qualified_low - the text right after marks the
                     skill as basic/limited ("Python (basic scripts)"); direct -
                     everything else (a high-proficiency marker also blocks the
-                    low-proficiency downgrade).
+                    low-proficiency downgrade). Windows are clipped to the
+                    CLAUSE containing the hit (v1.0.1; before that, the
+                    sentence - v1.3.2, issue I7), so a marker scopes the claim
+                    it is written next to and never an adjacent comma-separated
+                    claim; the marker vocabulary is multilingual (v1.3.2,
+                    issue I3).
     """
-    before = text[max(0, start - 45):start]
-    after = text[end:min(len(text), end + 40)]
+    seg_start, seg_end = _clause_bounds(text, start, end)
+    before = text[max(seg_start, start - 45):start]
+    after = text[end:min(seg_end, end + 40)]
     if ASPIRATION_RE.search(before) or ASPIRATION_RE.search(after[:20]):
         return "aspirational"
     if HIGHPROF_RE.search(after) or HIGHPROF_RE.search(before[-15:]):
@@ -508,41 +817,64 @@ def evidence_for(req: dict, cv_text: str, cover_text: str, cv_tokens: "set | Non
     # tuned override: the reviewer read the WHOLE document, so the
     # reclassification applies to every alias hit of this requirement, replacing
     # the per-hit heuristic window(_claim_quality scans +/- 45 chars only)
-    if quality_override is not None:
-        quality_for_all = quality_override
-    else:
-        quality_for_all = None
-    best, mentions = None, 0  # best = (eff, precedence, raw_base, source, quality)
+    quality_for_all = quality_override
+    corpus = (cv_tokens if cv_tokens is not None else set(tokenize(cv_text))) | (
+        cover_tokens if cover_tokens is not None else set(tokenize(cover_text)))
+    best, mentions, negated = None, 0, 0  # best = (eff, precedence, raw_base, source, quality)
+    alias_token_fraction = 0.0
+    hits: list = []
     for alias in aliases:
         if not alias.strip():
             continue
         rx = alias_regex(alias)
-        cv_hits = len(rx.findall(cv_text))
-        cover_hits = len(rx.findall(cover_text))
-        mentions += cv_hits + cover_hits
+        alias_toks = phrase_tokens(alias)
         for base, source, text in ((1.0, "cv", cv_text), (0.85, "cover letter", cover_text)):
-            m = rx.search(text)
-            if not m:
-                continue
-            quality = quality_for_all if quality_for_all is not None else _claim_quality(text, m.start(), m.end())
-            # effective credit: capped for qualified/aspirational claims, raw
-            # source weight otherwise; ties prefer the higher claim quality so
-            # a direct cover-letter hit beats an aspirational CV mention
-            eff = CLAIM_CAPS.get(quality, base)
-            cand = (eff, QUALITY_PRECEDENCE[quality], base, source, quality)
-            if best is None or cand[:2] > best[:2]:
-                best = cand
+            for m in rx.finditer(text):
+                # negation/disclaimer guard (I1/I8): a hit whose own sentence
+                # negates the requirement is not evidence of the skill and
+                # must not count toward the mention bonus either
+                if is_negated_hit(text, m.start(), m.end()):
+                    negated += 1
+                    continue
+                mentions += 1
+                # token coverage is language-fair since v1.3.2 (issue I3): a
+                # document that states the full matched ALIAS phrase (e.g.
+                # 'Fuehrerschein Klasse B') covers the requirement as well as
+                # one stating the English skill phrase; the best positive hit
+                # sets the floor for token_fraction
+                if alias_toks:
+                    frac = sum(1 for t in alias_toks if t in corpus) / len(alias_toks)
+                    alias_token_fraction = max(alias_token_fraction, frac)
+                quality = quality_for_all if quality_for_all is not None else _claim_quality(text, m.start(), m.end())
+                seg_start, seg_end = _sentence_bounds(text, m.start(), m.end())
+                sentence = text[seg_start:seg_end]
+                marker = bool(HIGHPROF_RE.search(sentence) or LOWPROF_RE.search(sentence)
+                              or ASPIRATION_RE.search(sentence) or CEFR_LEVEL_RE.search(sentence))
+                # effective credit: capped for qualified/aspirational claims, raw
+                # source weight otherwise
+                eff = CLAIM_CAPS.get(quality, base)
+                hits.append((eff, QUALITY_PRECEDENCE[quality], base, source, quality, marker))
+    # most-informative-declaration-wins: when any positive hit carries an
+    # explicit proficiency/quality marker in its sentence (CEFR band,
+    # Muttersprache, Grundkenntnisse, ...), bare mentions elsewhere must not
+    # outrank it - a CV that declares 'Deutsch (A2, B1-Kurs laeuft)' is not
+    # met because a cover letter mentions German in passing (abdul_rahimi,
+    # plumber case study). Ties keep the first hit, as before.
+    pool = [h for h in hits if h[5]] or hits
+    for h in pool:
+        if best is None or h[:2] > best[:2]:
+            best = h
     best_exact = best[2] if best else 0.0
     best_src = best[3] if best else None
     best_quality = best[4] if best else (quality_override or "direct")
     req_tokens = phrase_tokens(req["skill"])
-    tokfrac = 0.0
+    tokfrac = alias_token_fraction
     if req_tokens:
-        both = (cv_tokens if cv_tokens is not None else set(tokenize(cv_text))) | (
-            cover_tokens if cover_tokens is not None else set(tokenize(cover_text)))
-        tokfrac = sum(1 for t in req_tokens if t in both) / len(req_tokens)
+        skill_frac = sum(1 for t in req_tokens if t in corpus) / len(req_tokens)
+        tokfrac = max(tokfrac, skill_frac)
     return {"exact": best_exact, "exact_source": best_src, "claim_quality": best_quality,
-            "token_fraction": round2(tokfrac), "mentions": mentions}
+            "token_fraction": round2(tokfrac), "mentions": mentions,
+            "negated_hits": negated, "positive_hit": best is not None}
 
 
 def evidence_score(ev: dict, snippet_support: bool) -> float:
@@ -669,7 +1001,8 @@ def scan_candidates(folder: Path, role_overrides: dict, run_salt: str) -> tuple:
 # stage 2: text extraction + noul readability gates
 # --------------------------------------------------------------------------- #
 
-def extract_and_gate(candidates: list, kernel, floors: dict, audit: list) -> None:
+def extract_and_gate(candidates: list, kernel, floors: dict, audit: list,
+                     spine: "spine_kernel.SpineContext | None" = None) -> None:
     for cand in candidates:
         cand["texts"] = {}
         cand["noul_gates"] = []
@@ -683,6 +1016,12 @@ def extract_and_gate(candidates: list, kernel, floors: dict, audit: list) -> Non
             readable = not raw_unreadable
             finfo["readable"] = readable
             finfo["short_document"] = readable and extracted["chars"] < SHORT_DOC_CHARS
+            # Spine feature (kernel 2.0.0, native tier only): content-based
+            # role cross-check. Annotates finfo["content_tag"] and raises a
+            # non-blocking tag_conflict review item on confident disagreement;
+            # it never changes the role the pipeline scores with.
+            if spine is not None and readable and extracted["chars"] >= spine_kernel.TAG_MIN_CHARS:
+                spine.check_document_tag(cand, finfo, text, audit)
             if readable:
                 # Duplicate role (e.g. cv.pdf + resume.pdf both present):
                 # concatenate deterministically instead of silently overwriting
@@ -764,6 +1103,10 @@ def collect_requirements(profile: dict) -> list:
                 "weight": max(0.0, min(5.0, float(req.get("weight", 1.0)))),
                 "must_have": bool(req.get("must_have", False)),
                 "aliases": [str(a) for a in (req.get("aliases") or []) if str(a).strip()],
+                # binary credentials (I7): the document verbatim holding the
+                # credential IS the evidence - surrounding claim-context
+                # heuristics must not downgrade it
+                "claim_quality_exempt": bool(req.get("claim_quality_exempt", False)),
             })
     return reqs
 
@@ -805,8 +1148,17 @@ def evidence_stage(candidates: list, requirements: list, kernel, floors: dict, a
                 tuned_row = {"applied": True, "confidence": override["confidence"],
                              "rationale": override["rationale"],
                              "tuned_claim_quality": override["claim_quality"]}
+            elif req.get("claim_quality_exempt"):
+                # binary credentials (I7): claim-quality heuristics do not cap
+                # a verbatim credential hit; a tuned override still wins
+                quality_override = "direct"
             ev = evidence_for(req, cv_text, cover_text, cv_tokens, cover_tokens,
                               quality_override=quality_override)
+            # snippet support corroborates a positive claim (v1.3.2, I1): a
+            # requirement whose every alias hit was negated by its own
+            # sentence has no positive claim for the kernel snippet to back
+            if not ev["positive_hit"]:
+                snippet_support = False
             score = evidence_score(ev, snippet_support)
             item = {
                 **req,
@@ -816,6 +1168,7 @@ def evidence_stage(candidates: list, requirements: list, kernel, floors: dict, a
                 "claim_quality_heuristic": None if quality_override is None else _claim_quality_highest_hit(req, cv_text, cover_text),
                 "token_fraction": ev["token_fraction"],
                 "mentions": ev["mentions"],
+                "negated_hits": ev["negated_hits"],
                 "tuned": tuned_row if tuned_row else {"applied": False},
                 "snippets": snippets,
                 "extract_confidence": conf,
@@ -862,7 +1215,36 @@ def _claim_quality_highest_hit(req: dict, cv_text: str, cover_text: str) -> str:
     return best_q
 
 
-def aggregate_categories(reqs: list, must_missing: list, form: str, dz: float) -> tuple:
+def gate_ceiling(reqs: list, gate_mode: str) -> "float | None":
+    """Overall/category ceiling for candidates with unresolved must-haves.
+
+    hard     - the historical anti-keyword-stuffing cap: 0.40 regardless of
+               how much of the must-have block is satisfied.
+    balanced - weight-proportional release (v1.3.3, plumber case study): the
+               ceiling interpolates between the hard floor and full credit by
+               the MET weight share of the must-have block,
+
+                   cap = 0.40 + 0.60 * (met weight / must-have weight)
+
+               Rationale: a candidate meeting 83% of the must-have weight
+               (abdul_rahimi: everything but German A2) is not the same case
+               as one meeting 27% (gordon_miles) - the expert rubric scores
+               'language as enabler, not checkbox' as a range, and the hard
+               cap flattened that trade-off to one number for both. The gate
+               itself (verdict semantics, review queue, shortlist exclusion,
+               gap lists) is unchanged; only the score ceiling moves, and a
+               candidate whose evidence is weaker than the ceiling is still
+               scored by their evidence alone."""
+    if gate_mode == "balanced":
+        must = [r for r in reqs if r["must_have"]]
+        must_w = sum(r["weight"] for r in must)
+        met_w = sum(r["weight"] for r in must if r["verdict"] == "met")
+        return GATE_CEILING_FLOOR + GATE_CEILING_SPAN * (met_w / must_w if must_w else 0.0)
+    return GATE_CEILING_FLOOR
+
+
+def aggregate_categories(reqs: list, must_missing: list, form: str, dz: float,
+                         gate_mode: str = "hard") -> tuple:
     """Pure aggregation core (preregistered search space; see
     docs/DEVELOPMENT.md).
 
@@ -881,7 +1263,7 @@ def aggregate_categories(reqs: list, must_missing: list, form: str, dz: float) -
     if form not in CATEGORY_WEIGHTING_FORMS:
         raise ValueError(f"unknown category_weighting form: {form!r}")
     dz = min(1.0, max(0.0, float(dz)))
-    cap = 0.4 if must_missing else None
+    cap = gate_ceiling(reqs, gate_mode) if must_missing else None
     per: dict = {}
     for r in reqs:
         e = r["evidence_score"]
@@ -917,20 +1299,67 @@ def aggregate_categories(reqs: list, must_missing: list, form: str, dz: float) -
     return entries, cat_total
 
 
+# Longest-first fold keys so the most specific German term wins when a
+# corpus token embeds several keys; built once at import (hot-path pattern).
+_VALUE_FOLD_KEYS = tuple(sorted(VALUES_TOKEN_SYNONYMS, key=len, reverse=True))
+_VALUE_FOLD_MAX_CONT = 18  # same compound tolerance as alias_regex (I5)
+
+
+def _fold_value_token(token: str) -> "str | None":
+    """Fold one corpus token onto its English value token (E1, v1.0.1).
+
+    Exact dictionary hit first; otherwise a German HEAD-FINAL compound whose
+    tail is a known value word folds too ('Grundpflege', 'Behandlungspflege',
+    'Pflegedokumentation' all carry the value 'care' via the embedded key
+    'pflege'). Keys shorter than 5 letters never embed (avoids German false
+    hits), the continuation is capped like alias_regex, and both directions
+    are deterministic - sorted keys, first match wins."""
+    syn = VALUES_TOKEN_SYNONYMS.get(token)
+    if syn is not None:
+        return syn
+    if len(token) < 5:
+        return None
+    for key in _VALUE_FOLD_KEYS:
+        if len(key) >= 5 and key in token and len(token) - len(key) <= _VALUE_FOLD_MAX_CONT:
+            return VALUES_TOKEN_SYNONYMS[key]
+    return None
+
+
+def _phrase_token_covered(token: str, corpus: "set | frozenset") -> bool:
+    """Token-level coverage with plural tolerance (v1.0.1): a profile value
+    phrase is written in base form ('client care') while applications decline
+    naturally ('clients', 'Klienten'). Deterministic small-form set: token,
+    +s, +es, and a trailing-s strip. Compound tolerance stays on the corpus
+    side (_fold_value_token)."""
+    if token in corpus:
+        return True
+    if len(token) >= 4:
+        if (token + "s") in corpus or (token + "es") in corpus:
+            return True
+        if token.endswith("s") and token[:-1] in corpus:
+            return True
+    return False
+
+
 def values_fit_score(values_text: str, cv_text: str, cover_text: str) -> tuple:
     phrases = [p.strip() for p in re.split(r"[;,\n]", values_text or "") if len(p.strip()) >= 3]
     if not phrases:
         return None, []
     corpus = set(tokenize(cv_text)) | set(tokenize(cover_text))
     # E1: fold German value terms onto their English counterparts so a German
-    # cover letter is scored on equal footing with an English one
-    corpus |= {syn for syn in (VALUES_TOKEN_SYNONYMS.get(t) for t in corpus) if syn}
+    # cover letter is scored on equal footing with an English one (v1.0.1:
+    # head-final compound tolerance, see _fold_value_token)
+    corpus |= {syn for syn in (_fold_value_token(t) for t in corpus) if syn}
     covered, per_phrase = [], []
     for phrase in phrases:
         toks = phrase_tokens(phrase)
         if not toks:
             continue
-        hit = sum(1 for t in toks if t in corpus) / len(toks)
+        # v1.0.1: normalize the PHRASE side through the same fold dictionary
+        # (nominal 'reliability' -> target 'reliable') so profile phrasing and
+        # application phrasing meet on one token
+        toks = [VALUES_TOKEN_SYNONYMS.get(t, t) for t in toks]
+        hit = sum(1 for t in toks if _phrase_token_covered(t, corpus)) / len(toks)
         per_phrase.append({"phrase": phrase, "coverage": round2(hit)})
         covered.append(hit >= 0.6)
     fit = round2(sum(1.0 for c in covered if c) / len(covered)) if covered else 0.0
@@ -960,13 +1389,26 @@ def aggregate_stage(candidates: list, profile: dict, kernel, floors: dict, audit
         combined = clamp_context(cv_text, cover_text)
         # Must-have gaps are detected in ONE pre-pass over all requirements so
         # the 0.4 cap applies uniformly to every category (an incremental
-        # per-category detection made the cap order-dependent).
+        # per-category detection made the cap order-dependent). The gate is
+        # verdict-based since v1.3.2 (issue I9): a must-have passes only on
+        # verdict "met" (evidence >= 0.6, level >= good) - partial evidence
+        # (0.4-0.6), such as a disclaimer that merely names the missing
+        # qualification, no longer clears the gate.
         cand["must_have_missing"] = [r["skill"] for r in cand["requirements"]
-                                     if r["must_have"] and r["evidence_score"] < 0.4]
+                                     if r["must_have"] and r["verdict"] != "met"]
         entries, cat_total = aggregate_categories(
             cand["requirements"], cand["must_have_missing"],
             agg["category_weighting"], agg["zero_weight_factor"],
+            agg["must_have_gate"],
         )
+        # Explainability (balanced gate only - hard-mode payloads stay
+        # byte-stable with pre-1.3.3 runs): the ceiling that was in effect and
+        # whether it actually bound the score.
+        if cand["must_have_missing"] and agg["must_have_gate"] == "balanced":
+            ceiling = gate_ceiling(cand["requirements"], agg["must_have_gate"])
+            cand["gate_ceiling"] = round2(100.0 * ceiling)
+            cand["gate_binding"] = False  # provisional; finalized after the overall mix below
+            cand["_gate_ceiling_raw"] = ceiling
         cand["categories"] = []
         advisory_categories = []
         for entry in entries:
@@ -1005,12 +1447,22 @@ def aggregate_stage(candidates: list, profile: dict, kernel, floors: dict, audit
             audit.append(rec)
         fit, per_phrase = values_fit_score(values_text, cv_text, cover_text)
         # Final score: weighted mix of requirement evidence (categories_total)
-        # and company-values fit. The must-have cap is the anti-keyword-stuffing
-        # guard: a candidate missing ANY must-have requirement cannot score
-        # above 40/100 regardless of optional-evidence strength.
+        # and company-values fit. The must-have gate is the anti-keyword-stuffing
+        # guard: a candidate with unresolved must-have gaps is limited by the
+        # profile's gate ceiling - the historical hard 40/100 ("hard", default)
+        # or the met-weight-share ceiling ("balanced", v1.3.3).
         overall_raw = weights_overall.get("categories_total", 0.85) * cat_total + weights_overall.get("values_fit", 0.15) * (fit or 0.0)
         if cand["must_have_missing"]:
-            overall_raw = min(overall_raw, 0.40)
+            # v1.3.3: the ceiling comes from the profile's gate mode - the
+            # historical hard 0.40 ("hard", default, unchanged behavior) or
+            # the met-weight-share ceiling ("balanced").
+            ceiling = (cand.pop("_gate_ceiling_raw", None)
+                       if agg["must_have_gate"] == "balanced"
+                       else GATE_CEILING_FLOOR)
+            overall_before_gate = overall_raw
+            overall_raw = min(overall_raw, ceiling)
+            if agg["must_have_gate"] == "balanced":
+                cand["gate_binding"] = overall_before_gate > ceiling
         cand["values_fit"] = fit
         cand["values_per_phrase"] = per_phrase
         cand["overall"] = round1(100.0 * overall_raw)
@@ -1176,7 +1628,13 @@ def overall_assessment(cand: dict, profile: dict, events: dict) -> str:
         f"with an overall evidence score of {cand['overall']:.1f}/100."
     )
     if cand["must_have_missing"]:
-        parts.append("Must-have gaps were detected for: " + ", ".join(cand["must_have_missing"]) + ". The score is capped until these are resolved in manual review.")
+        if cand.get("gate_ceiling") is not None:  # balanced gate mode
+            binding = "" if cand.get("gate_binding") else " (not binding here - evidence sets the score)"
+            parts.append("Must-have gaps were detected for: " + ", ".join(cand["must_have_missing"])
+                         + f". The balanced must-have gate caps the overall at {cand['gate_ceiling']:.0f}/100{binding}"
+                           " until these are resolved in manual review.")
+        else:
+            parts.append("Must-have gaps were detected for: " + ", ".join(cand["must_have_missing"]) + ". The score is capped until these are resolved in manual review.")
     else:
         parts.append("All must-have requirements have at least partial supporting evidence in the submitted documents.")
     if strengths:
@@ -1537,7 +1995,7 @@ def review_stage(candidates: list, profile: dict, floors: dict) -> None:
         partial = sum(1 for r in reqs if r["verdict"] == "partial")
         missing = sum(1 for r in reqs if r["verdict"] == "missing")
         mh_total = sum(1 for r in reqs if r["must_have"])
-        mh_met = sum(1 for r in reqs if r["must_have"] and r["verdict"] != "missing")
+        mh_met = sum(1 for r in reqs if r["must_have"] and r["verdict"] == "met")
         cand["verdict_summary"] = {
             "met": met,
             "partial": partial,
@@ -1564,14 +2022,21 @@ def review_stage(candidates: list, profile: dict, floors: dict) -> None:
                              for c in cats]
         values_points = round2(100.0 * w_vals * (cand.get("values_fit") or 0.0))
         cap_applied = bool(cand["must_have_missing"])
+        gate_note = None
+        if cap_applied:
+            if cand.get("gate_ceiling") is not None:  # balanced mode
+                gate_note = (f"balanced must-have gate: ceiling {cand['gate_ceiling']:.0f}/100 "
+                             f"from the met weight share of the must-have block"
+                             + ("" if cand.get("gate_binding") else " - not binding, evidence sets the score"))
+            else:
+                gate_note = "overall capped at 40 by unresolved must-have gaps (category averages capped at 0.4)"
         cand["score_decomposition"] = {
             "weights": {"categories_total": w_cats, "values_fit": w_vals},
             "contributions": contributions,
             "values_fit_points": values_points,
             "sum_points": round2(sum(c["points"] for c in contributions) + values_points),
             "cap_applied": cap_applied,
-            "note": ("overall capped at 40 by unresolved must-have gaps (category averages capped at 0.4)"
-                     if cap_applied else None),
+            "note": gate_note,
         }
         backed = sum(1 for r in reqs if r["snippet_support"])
         low_conf = sum(1 for r in reqs if r["extract_confidence"] < extract_floor)
@@ -1922,12 +2387,19 @@ def build_review_queue(candidates: list, audit: list) -> list:
 # pipeline driver (runs twice for the determinism guarantee)
 # --------------------------------------------------------------------------- #
 
-def run_pipeline(profile: dict, folder: Path, options: dict, run_salt: str) -> dict:
+def run_pipeline(profile: dict, folder: Path, options: dict, run_salt: str,
+                 pin_spine: "spine_kernel.SpineContext | None" = None) -> dict:
     kernel = DeterministicDecisionKernel(use_cuda=False, **kernel_language_kwargs())
     floors = options["floors"]
     audit: list = []
+    spine = options.get("spine")
+    if spine is not None:
+        spine.reset_counters()
+    if pin_spine is not None:
+        # First determinism pass only: pin every kernel evaluation (F6).
+        pin_spine.attach_to_kernel(kernel)
     candidates, scan_notes = scan_candidates(folder, options.get("role_overrides") or {}, run_salt)
-    extract_and_gate(candidates, kernel, floors, audit)
+    extract_and_gate(candidates, kernel, floors, audit, spine=spine)
     requirements = collect_requirements(profile)
     if not requirements:
         raise ValueError("job profile contains no requirements - nothing to screen")
@@ -2032,11 +2504,17 @@ def main() -> int:
         "pseudonymous": bool(profile.get("pseudonymous", True)),
         "tuned": tuned,
     }
+    # Spine feature resolution (kernel 2.0.0 integration layer): content
+    # classification, decision pinning, calibration. Gated by $ATTUNE_SPINE
+    # and the kernel backend; degrades to the pre-spine behavior with a
+    # machine-readable reason recorded in the manifest (docs/SPINE-FEATURES.md).
+    spine_ctx, spine_info = spine_kernel.resolve_spine(ckernel.BACKEND)
+    options["spine"] = spine_ctx
 
     started = time.perf_counter()
     write_progress(run_dir, "scan", 5, "Scanning candidate folders")
     try:
-        results = run_pipeline(profile, folder, options, run_salt)
+        results = run_pipeline(profile, folder, options, run_salt, pin_spine=spine_ctx)
         write_progress(run_dir, "verify", 88, "Re-running pipeline for determinism check")
         second = strip_volatile(run_pipeline(profile, folder, options, run_salt))
         first = strip_volatile(results)
@@ -2085,6 +2563,22 @@ def main() -> int:
     results["engine_version"] = ENGINE_VERSION
     results["floors_data_version"] = manifest["floors_data_version"]
     results["determinism"] = manifest["determinism"]
+    # Spine provenance: written next to the manifest (outside the hashed
+    # pipeline payload). Pins live in run_dir/spine_pins.jsonl for the
+    # replay auditor (scripts/replay_audit.py).
+    if spine_ctx is not None:
+        spine_info.update(spine_ctx.summary())
+        pins_path = run_dir / "spine_pins.jsonl"
+        try:
+            spine_info["pins_exported"] = spine_ctx.export_pins(pins_path)
+            if spine_info["pins_exported"]:
+                spine_info["pins_file"] = pins_path.name
+                spine_info["pins_file_sha256"] = sha256_file(pins_path)
+        except Exception as exc:  # additive feature: export trouble never fails a finished run
+            spine_info["pins_exported"] = 0
+            spine_info["pins_export_error"] = f"{type(exc).__name__}: {exc}"
+        spine_ctx.close()
+    results["spine"] = spine_info
     results["profile"] = {
         "title": profile.get("job", {}).get("title", ""),
         "company": profile.get("company", {}).get("name", ""),

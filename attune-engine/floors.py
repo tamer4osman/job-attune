@@ -4,7 +4,8 @@
 
 The floors contract was originally shipped inside the frozen OmniDecide 3.3.1
 Python library (``omnidecide.floors``). Since the Python library is no longer
-shipped (the omnidecide-c C11 kernel is the only kernel), this
+shipped (the engine runs on the vendored omnidecide-c C11 kernel, behind the
+layered resolver in ``ckernel.py``), this
 module vendors that contract verbatim so the engine keeps the exact same
 escalation semantics, calibration values and degrade-never-crash guarantees:
 
