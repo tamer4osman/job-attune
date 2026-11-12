@@ -68,10 +68,11 @@ case "$(uname -s)" in
     ;;
   MINGW*|MSYS*|CYGWIN*)
     PLATFORM="windows-x64"
-    # MinGW-w64 gcc (runner image default via Strawberry Perl). GNU ld does
-    # auto-export symbols, but we make it explicit - the ctypes bridge needs
-    # every odk_* symbol reachable from the DLL.
-    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-Wl,--export-all-symbols"
+    # MinGW-w64 gcc (runner image default via Strawberry Perl). -static-libgcc
+    # is required so omnidecide.dll embeds GCC runtime helpers statically;
+    # otherwise MSVC CPython cannot load it on clean Windows machines lacking
+    # libgcc_s_seh-1.dll. GNU ld does auto-export symbols, but we make it explicit.
+    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-static-libgcc -Wl,--export-all-symbols"
     # MSVC build (python-build-standalone 20241016 lacks GNU builds for Windows).
     # Use full install_only variant: the shared variant (~38MB) is missing the
     # Python stdlib needed by the attune engine. Full build (~66MB) includes
@@ -284,7 +285,8 @@ with zipfile.ZipFile(art, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
   for base, dirs, files in os.walk(src):
     for f in sorted(files):
       p = os.path.join(base, f)
-      zf.write(p, os.path.relpath(p, os.path.dirname(src)))
+      arcname = os.path.relpath(p, os.path.dirname(src)).replace(os.sep, "/")
+      zf.write(p, arcname)
 print(f"zip: {os.path.getsize(art) / 1e6:.1f} MB")
 PYEOF
 else

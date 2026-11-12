@@ -210,6 +210,17 @@ def _load_spine_library() -> ctypes.CDLL:
         if path.is_file():
             key = str(path)
             if key not in _LIB_CACHE:
+                if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+                    try:
+                        os.add_dll_directory(str(path.parent.resolve()))
+                    except (OSError, ValueError):
+                        pass
+                    for p in os.environ.get("PATH", "").split(os.pathsep):
+                        if p and os.path.isdir(p):
+                            try:
+                                os.add_dll_directory(p)
+                            except (OSError, ValueError):
+                                pass
                 try:
                     _LIB_CACHE[key] = ctypes.CDLL(key)
                 except OSError as exc:
@@ -505,7 +516,10 @@ def _libc_free(ptr: int) -> None:
     global _LIBC_FREE
     if ptr:
         if _LIBC_FREE is None:
-            _LIBC_FREE = ctypes.CDLL(None).free
+            if sys.platform == "win32":
+                _LIBC_FREE = ctypes.cdll.msvcrt.free
+            else:
+                _LIBC_FREE = ctypes.CDLL(None).free
             _LIBC_FREE.argtypes = [_VOID_P]
         _LIBC_FREE(ctypes.cast(ptr, _VOID_P))
 

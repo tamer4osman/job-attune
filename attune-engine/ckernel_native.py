@@ -152,6 +152,17 @@ def _load_library() -> ctypes.CDLL:
     tried: List[str] = []
     for path in _candidate_paths():
         if path.is_file():
+            if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+                try:
+                    os.add_dll_directory(str(path.parent.resolve()))
+                except (OSError, ValueError):
+                    pass
+                for p in os.environ.get("PATH", "").split(os.pathsep):
+                    if p and os.path.isdir(p):
+                        try:
+                            os.add_dll_directory(p)
+                        except (OSError, ValueError):
+                            pass
             try:
                 return ctypes.CDLL(str(path))
             except OSError as exc:
