@@ -250,19 +250,23 @@ echo "==> runtime slimmed: $(du -sh "$RT" | cut -f1)"
 # where plain cp -r can trip. On Windows, MSVC Python cannot resolve POSIX
 # paths (e.g., /d/a/repo/repo) for the source, but handles POSIX paths in
 # the staging directory fine. Use Windows-style paths for source root.
+# Write script to temp file to avoid heredoc stdin issues on Windows MSVC Python.
 if [ "$PLATFORM" = "windows-x64" ]; then
-  SRC_ROOT="$ROOT_WIN"
+  WEB_ROOT="$ROOT_WIN/server.py"
+  WEB_SRC="$ROOT_WIN/web"
 else
-  SRC_ROOT="$ROOT"
+  WEB_ROOT="$ROOT/server.py"
+  WEB_SRC="$ROOT/web"
 fi
-SRC_ROOT="$SRC_ROOT" APP="$APP" "$PY" - <<PYEOF
-import os, shutil
-root = os.environ["SRC_ROOT"]
-app = os.environ["APP"]
-shutil.copy(os.path.join(root, "server.py"), os.path.join(app, "server.py"))
-shutil.copytree(os.path.join(root, "web"), os.path.join(app, "web"), symlinks=False, dirs_exist_ok=True)
+WEB_SCRIPT="$TMP/copy_web.py"
+cat > "$WEB_SCRIPT" <<'PYEOF'
+import os, shutil, sys
+root, web_src, dest_root, dest_web = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+shutil.copy(root, dest_root)
+shutil.copytree(web_src, dest_web, symlinks=False, dirs_exist_ok=True)
 print("web app staged")
 PYEOF
+"$PY" "$WEB_SCRIPT" "$WEB_ROOT" "$WEB_SRC" "$APP/server.py" "$APP/web"
 
 # Engine, templates, demo corpus and the compiled kernel + version header.
 cp -r attune-engine "$APP/attune-engine"
@@ -299,8 +303,9 @@ ART="$DIST_ROOT/$DIST_NAME.$ARCHIVE_EXT"
 rm -f "$ART" "$ART.sha256"
 if [ "$ZIP" -eq 1 ]; then
   # Python zipfile with MSYS accepts POSIX paths for both input and output.
-  # Previously attempted Windows paths (ART_WIN) caused silent failures.
-  "$PY" - "$ART" "$STAGE/$DIST_NAME" <<'PYEOF'
+  # Use temp file for script to avoid heredoc stdin issues on Windows MSVC Python.
+  ZIP_SCRIPT="$TMP/zip_archive.py"
+  cat > "$ZIP_SCRIPT" <<'PYEOF'
 import os, sys, zipfile
 art, src = sys.argv[1], sys.argv[2]
 with zipfile.ZipFile(art, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
@@ -311,14 +316,16 @@ with zipfile.ZipFile(art, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
       zf.write(p, arcname)
 print(f"zip: {os.path.getsize(art) / 1e6:.1f} MB")
 PYEOF
+  "$PY" "$ZIP_SCRIPT" "$ART" "$STAGE/$DIST_NAME"
 else
   # tar preserves the executable bits on the launchers using POSIX paths
   tar -czf "$ART" -C "$TMP/stage" "$DIST_NAME"
 fi
 
 # sha256 calculation - Python reads the archive and writes sha256.
-# Use POSIX paths throughout on Windows (MSYS Python handles this).
-"$PY" - "$ART" <<'PYEOF'
+# Use temp file for script to avoid heredoc stdin issues on Windows MSVC Python.
+SHA_SCRIPT="$TMP/sha256.py"
+cat > "$SHA_SCRIPT" <<'PYEOF'
 import hashlib, os, sys
 p = sys.argv[1]
 h = hashlib.sha256(open(p, "rb").read()).hexdigest()
@@ -326,6 +333,7 @@ with open(p + ".sha256", "w") as f:
   f.write(h + "  " + os.path.basename(p) + "\n")
 print("sha256:", h)
 PYEOF
+"$PY" "$SHA_SCRIPT" "$ART"
 
 echo "==> done: $ART (+ .sha256)"
 du -sh "$ART" | cut -f1 | xargs -I{} echo "    size: {}"
