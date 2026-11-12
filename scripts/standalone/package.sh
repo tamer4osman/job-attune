@@ -70,7 +70,7 @@ case "$(uname -s)" in
     # auto-export symbols, but we make it explicit - the ctypes bridge needs
     # every odk_* symbol reachable from the DLL.
     KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-static-libgcc -Wl,--export-all-symbols"
-    PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
+    PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-pc-windows-gnu-install_only.tar.gz"
     ARCHIVE_EXT="zip"; PY_BIN="python.exe"; ZIP=1
     ;;
   *)
