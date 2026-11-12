@@ -66,11 +66,14 @@ case "$(uname -s)" in
     ;;
   MINGW*|MSYS*|CYGWIN*)
     PLATFORM="windows-x64"
-    # mingw-w64 gcc (runner image default via Strawberry Perl). GNU ld does
+    # MinGW-w64 gcc (runner image default via Strawberry Perl). GNU ld does
     # auto-export symbols, but we make it explicit - the ctypes bridge needs
     # every odk_* symbol reachable from the DLL.
-    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-static-libgcc -Wl,--export-all-symbols"
-    PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-pc-windows-gnu-install_only.tar.gz"
+    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-Wl,--export-all-symbols"
+    # MSVC build (python-build-standalone 20241016 lacks GNU builds for Windows).
+    # Use shared variant: the Python DLL is required for ctypes bridge to work
+    # with the C11 kernel DLL (exports odk_* symbols for runtime integration).
+    PY_ASSET="cpython-${PYTHON_VERSION}+${PYTHON_TAG}-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
     ARCHIVE_EXT="zip"; PY_BIN="python.exe"; ZIP=1
     ;;
   *)
@@ -110,8 +113,9 @@ ls -la "vendor/omnidecide-c/build/$KERNEL_LIB"
 
 # ------------------------------------------------------------------ runtime
 echo "==> downloading the bundled CPython runtime"
-curl -fsSL --retry 3 -o "$TMP/python-archive" \
+curl -fsSL --retry 3 -L -o "$TMP/python-archive" \
   "https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_TAG}/${PY_ASSET}"
+echo "==> download complete, file size: $(wc -c < "$TMP/python-archive") bytes"
 
 # install_only archives unpack to ./python/ ; system tar exists on every
 # runner, so use it to bootstrap the very first extraction.
