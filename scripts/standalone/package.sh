@@ -247,11 +247,20 @@ echo "==> runtime slimmed: $(du -sh "$RT" | cut -f1)"
 
 # The vanilla web app: the stdlib-only server plus static frontend. Python
 # copytree materializes symlinks as real files, which survives platforms
-# where plain cp -r can trip. Use POSIX paths (MSYS works with both).
-"$PY" - <<PYEOF
-import shutil
-shutil.copy("$ROOT/server.py", "$APP/server.py")
-shutil.copytree("$ROOT/web", "$APP/web", symlinks=False, dirs_exist_ok=True)
+# where plain cp -r can trip. On Windows, MSVC Python cannot resolve POSIX
+# paths (e.g., /d/a/repo/repo) for the source, but handles POSIX paths in
+# the staging directory fine. Use Windows-style paths for source root.
+if [ "$PLATFORM" = "windows-x64" ]; then
+  SRC_ROOT="$ROOT_WIN"
+else
+  SRC_ROOT="$ROOT"
+fi
+SRC_ROOT="$SRC_ROOT" APP="$APP" "$PY" - <<PYEOF
+import os, shutil
+root = os.environ["SRC_ROOT"]
+app = os.environ["APP"]
+shutil.copy(os.path.join(root, "server.py"), os.path.join(app, "server.py"))
+shutil.copytree(os.path.join(root, "web"), os.path.join(app, "web"), symlinks=False, dirs_exist_ok=True)
 print("web app staged")
 PYEOF
 
