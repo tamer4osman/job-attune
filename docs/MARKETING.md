@@ -123,7 +123,7 @@ cells is selling you the spreadsheet version of their product.
 | Determinism | 12/12 bench cells sha256-identical across double passes; engine re-run reproduced a stored run at 12,316/12,316 content leaves | bench artifacts; recalibration purity proof |
 | Release gate | **45/45 checks green** (floors contract, two-pass determinism, PII probes, bench baselines, 7-PDF validation) | `scripts/check_python_side.py` |
 | Scoring stability | 3/3 regression-lock PASS vs the frozen reference scoring lineage — zero unexpected diffs across three releases | regression lock record |
-| Decision kernel | omnidecide-c 1.0.0 C11 kernel; six decision primitives all load-bearing; confidence floors calibrated on 1,920 decision episodes | floors contract + calibration report |
+| Decision kernel | omnidecide-c 2.0.0 C11 kernel (native tier, WASM fallback tier of the same engine); six decision primitives all load-bearing; confidence floors calibrated on 1,920 decision episodes | floors contract + calibration report |
 
 ![Benchmark: MAE](diagrams/bench-mae.png)
 

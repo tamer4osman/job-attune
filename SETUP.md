@@ -1,11 +1,15 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- SPDX-FileCopyrightText: 2026 Tamer Osman -->
-# Job Attune 1.1.0 - source archive
+# Job Attune 1.3.3 - source archive
 
 GDPR-safe resume screening: a vanilla HTML/CSS/JS UI served by a stdlib-only
 Python server, driving a deterministic Python scoring engine that runs on
-the omnidecide-c 1.0.0 C11 decision kernel (vendored under
-`vendor/omnidecide-c/`, the only kernel - the floors contract
+the omnidecide-c 2.0.0 C11 decision kernel in a layered setup
+(`docs/LAYERED-KERNEL.md`): a native ctypes tier built from
+`vendor/omnidecide-c/` - the default, full native speed - and a portable
+WASM fallback tier (`vendor/omnidecide-wasm/dist/omnidecide.wasm`, the
+official dist of the same kernel) used automatically when no native
+library can be loaded. The floors contract
 ships as `attune-engine/floors.py` with calibration data in
 `attune-engine/data/floors_v1.json`). Candidate
 documents are reduced to pseudonymous references before scoring; PDF exports
@@ -15,10 +19,15 @@ contain no raw PII.
 
     server.py                   stdlib-only web server (UI + /api routes)
     web/                        vanilla frontend: HTML/CSS/JS, no build step
-    attune-engine/              Python engine, C-kernel bridge, PDF reporter,
-                                vendored floors contract (floors.py + data/)
+    attune-engine/              Python engine, kernel resolver (ckernel.py),
+                                tier bridges (ckernel_native.py, wasm_kernel.py),
+                                spine bridge (spine_kernel.py: kernel 2.0.0
+                                tagging/pins/calibration, docs/SPINE-FEATURES.md),
+                                PDF reporter, vendored floors contract
+                                (floors.py + data/)
     bench/                      candidate-blind benchmark harness + frozen corpora
-    vendor/omnidecide-c/      omnidecide-c 1.0.0 C11 kernel (the only kernel)
+    vendor/omnidecide-c/      omnidecide-c 2.0.0 C11 kernel (native tier)
+    vendor/omnidecide-wasm/   official WASM dist of the same kernel (fallback tier)
     attune-data/                templates (runs/ is created at runtime)
     attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
     scripts/                    QA gates, sample generator, JS check pipelines
@@ -28,8 +37,9 @@ contain no raw PII.
 ## Prerequisites
 
 - Python 3.10+ (tested on 3.12)
-- A C11 compiler (gcc/clang) + libm - one-time build of the omnidecide-c
-  shared library (see Setup below)
+- A C11 compiler (gcc/clang) + libm - one-time build of the native kernel
+  library (see Setup below). No C toolchain? Skip the build: the WASM
+  fallback tier (`pip install wasmtime`) serves byte-identical decisions.
 - Optional: Docker — container images for the QA gate and the full app (see the Docker section below)
 
 No Node.js, no npm, no bundler: the UI is plain HTML/CSS/JavaScript served
@@ -39,12 +49,16 @@ by `server.py`.
 
     pip install -r requirements.txt   # reportlab + pypdf (engine itself: stdlib only)
 
-    # build the omnidecide-c decision kernel (one-time):
-    cd vendor/omnidecide-c
-    mkdir -p build
-    cc -std=c11 -ffp-contract=off -O2 -fPIC -shared -Iinclude -Isrc \
-       src/*.c -lm -o build/libomnidecide.so
-    cd ../..
+    # build the native decision kernel (one-time; full native speed):
+    ./scripts/build-kernel.sh
+    # -> vendor/omnidecide-c/build/libomnidecide.so
+
+    # no C toolchain? skip the build and use the portable WASM tier
+    # (byte-identical decisions, ~3x slower kernel, ~+10% per whole run):
+    pip install wasmtime
+
+    # check which tier resolved (native-c or wasm):
+    python3 attune-engine/ckernel.py
 
 ## Run
 
@@ -99,6 +113,8 @@ The same image for a plain engine run:
 
 Baked in with the app: the compiled kernel (built with `-std=c11
 -ffp-contract=off`, exposed via `OMNIDECIDE_C_LIB=/opt/attune/libomnidecide.so`),
+the WASM fallback tier (wasmtime + the vendored `omnidecide.wasm` dist,
+usable if the native kernel is removed),
 python3 + reportlab/pypdf, the vanilla web app (server.py + web/), the demo
 candidates and the profile templates. Run directories (`attune-data/runs/`) are
 machine-local state and are never baked in — persist or inspect them with:
@@ -111,7 +127,7 @@ browser requests):
 
     curl -H "X-Attune-Client: cli" http://127.0.0.1:3000/api/template
 
-Windows/Docker Desktop bind-mount style: `-v D:/Projects/job-attune-1.0.0:/app`.
+Windows/Docker Desktop bind-mount style: `-v D:/Projects/job-attune-1.0.1:/app`.
 
 ## Standalone builds (prebuilt, no tooling)
 
@@ -141,7 +157,7 @@ Build one locally with the same script CI calls (current OS only):
 The packager gates itself per platform before archiving anything: the
 kernel is compiled with the bit-identical flags from Setup above, the
 bundled Python must run the real engine against the demo corpus (the run
-manifest must record `omnidecide-c 1.0.0`), and on Linux the finished
+manifest must record `omnidecide-c 2.0.0`), and on Linux the finished
 archive is extracted and must answer an API request through the shipped
 launcher before it is uploaded.
 
@@ -175,7 +191,11 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 - `ATTUNE_HOST` / `ATTUNE_PORT` - server bind address (default: 127.0.0.1:3000)
 - `ATTUNE_TEXT_MODE` - kernel text layer: `unicode` (default) or `ascii`
 - `ATTUNE_LANGUAGE` - kernel language pack: `und` (default), `en zh hi es ar fr bn pt id ur auto`
+- `ATTUNE_KERNEL` - kernel tier policy: `auto` (default, native first),
+  `native` (pinned, fails loudly when the library is missing) or `wasm`
+  (portable mode; docs/LAYERED-KERNEL.md)
 - `OMNIDECIDE_C_LIB` - engine override for the compiled C kernel (default: `<repo>/vendor/omnidecide-c/build/libomnidecide.so`)
+- `OMNIDECIDE_WASM` - override for the WASM kernel artifact (default: `<repo>/vendor/omnidecide-wasm/dist/omnidecide.wasm`)
 
 ## Documentation
 
@@ -184,9 +204,10 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 - `docs/DEVELOPMENT.md` - QA pipelines, regression lock, adding bench corpora, release checklist
 - `docs/API.md` - HTTP API reference (all 13 routes + loopback-guard auth rules)
 - `docs/ENGINE-CLI.md` - engine + reporter CLI reference, aggregation profile keys
+- `docs/LAYERED-KERNEL.md` - the layered decision kernel (native first, WASM fallback)
 - `docs/MARKETING.md` - sales playbook: positioning, statistics, workflows, objection handling
 - `bench/README.md` - bench harness protocol and reference results
-- `CHANGELOG.md` - version history (v1.1.0 - vanilla UI rewrite)
+- `CHANGELOG.md` - version history (v1.2.0 - layered kernel: omnidecide-c 2.0.0 + WASM fallback)
 - `docs/VERIFICATION-1.8.0.md` - kernel-migration verification evidence (historical record)
 - `LICENSE` / `NOTICE` - Apache License 2.0, copyright Tamer Osman
 - `vendor/omnidecide-c/README.md` - the C11 decision kernel the engine runs on
@@ -198,4 +219,5 @@ scan) is regenerated with `python3 scripts/attune_app/make_samples.py`.
 - (no database — all data lives on the filesystem)
 - `attune-data/runs/`   -> created automatically at runtime
 - `vendor/omnidecide-c/build/libomnidecide.so` -> the one-time build command
-  in Setup above (the vendored C sources and their test suite ship in the tree)
+  in Setup above (the vendored C sources and their test suite ship in the
+  tree; without it the WASM fallback tier serves the same decisions)

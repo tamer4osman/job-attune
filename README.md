@@ -18,8 +18,8 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-334155?style=for-the-badge" alt="License: Apache-2.0"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v1.1.0-059669?style=for-the-badge" alt="Release v1.1.0"></a>
-  <a href="vendor/omnidecide-c/README.md"><img src="https://img.shields.io/badge/Kernel-omnidecide--c_1.0.0-334155?style=for-the-badge" alt="Kernel: omnidecide-c 1.0.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v1.0.1-059669?style=for-the-badge" alt="Release v1.0.1"></a>
+  <a href="vendor/omnidecide-c/README.md"><img src="https://img.shields.io/badge/Kernel-omnidecide--c_2.0.0-334155?style=for-the-badge" alt="Kernel: omnidecide-c 2.0.0"></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Languages-10_packs-059669?style=for-the-badge" alt="10 language packs"></a>
   <br/>
   <a href="docs/VERIFICATION-1.8.0.md"><img src="https://img.shields.io/badge/Determinism-verified-16a34a?style=for-the-badge" alt="Determinism: verified"></a>
@@ -106,7 +106,8 @@ conflicts wait for human sign-off — the engine never auto-rejects.*
 | **Calibrated confidence floors** — all six decision primitives (extract, score, rank, compare, choice, noul) stay load-bearing behind the floors contract (floors v1.0), tuned on pre-registered corpora. | **Escalation-first review queue** — low-confidence extractions, unreadable documents and rank conflicts land in an append-only queue with human sign-off; the engine never auto-rejects. |
 | **Pseudonymous by default** — candidates are sha256 refs in every output; PII-redaction probes run on every regression pass. | **Local-only by design** — the UI binds to `127.0.0.1`, its APIs are CSRF/rebinding-guarded, and the kernel contains no network code — there is no egress path. |
 | **Ten language packs** — `und en zh hi es ar fr bn pt id ur`, opt-in via `ATTUNE_LANGUAGE`; every run manifest records the effective language for auditability. | **Reproducible PDF reports** — batch report + per-candidate dossiers with a sha256 manifest, pinned reference year, canonical JSON. |
-| **Air-gap engine-only mode** — no UI needed: stdlib-only Python over the vendored C11 kernel runs anywhere Python does. | **Tunable, never silent** — aggregation forms (`uniform` / `req_share` / `global`) and the zero-evidence weight are opt-in profile keys with fail-fast validation; every run records its exact math in a provenance block. |
+| **Air-gap engine-only mode** — no UI needed: stdlib-only Python over the vendored C11 kernel runs anywhere Python does; the WASM fallback tier (`pip install wasmtime`) runs the same kernel with no C build. | **Tunable, never silent** — aggregation forms (`uniform` / `req_share` / `global`) and the zero-evidence weight are opt-in profile keys with fail-fast validation; every run records its exact math in a provenance block. |
+| **Spine features (kernel 2.0.0)** — content-based CV/cover-tag verification flags mistagged documents to the human queue; `ATTUNE_SPINE=off` disables the layer, the WASM tier degrades cleanly ([docs/SPINE-FEATURES.md](docs/SPINE-FEATURES.md)). | **Replay-auditable decisions** — on the native tier every kernel evaluation is pinned (request bytes, decision, confidence) and re-derives as `exact` on a fresh kernel; human sign-offs calibrate into live confidence bins. |
 
 ## How it works
 
@@ -120,16 +121,21 @@ The pipeline in four moves:
    subfolder per candidate). Every document is tagged CV or cover letter
    (filename aliases, EN + DE), and raw text is never persisted.
 2. **Score with evidence.** Extraction → evidence scoring → aggregation →
-   ranking runs on the [omnidecide-c 1.0.0](vendor/omnidecide-c/) C11
-   decision kernel (the only kernel), gated by the calibrated
-   [floors contract](attune-engine/floors.py). Candidates are pseudonymous
-   refs throughout.
+   ranking runs on the [omnidecide-c 2.0.0](vendor/omnidecide-c/) C11
+   decision kernel behind a layered resolver - native ctypes tier first,
+   WASM fallback tier when no native library can be loaded
+   ([docs/LAYERED-KERNEL.md](docs/LAYERED-KERNEL.md)) - gated by the
+   calibrated [floors contract](attune-engine/floors.py). Candidates are
+   pseudonymous refs throughout.
 3. **Escalate what is unclear.** The `noul` primitive routes low-confidence
    extractions, unreadable files and rank conflicts into the review queue
    instead of guessing — an audit-friendly definition of "I don't know."
 4. **Report & archive.** A batch report, per-candidate dossiers and a
    `results.json` with a full provenance block land in the run directory; the
-   manifest pins the engine, kernel and floors versions that produced them.
+   manifest pins the engine, kernel and floors versions that produced them —
+   and on the native tier every kernel decision is pinned for replay audit,
+   each document's role tag is content-verified, and human sign-offs feed a
+   live calibration report ([docs/SPINE-FEATURES.md](docs/SPINE-FEATURES.md)).
 
 Component-level detail, data contracts, the redaction pipeline and the
 security model live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -204,8 +210,14 @@ no build step):
 
 ```bash
 pip install -r requirements.txt   # reportlab + pypdf (engine: stdlib only)
+bash scripts/build-kernel.sh      # one-time native kernel build (full speed)
 python3 server.py                 # -> http://127.0.0.1:3000
 ```
+
+No C compiler on the machine? Skip the build and `pip install wasmtime`
+instead — the engine then runs the vendored WASM fallback tier
+automatically: byte-identical decisions with zero build, ≈ +10% per run
+([docs/LAYERED-KERNEL.md](docs/LAYERED-KERNEL.md)).
 
 Then: enter `attune-sample-data/candidates` in the folder picker, **Scan**,
 confirm the CV / cover-letter tags, and **Start run**. PDF exports land in
@@ -233,6 +245,13 @@ python3 attune-engine/engine.py \
   --run-dir /tmp/my-run
 ```
 
+The kernel tier resolves automatically: the native library if present, the
+vendored WASM fallback otherwise (`pip install wasmtime`; pin with
+`ATTUNE_KERNEL=native|wasm` — [docs/LAYERED-KERNEL.md](docs/LAYERED-KERNEL.md)).
+On the native tier the spine features engage automatically (content tag
+verification, decision pins — [docs/SPINE-FEATURES.md](docs/SPINE-FEATURES.md));
+`ATTUNE_SPINE=off` turns them off.
+
 The demo corpus (6 candidates, 10 PDFs, including an unreadable image-only
 scan) is regenerated with
 `python3 scripts/attune_app/make_samples.py`. The condensed setup card is
@@ -243,14 +262,18 @@ scan) is regenerated with
 | Doc | Contents |
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, run lifecycle, data contracts, redaction pipeline, security model, diagrams |
+| [docs/LAYERED-KERNEL.md](docs/LAYERED-KERNEL.md) | The layered decision kernel: native tier, WASM fallback tier, `$ATTUNE_KERNEL` policy |
+| [docs/SPINE-FEATURES.md](docs/SPINE-FEATURES.md) | Kernel 2.0.0 spine features: content tag verification, decision pins + replay audit, calibration loop, `$ATTUNE_SPINE` policy |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Developer guide: QA pipelines, regression lock, adding bench corpora, release checklist |
 | [docs/CODEBASE-INTEL.md](docs/CODEBASE-INTEL.md) | Codebase-intelligence gates: fallow + the Python/C analyzer stack, capability map, ratchet contract |
 | [docs/MARKETING.md](docs/MARKETING.md) | Sales playbook: positioning, comparison matrix, statistics, workflows, objection handling |
 | [docs/API.md](docs/API.md) | HTTP API reference (13 routes) incl. loopback-guard auth rules |
 | [docs/ENGINE-CLI.md](docs/ENGINE-CLI.md) | Engine + reporter CLI reference, aggregation profile keys, run-directory contract |
 | [bench/README.md](bench/README.md) | Bench harness: systems, determinism protocol, reference results, corpus format |
-| [CHANGELOG.md](CHANGELOG.md) | Version history (v1.1.0 — vanilla UI rewrite) |
-| [vendor/omnidecide-c/README.md](vendor/omnidecide-c/README.md) | The C11 decision kernel the engine runs on (the only kernel) |
+| [CHANGELOG.md](CHANGELOG.md) | Version history (v1.0.1 — general-reliability round: profile vocabulary lint R0-R7, clause-scoped claim quality, PDF line-wrap tolerant alias matching, cross-lingual value-token packs; cold-start battery over six professions, mean Spearman 0.771 hard / 0.809 balanced; v1.3.3 — balanced must-have gate: profile-opt-in weight-proportional ceiling; v1.3.2 — plumber case-study fix round: negation guard, multilingual claim quality, compound matching; v1.3.1 — academic German values fold; v1.3.0 — spine features: content tag verification, decision pins, calibration loop) |
+| [docs/GENERAL-RELIABILITY.md](docs/GENERAL-RELIABILITY.md) | Cross-occupation generalization protocol + results: preregistered cold-start battery (nurse, accountant, electrician, baker, Kfz-Mechatroniker, MFA), mechanism checks, regression on tuned corpora, per-client lint workflow |
+| [attune-data/casestudy-uni/README.md](attune-data/casestudy-uni/README.md) | University case study: bilingual doctoral-hiring fixture (12 applicants / 22 PDFs), pilot iterations, reproduction commands |
+| [vendor/omnidecide-c/README.md](vendor/omnidecide-c/README.md) | The C11 decision kernel the engine runs on (native tier) |
 | [SETUP.md](SETUP.md) | Condensed setup card (also shipped in the source zip) |
 
 <details>
@@ -259,10 +282,14 @@ scan) is regenerated with
 ```
 server.py                   stdlib-only web server: static UI + all /api routes
 web/                        vanilla frontend (HTML/CSS/JS, no build step)
-attune-engine/              engine.py, ckernel.py (C-kernel bridge), floors.py
-                            (vendored floors contract), make_report.py,
-                            floors_attune.json, data/floors_v1.json
-vendor/omnidecide-c/      omnidecide-c 1.0.0 C11 kernel (the only kernel)
+attune-engine/              engine.py, ckernel.py (kernel resolver), floors.py
+                            (vendored floors contract), ckernel_native.py +
+                            wasm_kernel.py (tier bridges), spine_kernel.py
+                            (kernel 2.0.0 spine: tagging, pins, calibration),
+                            make_report.py, floors_attune.json, data/
+                            (floors_v1.json + spine_schemes.json)
+vendor/omnidecide-c/      omnidecide-c 2.0.0 C11 kernel (native tier)
+vendor/omnidecide-wasm/   official WASM dist of the same kernel (fallback tier)
 bench/                      candidate-blind benchmark harness + frozen corpora
 attune-data/                templates (runs/ is created at runtime)
 attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
@@ -295,6 +322,11 @@ python3 scripts/smoke_test.py
 # API routes with error shapes, engine + PDF export on every shipped
 # corpus, and a Chromium pass with zero JS errors. --quick / --api-only
 # for shorter runs.
+
+python3 scripts/verify_spine_features.py
+# 13-check spine battery: pins + replay audit (all 'exact'), spine-on/off
+# scoring identity, WASM degradation, mis-tag fixture detection, the
+# calibration loop. Evidence: verification/spine_features.txt.
 
 # regression lock vs the stored reference scoring runs (protocol in
 # docs/DEVELOPMENT.md): stored lineage runs must replay with zero

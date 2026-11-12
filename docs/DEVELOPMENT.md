@@ -13,21 +13,29 @@ audit guarantees.
 attune-engine/engine.py     ~2,000 lines, the whole scoring pipeline:
   module head                    ENGINE_VERSION, REFERENCE_YEAR, vendored
                                  floors loader (floors.py), kernel binding
-                                 (omnidecide-c C11, the only kernel),
+                                 (omnidecide-c C11 via the layered resolver),
                                  alias/claim-quality machinery
   extraction + classification    PDF text layer -> cv/cover texts per candidate
   evidence stage                 per-requirement alias regexes -> evidence_score
                                  (none/partial/good/strong claim quality)
   aggregate_categories()         PURE aggregation core (uniform/req_share/global
-                                 + zero_weight_factor) - unit-testable, no I/O
+                                 + zero_weight_factor + must_have_gate) -
+                                 unit-testable, no I/O
   aggregate_stage()              orchestration: must-have pre-pass, category
                                  averages, values fit, kernel evaluate_score
   ranking + compare + choice     kernel-driven; near-tie order, rank-conflict
                                  escalation to review queue
   outputs                        canonical results.json + atomic progress.json
-attune-engine/ckernel.py    ctypes bridge to libomnidecide.so (omnidecide-c
-                                 C11 kernel): same class/payload contract the
-                                 engine was written against
+attune-engine/ckernel.py    kernel resolver: keeps the `import ckernel`
+                                 seam, selects the tier per $ATTUNE_KERNEL
+                                 (auto | native | wasm) + one audit stderr line
+attune-engine/ckernel_native.py  Tier 1 (default): ctypes bridge to
+                                 libomnidecide.so (omnidecide-c C11 kernel) -
+                                 same class/payload contract the engine was
+                                 written against
+attune-engine/wasm_kernel.py     Tier 2 (fallback): wasmtime bridge to the
+                                 vendored omnidecide.wasm - byte-identical
+                                 decisions with no C toolchain
 attune-engine/floors.py     vendored floors contract
                                  (data in data/floors_v1.json)
 attune-engine/make_report.py  ReportLab PDFs (invariant mode) + manifest
@@ -44,8 +52,10 @@ scripts/design_check.py          design regression: fonts, palette, pills,
                                  (dev-only; see QA pipeline #6)
 scripts/attune_app/         sample generator
 server.py + web/             stdlib-only Python web server + vanilla JS UI
-vendor/omnidecide-c/           omnidecide-c 1.0.0 C11 kernel - DO NOT EDIT
+vendor/omnidecide-c/           omnidecide-c 2.0.0 C11 kernel - DO NOT EDIT
                                  (build: libomnidecide.so, see SETUP.md)
+vendor/omnidecide-wasm/        official WASM dist of the same kernel
+                                 (fallback tier, DO NOT EDIT)
 ```
 
 Hard rule: `vendor/omnidecide-c/`, `attune-engine/floors.py` and
@@ -59,19 +69,25 @@ docs/VERIFICATION-1.8.0.md).
 ## Environment
 
 ```bash
-pip install -r requirements.txt    # reportlab + pypdf only
+pip install -r requirements.txt    # reportlab + pypdf (engine: stdlib only)
 python3 scripts/attune_app/make_samples.py   # demo corpus, if missing
 
-# omnidecide-c kernel (one-time; see SETUP.md):
-cd vendor/omnidecide-c
-mkdir -p build
-cc -std=c11 -ffp-contract=off -O2 -fPIC -shared -Iinclude -Isrc \
-   src/*.c -lm -o build/libomnidecide.so
+# decision kernel tier - pick one (docs/LAYERED-KERNEL.md):
+bash scripts/build-kernel.sh       # Tier 1 native: one-time build, full speed
+pip install wasmtime               # Tier 2 portable fallback: zero build
 ```
 
-The engine itself is stdlib-only (ctypes bridge included); reportlab/pypdf
-are needed for the reporter and the PDF checks; a C11 compiler is needed once
-to build the decision kernel. Python 3.10+ (CI runs 3.12).
+The engine itself is stdlib-only (the resolver and both tier bridges
+included); reportlab/pypdf are needed for the reporter and the PDF checks.
+For the kernel, either build the native library once (a C11 compiler, full
+speed) or `pip install wasmtime` for the portable WASM fallback - both tiers
+return byte-identical decisions (docs/LAYERED-KERNEL.md).
+Python 3.10+ (CI runs 3.12). On the native tier the spine features
+(docs/SPINE-FEATURES.md) engage automatically; the 13-check spine battery
+lives at `scripts/verify_spine_features.py` (evidence:
+`verification/spine_features.txt`), the replay auditor at
+`scripts/replay_audit.py` and the calibration report at
+`scripts/calibrate_report.py`.
 
 ## The seven QA pipelines
 
@@ -296,3 +312,9 @@ against it directly over end-to-end probes. If you experiment with forms,
 follow the calibration discipline: preregister a frozen search space and a
 selection rule, run the grid engine-native, and do not ship a default flip
 without the same rigor (publish wins AND losses in the CHANGELOG).
+The `must_have_gate` option (v1.3.3) extends the same framework: `hard`
+(default) keeps the historical flat 40/100 ceiling; `balanced` scales the
+ceiling by the met weight share of the must-have block
+(`0.40 + 0.60 * met_share`) — a profile-level policy choice, not a scoring
+change; see `docs/ENGINE-CLI.md` and
+`verification/case_study_plumber_1.3.3.txt`.

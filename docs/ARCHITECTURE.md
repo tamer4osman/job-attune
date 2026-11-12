@@ -32,11 +32,11 @@ needed at runtime.
 |   templates/*.json          |   |   aggregation, ranking, choice,  |
 +-----------------------------+   |   noul escalation                |
                                   +-----------|----------------------+
-                                              | ctypes bridge (ckernel.py)
+                                              | kernel resolver (ckernel.py)
                                   +-----------v----------------------+
                                   | vendor/omnidecide-c: C11 kernel |
-                                  | (the only kernel,                 |
-                                  | libomnidecide.so)                 |
+                                  | (active tier: native ctypes or   |
+                                  | WASM fallback, libomnidecide.so) |
                                   +----------------------------------+
   [offline QA tier]  scripts/check_python_side.py (45 checks)
                      bench/run_bench.py + bench/baselines.py (candidate-blind)
@@ -79,8 +79,10 @@ runs before every `/api` route.
 
 Stdlib-only Python. Reads the candidate folder and a job profile JSON, writes
 `results.json` + `progress.json` into the run directory. All decision math is
-delegated to the decision kernel - **omnidecide-c 1.0.0** (C11, loaded
-through the ctypes bridge `attune-engine/ckernel.py`, the only kernel);
+delegated to the decision kernel - **omnidecide-c 2.0.0** (C11, loaded
+through the layered resolver `attune-engine/ckernel.py`: native ctypes
+tier first, WASM fallback tier when no native library loads -
+`docs/LAYERED-KERNEL.md`);
 the engine maps document evidence into the six
 primitives (extract, score, rank, compare, choice, noul) and applies the
 calibrated floors contract (`floors_attune.json`, provenance-pinned to

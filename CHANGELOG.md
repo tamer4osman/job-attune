@@ -6,6 +6,406 @@ All notable changes to the Job Attune engine, UI and tooling.
 Engine version is the project's release version; every run manifest records
 the engine, decision-kernel and floors versions that produced it.
 
+## [1.0.1] - 2026-11-13
+
+General-reliability round: turns the cold-start generalization battery's
+root-caused findings into title-agnostic engine mechanisms. Goal per the
+product owner: reliability a recruiter can trust for ALL professional and
+technical job titles and languages, while per-client profile vocabulary
+remains the acknowledged calibration surface.
+
+### Added
+
+- **Profile vocabulary lint** (`attune-engine/profile_lint.py`, v1.0.1):
+  deterministic checklist run at profile-creation time, BEFORE preregistration
+  or any engine run. Rules R0-R7 encode the three counterfactual-confirmed
+  cold-start failure modes (R1 over-broad credential aliases, R2 rigid
+  credential-string aliases, R3 order-fragile multi-word aliases without bare
+  head nouns) plus structural checks (R4 must-have alias coverage across
+  languages, R5 literal alternations the matcher can never hit, R6 duplicates,
+  R7 values_text convention). Validated against the battery: flags exactly the
+  three planted defects (nurse 'state examination', accountant 'accounting
+  degree', baker 'gesellenbrief baecker') and the two unmatchable ' or '
+  skill phrases; the tuned plumber/trades/uni profiles carry zero R1/R5
+  errors. Exit 1 on any ERROR severity finding.
+- `docs/GENERAL-RELIABILITY.md` - protocol and results summary for the
+  generalization battery v1 (four professions) and v2 (six professions).
+
+### Changed
+
+- **Clause-scoped claim-quality windows** (`_claim_quality`, v1.0.1): the
+  +/-45/40-char marker windows are clipped to the comma/dash-separated CLAUSE
+  containing the hit instead of the whole sentence, so 'medication
+  administration, basic wound care' no longer caps medication administration
+  with the 'basic' that scopes wound care. Parentheses stay attached ('Python
+  (basic scripts)' keeps its downgrade); hyphenated compounds are never split.
+- **PDF line-wrap tolerant alias matching** (`alias_regex`, v1.0.1): runs of
+  whitespace inside a multi-word alias match any whitespace run in the
+  document. PDF extraction reflows paragraphs, so 'full patient care' arrives
+  as 'full patient\ncare' and silently matched NOTHING - a title- and
+  language-agnostic false-negative class. This one fix restored the
+  university corpus's designed-top candidate (anna_kowalska, falsely capped
+  since 1.3.1 by an 'English C1' gap created by a line wrap) and the trades
+  corpus's david_osei.
+- **Cross-lingual value-token packs + tolerance** (v1.0.1): the German->English
+  VALUES_TOKEN_SYNONYMS fold extends to healthcare/care, office/finance and
+  service-attitude vocabulary (Einfuehlung, Wuerde, Pflege, Verschwiegenheit,
+  Genauigkeit, Fristen, Mandant, ...); corpus-side folding is compound-tolerant
+  (head-final German compounds fold via embedded keys, 'Grundpflege' -> care);
+  the phrase side is normalized through the same dictionary ('reliability' ->
+  'reliable'); plural forms (+s/+es) are tolerated on both sides. German
+  packets no longer score values_fit 0.0 on unseen value domains.
+- `ENGINE_VERSION` 1.3.3 -> 1.0.1.
+- **Slim release artifacts** (packaging): the source zip now ships
+  runtime-essential files only - 371 entries / 1.6 MB (was 587 / 4.8 MB).
+  Dropped: kernel golden vectors, regression/demo run outputs (the server
+  recreates `attune-data/runs/` at startup), documentation screenshots and
+  diagrams, benchmark harness, verification-round artifacts, CI workflows,
+  vendor dev/QA assets (tests, e2e, examples, tools, schema) and CHANGELOG.
+  Nothing load-bearing changed: server, engine, web UI, sample data,
+  templates, the prebuilt kernel and the kernel build sources all stay.
+- **Slim standalone runtime** (`scripts/standalone/package.sh`): the packaged
+  CPython runtime is stripped of DWARF debug info (~200 MB in libpython
+  alone) and trimmed of Tcl/Tk + Tix + IDLE, lib2to3, ensurepip wheels,
+  C headers, pkg-config, terminfo/man and build-only config dirs; the Linux
+  x64 archive drops 74 MB -> 26 MB. Launcher contract and engine behavior
+  unchanged (boot + engine smoke re-verified on the stripped runtime).
+- **Code-quality pass across all languages**: ruff clean (2 vendor findings
+  fixed in `tools/gen_types.py`); dead code removed (unused
+  `DOMAIN_ANCHOR_MIN_LEN`, unused `norm_sha`, an always-true `or True`
+  branch, stale `pdf_inspector.py` debug constants pointing at a local
+  `D:/Projects` path - now argument-driven); fallow dead-code/dupes/health
+  on the web frontend (maintainability 86.5, zero duplication, the 2 vendor
+  e2e files intentionally out of the web entry graph); shellcheck clean;
+  flawfinder level>=4 = 0 hits; lizard complexity within the ratcheted
+  baselines. Stale version references corrected (START-HERE.txt 1.1.0 ->
+  1.0.1, Dockerfile/SETUP.md mount examples 1.3.0/1.0.0 -> 1.0.1).
+
+### Verification (generalization battery v2 + full regression)
+
+- Battery v2 (six professions - nurse, tax accountant, electrician, baker,
+  Kfz-Mechatroniker, Medizinische Fachangestellte - zero profile tuning after
+  preregistration; the two new professions passed the lint gate first):
+  Spearman vs preregistered order, hard gate: mean 0.714 -> **0.771**
+  (nurse 0.371 -> 0.543, mfa 0.886 at true cold start with a third-language
+  probe); balanced gate mean 0.757 -> **0.809**. Mechanism checks 37/45 as
+  formulated; every remaining FAIL is root-caused (nurse = the documented CF1
+  profile artifact the lint now flags; switcher checks = the standard-6-slot
+  formulation, the reframed zero-gap principle passes 5/6 with the nurse
+  failure being exactly that artifact; mfa F1 10/12 = the Polish probe's
+  documents correctly routed via filename fallback while the content
+  classifier honestly abstains). Replay pins 696/696 'exact'; determinism
+  PASS on all runs; native/WASM rankings byte-identical.
+- Regression on the three tuned corpora, 1.3.3 vs 1.0.1, unchanged profiles:
+  plumber order identical, rho 0.748 -> 0.748; trades rho 0.741 -> **0.860**
+  (david_osei line-wrap recovery, marco_bianchi cross-language marker-leak
+  correction: English '(fluent)' no longer leaks into the German claim, his
+  honest A2 declaration now correctly gates the German must-have); university
+  design-strength rho 0.582 -> **0.862** (anna_kowalska, the designed-top
+  candidate, recovers from the line-wrap false gap). Trades balanced-gate
+  opt-in tested and DECLINED by the mechanical rule (0.846 < 0.860 hard).
+- Kernel binaries unchanged: native lib and WASM module sha256 identical to
+  1.3.3; the 39-case kernel battery contract is untouched by construction.
+- Cross-platform release pipeline validated and hardened (v1.0.1): the three
+  standalone archives (Linux x64 / macOS arm64 / Windows x64) build in
+  `.github/workflows/release.yml` via `scripts/standalone/package.sh`, gated
+  by an engine smoke on every runner plus a Linux boot smoke. Fixed for the
+  Windows leg: `package.sh` now normalizes MSYS-style paths to drive-letter
+  form (`cygpath -m`) before any path reaches native Windows Python (the
+  kernel env var and staging heredocs previously passed `/d/a/...`-style
+  paths that Windows Python cannot resolve). Fixed stale `src/` kernel paths
+  in `ci.yml` (engine/ui jobs) and `scripts/codebase_intel.py` `C_DIRS` to
+  the real `odk-core`/`odk-brain`/`odk-spine` layout, and re-ratcheted the C
+  baseline over the vendored 2.0.0 kernel (lizard 60/15/136, flawfinder 16,
+  jscpd 84/1578/4.16%); `cppcheck_style` keeps its pre-2.0.0 value until the
+  one documented re-ratchet (`scripts/codebase_intel.py c --update-baseline`).
+  Linux leg proven end-to-end from this tree: archive built, kernel
+  reproducible byte-for-byte (sha256 `bc4159b9…`), bundled-runtime engine
+  output byte-identical to the canonical tree at equal salt, packaged server
+  answered `/api/template` (200); rankings identical across gcc -O0/-O2/-O3.
+- Known limitations (documented, not hidden): content classification
+  abstains ('unsure') on languages outside its de/en vocabulary - filename
+  routing still classifies and reads the documents; third-language alias
+  coverage remains per-client profile work; the hard-gate mid-table cap
+  remains available and balanced remains the recommendation for mixed-language
+  corpora.
+
+## [1.3.3] - 2026-11-12
+
+Balanced-gate round: ships the structural fix for the divergence the plumber
+fix round documented but refused to tune away ("the hard must-have cap cannot
+express the expert rubric's experience-vs-qualification / language-as-enabler
+trade-offs", `verification/case_study_plumber_1.3.2.txt` §[9]).
+
+### Added
+
+- **Balanced must-have gate** (`weights.must_have_gate = "hard" | "balanced"`,
+  default `hard`): for candidates with unresolved must-haves, the score ceiling
+  interpolates between the historical hard 40/100 and full credit by the MET
+  weight share of the must-have block, `cap = 0.40 + 0.60 * met_share`. The
+  gate's verdict semantics (evidence >= 0.6), review-queue flags, shortlist
+  exclusion and gap lists are unchanged - only the ceiling moves, and a
+  candidate whose evidence is below the ceiling is still scored by evidence
+  alone. Balanced runs add `gate_ceiling` / `gate_binding` per candidate;
+  hard-mode payloads stay byte-stable with pre-1.3.3 runs. Documented in
+  `docs/ENGINE-CLI.md` (aggregation profile keys).
+- `scripts/casestudy/plumber_balanced_verification.py` - regenerates
+  `verification/case_study_plumber_1.3.3.txt` from the on-disk runs (gate
+  table, expert-vs-tool comparison, old-corpus regression, engine gates).
+
+### Changed
+
+- **Plumber case-study profile alignment** (disclosed in `study_note`; the
+  only profile that opts in): `category_weighting=req_share` mirrors the
+  committed expert rubric's weighted-criteria structure
+  (A30/B15/C12/D15/E8/F12/G8) and `must_have_gate=balanced` expresses the
+  rubric's "language as enabler, not checkbox" trade-off. Candidate documents
+  untouched; every other profile keeps `uniform` + `hard`.
+- `ENGINE_VERSION` 1.3.2 -> 1.3.3; the `aggregation` provenance block records
+  the gate mode (new `must_have_gate` key - the only in-payload difference on
+  default runs, see the regression note below).
+
+### Verification (plumber/SHK corpus, expert ranking committed before any run)
+
+- Expert-vs-tool Spearman 0.65 (v1.3.2 hard) -> **0.748** (v1.3.3 balanced);
+  abdul_rahimi (A2 German, trade-strong) #9 -> #5 against expert #4, the
+  electrician control holds #11 and the negative control holds #12, the
+  shortlist set is unchanged (5 gap-free candidates).
+- **Old-corpus regression (the fix must not move previous job offers):**
+  trades, university and logistics14 corpora re-run under the 1.3.3 engine
+  with their unchanged profiles are candidate-level byte-identical with the
+  1.3.2 baselines (only diff: the new `aggregation.must_have_gate='hard'`
+  provenance key and the determinism hashes that cover it).
+- QA gates: `kernel_ab_battery` 39/39, `verify_spine_features` 13/13,
+  `smoke_test` all green, `check_python_side` 45/45,
+  `verify-layered-kernel` PASS; cross-tier ranking/overalls identical, spine
+  pins 232/232 replay `exact`, calibration error 0.041 (12 sign-offs).
+- Residual divergence documented, not tuned away: packet-quality scoring
+  (bogdan), proven-volume depth (felix), minor-repairs vocabulary in the
+  frozen alias table (julia), Spanish qualification aliases (anton),
+  top-3 internal order. See `verification/case_study_plumber_1.3.3.txt` §[5].
+
+## [1.3.2] - 2026-11-12
+
+Fix round for the ten issues the plumber/SHK manual-labor case study raised
+(`verification/case_study_plumber.txt` §10); re-verified on the same frozen
+corpus plus the trades and university corpora
+(`verification/case_study_plumber_1.3.2.txt`).
+
+### Fixed
+
+- **I1/I8 negation & disclaimer guard** (evidence matching): an alias hit
+  whose own sentence negates the requirement — "... and I am honest: I have
+  not done them yet", "Mir ist klar, dass mir die Ausbildung ... fehlt.",
+  "German (none)" — is no longer evidence. Multilingual sentence-scoped cue
+  list with contrast pivots (`sondern`/`but`), "not only / nicht nur"
+  exceptions, parenthetical ownership (`English (native), German (none)` no
+  longer negates the English claim) and mid-word window-cut protection
+  (`Notdienst` was being cut to `Not`). Suppressed hits persist per
+  requirement as `negated_hits`; snippet support now requires a positive
+  hit. The electrician with zero plumbing experience no longer ranks #2 of
+  12 on the strength of his own disclaimer.
+- **I2 tag-conflict review floor** (`spine_kernel.TAG_MIN_CONFIDENCE` 0.6 →
+  0.5, at the Tier A no-rule prior): a real cv/cover conflict expresses
+  ~0.53 on the binary scheme pair, so planted mistags now reach the human
+  queue (both `petra_lindner` mistags raise `tag_conflict` items).
+- **I3 language-fair scoring**: claim-quality marker vocabulary is
+  multilingual (`Muttersprache`, `verhandlungssicher`, `Firmenwagen`,
+  `eigene Werkzeugausstattung`, ...); CEFR A1/A2 self-ratings are
+  low-proficiency claims (a planted language gap stays a gap); token
+  coverage takes the best matched ALIAS phrase into account
+  (`Fuehrerschein Klasse B` covers `class B driving licence`); the most
+  informative declaration wins over bare mentions; `LEVEL_BANDS` gained the
+  German level vocabulary for the profile language table
+  (`Muttersprache`, `gute Kenntnisse`, `Grundkenntnisse`, ...).
+- **I4 values fold** extended with trades/service vocabulary (de+en):
+  `Handwerk`/`workmanship` → craftsmanship, `saubere Arbeit` → quality,
+  `Kundennaehe`/`Kundendialog` → customer, `Kundenservice`/`Dienstleistung`
+  → service, `Teamgeist`/`team` → teamwork, `Arbeitsschutz` → safety,
+  `Sorgfalt` → care, `communication` → care (values context only).
+- **I5 compound-tolerant alias matching**: a single-word alias of ≥ 5
+  letters may continue into a German compound or plural
+  (`heizung` → `Heizungsservice`, `trinkwasser` →
+  `Trinkwasserinstallation`, 18-letter continuation cap); short aliases
+  stay strict (`gas` ≠ `gasket`); `Deutschland` is excluded as a proper
+  noun for the `deutsch` alias.
+- **I7 binary-credential semantics**: claim-quality windows are clipped to
+  the sentence containing the hit (`Driving licence class B.` no longer
+  inherits `qualified_low` from `Spanish (basic).` on the reflowed line
+  above), and requirements may declare `claim_quality_exempt: true` — a
+  verbatim credential hit is evidence regardless of surrounding claim
+  context (a reviewer tuned override still wins). Set on the plumber
+  profile's `class B driving licence` requirement.
+- **I9 must-have gate** is verdict-based: a must-have passes only on
+  verdict `met` (evidence ≥ 0.6, level ≥ good). Partial evidence (0.4-0.6)
+  — e.g. a disclaimer that merely names the missing qualification — no
+  longer clears the gate; the 40/100 anti-keyword-stuffing cap is unchanged.
+- **I10 file hygiene** (`attune-data/casestudy-trades/expert/`): the
+  committed expert ranking file was restored (it had been overwritten with
+  comparison output; totals recovered from the frozen verification table,
+  restoration note inside) and `trades_comparison.py` now fails fast with an
+  operator-readable message if the input file is overwritten again.
+- **I11 layered-kernel verifier** (`scripts/kernel_results_diff.py`, found
+  while re-verifying): the cross-tier allowlist predates the spine block.
+  `$.spine` is provenance (native-tier only, degrades on WASM by design)
+  and, once F1 is active, the raw `pass1_sha256` legitimately differs
+  across tiers (native-only `content_tag` annotations + spine-only review
+  items). The cross-tier gate now compares a spine-normalized scoring view;
+  `verify-layered-kernel.sh` is green again.
+- **I6** (aliases amplified overmatch) needed no separate change: it was a
+  consequence of I1/I3 and is re-measured below.
+
+### Changed
+
+- `review_queue` may contain the new non-blocking kind `mixed_document`
+  (single file classifies as BOTH cv and cover above the 0.5 prior — likely
+  a combined letter+CV packet); `content_tag` may carry `mixed_hint`.
+- Career-switcher aspiration cues extended (`open to retraining into X`,
+  `Umschulung`, `Umqualifizierung`); German HIGHPROF cues added
+  (`festangestellt`, `taeglich`, `beruflich`, ...).
+- `ENGINE_VERSION` 1.3.1 -> 1.3.2.
+
+### Verified
+
+- Plumber/SHK corpus, same salt and frozen corpus: determinism PASS,
+  235/235 pins replay `exact`, cross-tier ranking + overalls byte-identical,
+  calibration error 0.041 (12 sign-offs), F1 accuracy 22/22 unchanged.
+  Negative/positive name-level controls all behave as designed: the
+  electrician (no plumbing) and the negative control hold the last two
+  ranks; trade-strong candidates hold the top.
+- Expert-vs-tool agreement (committed-before-run protocol): Spearman 0.448
+  -> 0.65 on the plumber corpus and 0.434 -> 0.769 on the trades corpus.
+  The remaining plumber divergence is structural (the hard must-have cap
+  cannot express the expert rubric's experience-vs-qualification trade-off)
+  and is documented, not tuned away.
+- QA gates: `kernel_ab_battery` 39/39, `verify_spine_features` 13/13,
+  `smoke_test` 54/54, `verify-layered-kernel` PASS, university corpus
+  re-run green.
+
+## [1.3.1] - 2026-11-11
+
+### Changed
+
+- `VALUES_TOKEN_SYNONYMS` (E1 multilingual values fold) extended with
+  academic-context German vocabulary (`wissenschaftliche Integritaet`,
+  `offene Wissenschaft`, `akademische Exzellenz`, `interdisziplinaere
+  Zusammenarbeit`, `verantwortungsvolle Betreuung und Lehre`, ...). Found by
+  screening a bilingual (DE/EN) university doctoral-hiring corpus: German
+  applications scored 0.0 values_fit against an English values text because
+  the fold table only carried the demo corpus's industry vocabulary.
+- `ENGINE_VERSION` 1.3.0 -> 1.3.1.
+
+### Fixed
+
+- `make_report.py`: the batch-report cover title and candidate-dossier title
+  had no explicit `leading`, so any position name long enough to wrap to a
+  second line drew its lines on top of each other and collided with the
+  subtitle (the short demo titles never exposed it). Found by the university
+  case study ("Doctoral Researcher (PhD) in Machine Learning"); leading is
+  now set explicitly on the display styles (38/18/27 pt).
+
+### Verified
+
+- University case study (`attune-data/casestudy-uni/`,
+  `verification/case_study_university.txt`): 12 applicants / 22 documents,
+  planted mistags, decoy filenames and a mixed letter+CV PDF. Spine F1
+  content classification 21/21 against ground truth; 4/4 confident
+  filename/content disagreements flagged; 100% of pins replay `exact`;
+  determinism holds; WASM tier ranks identically with the spine recorded
+  `unavailable`. 45-check QA gate stays green after the fold change
+  (demo corpus is English and unaffected by the added folds).
+
+## [1.3.0] - 2026-11-11
+
+### Added
+
+- **Spine feature layer** (`docs/SPINE-FEATURES.md`): Job Attune now uses
+  the integration spine of the vendored omnidecide-c 2.0.0 kernel
+  (`odk_spine.h`) — capabilities the 1.x kernel did not have. Native tier
+  only, gated by `$ATTUNE_SPINE` (default `auto`, or `off`); the WASM
+  fallback tier records a machine-readable unavailability reason and runs
+  exactly as in 1.2.0. New `attune-engine/spine_kernel.py` (ctypes spine
+  bridge), new `attune-engine/data/spine_schemes.json` (the document-role
+  schemes as DATA, registered through the kernel's extension API):
+  - **Content tag verification (F1)** — every readable document's
+    filename-derived role is cross-checked against its content by the
+    deterministic Tier A classifier (`odk_spine_classify`). Results carry a
+    `content_tag` annotation per file; a confident disagreement raises a
+    non-blocking `tag_conflict` review item for the human queue — the
+    pipeline never re-tags on its own.
+  - **Decision pins + replay audit (F6)** — every kernel evaluation of the
+    first pipeline pass is pinned via `odk_spine_pin` (exact request bytes,
+    decision, confidence, kernel version, schema fingerprint, registered
+    customizations) into `<run-dir>/spine_pins.jsonl`. New
+    `scripts/replay_audit.py` re-derives every pinned decision on a fresh
+    kernel via `odk_spine_evaluate_request` and must report `exact`.
+  - **Calibration loop (F4)** — new `scripts/calibrate_report.py` turns
+    human sign-offs (`review_decisions.jsonl`) into decision+outcome
+    observation pairs and computes the live confidence-vs-agreement
+    calibration report (`odk_spine_calibrate`, ten bins) — the
+    deployment-level counterpart of the frozen floors contract.
+- New `scripts/verify_spine_features.py` + release evidence
+  `verification/spine_features.txt` (13 checks: pins + replay audit,
+  spine-on/off scoring identity, WASM degradation, mis-tag fixture,
+  calibration loop).
+
+### Changed
+
+- `attune-engine/ckernel_native.py`: optional decision-pin hook — each
+  evaluate method now also builds the exact request document
+  (`{primitive, instruction, options?, context, top_k?}`) and, when a
+  recorder is attached (pinned pass only), hands it to the spine; with no
+  recorder the bridge behaves exactly as before.
+- `ENGINE_VERSION` 1.2.0 -> 1.3.0; `results.json` gains the `spine`
+  provenance block (status, schema fingerprint, counters, pins file hash),
+  written outside the hashed pipeline payload.
+
+### Verified
+
+- 13/13 spine checks: **125/125 pins replay `exact`** (all six primitives)
+  on a fresh kernel; canonical scoring payloads byte-identical between
+  spine-on and spine-off runs (the spine never changes a score); forced
+  WASM run ranks identically to native; the 45-check QA gate stays
+  **45 green / 0 amber / 0 red**.
+
+## [1.2.0] - 2026-11-11
+
+### Added
+
+- **Layered decision kernel** (`docs/LAYERED-KERNEL.md`):
+  `attune-engine/ckernel.py` is now a resolver that keeps the
+  `import ckernel` seam intact while choosing between two interchangeable
+  tiers of the same omnidecide-c 2.0.0 engine:
+  - **Native tier** (default, full speed): the ctypes bridge, now at
+    `attune-engine/ckernel_native.py`, loading
+    `vendor/omnidecide-c/build/libomnidecide.so` (+ `.dylib` / `.dll`);
+    one-time build via the new `scripts/build-kernel.sh`.
+  - **WASM fallback tier**: new `attune-engine/wasm_kernel.py` running the
+    vendored official omnidecide-wasm dist
+    (`vendor/omnidecide-wasm/dist/omnidecide.wasm`, kernel 2.0.0 snapshot,
+    Emscripten 7.0.0) through `wasmtime` - byte-identical decisions with no
+    C toolchain anywhere. Selected automatically only when no native
+    library can be loaded; `ATTUNE_KERNEL=native` pins the fast path and
+    fails loudly, `ATTUNE_KERNEL=wasm` pins portable mode.
+  - Provenance in every run log: one stderr line records backend, kernel
+    id, library/module, runtime API level (odk_spine_* presence proves a
+    2.x binary) and the fallback reason.
+- Release verification bundle `verification/`: tier-vs-tier A/B battery
+  (39 cases: all six primitives, payloads + error paths, EN/DE/ZH,
+  13.7k-char contexts), full-engine cross-tier replay with allowlisted
+  results diff, and an 8-thread concurrency probe.
+- Dockerfile fullstack image now also carries the WASM fallback tier
+  (wasmtime wheel + vendored dist) next to the baked native kernel.
+
+### Changed
+
+- Vendored omnidecide-c upgraded **1.0.0 -> 2.0.0** (upstream keeps the
+  full 1.x C API and replays 1.x decisions byte-identically - see
+  `vendor/omnidecide-c/docs/UPGRADE-2.0.md`); the kernel build line now
+  compiles the odk-core/odk-brain/odk-spine source layout.
+- `ENGINE_VERSION` 1.0.0 -> 1.2.0; standalone-packager manifest gate
+  updated to `omnidecide-c 2.0.0`.
+
 ## [Unreleased]
 
 ### Added
