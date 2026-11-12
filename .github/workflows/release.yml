@@ -65,7 +65,8 @@ jobs:
 
   build_release:
     name: Standalone (${{ matrix.platform }})
-    needs: create_release
+    needs: [create_release]
+    if: always()
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

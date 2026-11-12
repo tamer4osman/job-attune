@@ -68,11 +68,13 @@ case "$(uname -s)" in
     ;;
   MINGW*|MSYS*|CYGWIN*)
     PLATFORM="windows-x64"
-    # MinGW-w64 gcc (runner image default via Strawberry Perl). -static-libgcc
-    # is required so omnidecide.dll embeds GCC runtime helpers statically;
-    # otherwise MSVC CPython cannot load it on clean Windows machines lacking
-    # libgcc_s_seh-1.dll. GNU ld does auto-export symbols, but we make it explicit.
-    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"; KERNEL_ARCH_FLAGS="-static-libgcc -Wl,--export-all-symbols"
+    # MinGW-w64 gcc (runner image default via Strawberry Perl). All runtime libraries
+    # must be statically linked so MSVC CPython can load the DLL on clean Windows
+    # machines. Without this, we get "Could not find module" for missing DLLs like
+    # libgcc_s_seh-1.dll, libwinpthread-1.dll, libmingwex-1.dll, libmingw-1.dll.
+    # GNU ld auto-exports symbols with --export-all-symbols.
+    KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"
+    KERNEL_ARCH_FLAGS="-static-libgcc -static-libstdc++ -Wl,--export-all-symbols -Wl,-Bstatic -lmingw -lmingwex -Wl,-Bdynamic"
     # MSVC build (python-build-standalone 20241016 lacks GNU builds for Windows).
     # Use full install_only variant: the shared variant (~38MB) is missing the
     # Python stdlib needed by the attune engine. Full build (~66MB) includes
