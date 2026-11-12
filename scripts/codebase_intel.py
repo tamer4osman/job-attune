@@ -53,7 +53,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent  # repo root (no absolute paths)
 BASELINES = ROOT / ".codebase-intel" / "ratchet-baselines.json"
 
-PY_PATHS = ["server.py", "attune-engine", "bench", "scripts"]
+PY_PATHS = ["server.py", "attune-engine", "scripts"]
 C_DIRS = [
     "vendor/omnidecide-c/odk-core",
     "vendor/omnidecide-c/odk-brain",
