@@ -2,12 +2,12 @@
   "c": {
     "ccn_ge_26": 255,
     "ccn_ge_51": 138,
-    "max_ccn": 397,
-    "cppcheck_style": 46,
+    "cppcheck_style": 59,
     "flawfinder_ge_4": 16,
     "jscpd_clones": 84,
     "jscpd_dup_lines": 1578,
-    "jscpd_dup_percent": 4.16
+    "jscpd_dup_percent": 4.16,
+    "max_ccn": 397
   },
   "python": {
     "ccn_ge_11": 177,

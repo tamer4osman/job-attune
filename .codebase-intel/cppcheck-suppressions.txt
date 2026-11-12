@@ -17,6 +17,13 @@ unknownMacro:vendor/omnidecide-c/odk-core/odk_core.c
 # upstream reorder, not fixed here so the frozen kernel stays byte-identical.
 nullPointerArithmeticRedundantCheck:vendor/omnidecide-c/odk-brain/odk_learn.c:1627
 
+# odk_learn.c:1640 - cppcheck warns about potential pointer overflow in
+# (sep - p) on line 1640, but the guard at line 1630 (`part < 2 && sep == NULL`)
+# ensures sep != NULL when reaching line 1640. The check at line 1645
+# (`strchr(p,'\x1f')!=NULL` when part==2) is flagged as redundant because sep
+# was already computed via strchr at line 1628. Both are vendored kernel code.
+nullPointerArithmeticRedundantCheck:vendor/omnidecide-c/odk-brain/odk_learn.c:1640
+
 # tools/odk_sidecar.c:698 - memleakOnRealloc. `body` is reassigned here and
 # freed at the end of every request iteration (odk_sidecar.c:771), so no leak
 # occurs; cppcheck's flow analysis does not follow the reassignment through
