@@ -44,6 +44,12 @@ Differences vs the original embedded-engine contract, by design:
     raises TypeError instead of silently ignoring evidence.
 """
 
+# pylint: disable=duplicate-code
+# R0801: The Windows DLL-directory bootstrap block (add_dll_directory loop)
+# is duplicated across ckernel_native.py, spine_kernel.py and wasm_kernel.py.
+# This is intentional -- each kernel bridge must set up the same Windows DLL
+# search path before loading its respective shared library.
+
 from __future__ import annotations
 
 import ctypes
@@ -52,6 +58,8 @@ import re
 import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+
+from text_mode import resolve_text_mode
 
 __all__ = [
     "KERNEL_NAME",
@@ -301,14 +309,7 @@ def _resolve_text_mode(value: Any) -> str:
     (the default: scoring-identical on pure-ASCII input and required for
     non-Latin scripts to carry kernel evidence).
     ATTUNE_TEXT_MODE=ascii restores the byte-frozen ASCII behavior."""
-    mode = (str(value).strip().lower() if value is not None
-            else (os.environ.get(ENV_TEXT_MODE) or "unicode").strip().lower())
-    if mode not in TEXT_MODES:
-        raise ValueError(
-            f"unknown text mode {mode!r} - expected one of {sorted(TEXT_MODES)} "
-            f"(set {ENV_TEXT_MODE} or pass text_mode=...)"
-        )
-    return mode
+    return resolve_text_mode(value, ENV_TEXT_MODE, TEXT_MODES)
 
 
 def _resolve_language(value: Any) -> str:

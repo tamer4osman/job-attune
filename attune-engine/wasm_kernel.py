@@ -46,6 +46,12 @@ Differences vs the ctypes bridge (documented, none reachable by engine.py):
     ThreadingHTTPServer concurrent runs without a global lock.
 """
 
+# pylint: disable=duplicate-code
+# R0801: The Windows DLL-directory bootstrap block (add_dll_directory loop)
+# is duplicated across ckernel_native.py, spine_kernel.py and this module.
+# This is intentional -- each kernel bridge must set up the same Windows DLL
+# search path before loading its respective shared library.
+
 from __future__ import annotations
 
 import json
@@ -55,6 +61,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import wasmtime
+from text_mode import resolve_text_mode
 
 __all__ = [
     "KERNEL_NAME",
@@ -215,14 +222,11 @@ KERNEL_ID = f"{KERNEL_NAME} {KERNEL_VERSION}"
 # --------------------------------------------------------------------------- #
 
 def _resolve_text_mode(value: Any) -> str:
-    mode = (str(value).strip().lower() if value is not None
-            else (os.environ.get(ENV_TEXT_MODE) or "unicode").strip().lower())
-    if mode not in TEXT_MODES:
-        raise ValueError(
-            f"unknown text mode {mode!r} - expected one of {sorted(TEXT_MODES)} "
-            f"(set {ENV_TEXT_MODE} or pass text_mode=...)"
-        )
-    return mode
+    """Validate a text-mode selection ("ascii" | "unicode").
+
+    ``None`` falls back to $ATTUNE_TEXT_MODE, then to "unicode"
+    (the default). See text_mode.py for the shared implementation."""
+    return resolve_text_mode(value, ENV_TEXT_MODE, TEXT_MODES)
 
 
 def _resolve_language(value: Any) -> str:

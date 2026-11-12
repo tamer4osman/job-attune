@@ -63,3 +63,22 @@ flavorData
 PAPER_HEX
 FOREST_HEX
 ORANGE_HEX
+
+# --- attune-engine/wasm_kernel.py: WASM export surface -------------------------
+# kernel_count is a WASM export (odkw_kernel_count) loaded alongside the other
+# kernel symbols. It is part of the WASM module's public export surface and
+# must remain bound to the instance for parity with the native bridge, even
+# though the Python layer does not currently call it directly.
+from wasm_kernel import _WasmHost  # noqa: F401
+
+_WasmHost.kernel_count
+
+# --- attune-engine/spine_kernel.py: F4 spine features (future calibration loop) ---
+# ingest_observation and calibrate are SpineContext methods for the F4
+# observation-log calibration report feature (docs/SPINE-FEATURES.md). They are
+# part of the API surface but not yet enabled by default - the pipeline will
+# call them when the calibration loop feature is activated.
+from spine_kernel import SpineContext  # noqa: F401
+
+SpineContext.ingest_observation
+SpineContext.calibrate

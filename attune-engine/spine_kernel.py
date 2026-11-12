@@ -24,6 +24,12 @@ classification labels, pin records and calibration reports; timestamps are
 caller-supplied because the spine never reads the wall clock.
 """
 
+# pylint: disable=duplicate-code
+# R0801: The Windows DLL-directory bootstrap block (add_dll_directory loop)
+# is duplicated across ckernel_native.py, spine_kernel.py and wasm_kernel.py.
+# This is intentional -- each kernel bridge must set up the same Windows DLL
+# search path before loading its respective shared library.
+
 from __future__ import annotations
 
 import ctypes
