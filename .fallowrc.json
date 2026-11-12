@@ -2,7 +2,9 @@
   "entry": [
     "web/js/app.js",
     "web/css/app.css",
-    "web/index.html"
+    "web/index.html",
+    "vendor/omnidecide-c/e2e/server.js",
+    "vendor/omnidecide-c/e2e/specs/sidecar.spec.js"
   ],
   "audit": {
     "healthBaseline": ".codebase-intel/fallow-health-baseline.json"

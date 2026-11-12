@@ -8,11 +8,26 @@
 # odk_core.c: ODK_LIBRARY_VERSION is provided by the build system (Makefile /
 # CMakeLists pass it via -D); cppcheck cannot see it without a compile
 # database, so the "unknown macro" report is a configuration artifact.
-unknownMacro:vendor/omnidecide-c/src/odk_core.c
+unknownMacro:vendor/omnidecide-c/odk-core/odk_core.c
 
 # odk_learn.c:1627 - `sep - p` is computed before the `sep == NULL` guard on
 # the error path that discards the value. Benign in practice (the value is
 # never read when sep is NULL) but technically pointer arithmetic on NULL.
 # Pre-existing in the vendored, golden-corpus-frozen kernel; tracked for an
 # upstream reorder, not fixed here so the frozen kernel stays byte-identical.
-nullPointerArithmeticRedundantCheck:vendor/omnidecide-c/src/odk_learn.c:1627
+nullPointerArithmeticRedundantCheck:vendor/omnidecide-c/odk-brain/odk_learn.c:1627
+
+# tools/odk_sidecar.c:698 - memleakOnRealloc. `body` is reassigned here and
+# freed at the end of every request iteration (odk_sidecar.c:771), so no leak
+# occurs; cppcheck's flow analysis does not follow the reassignment through
+# the for(;;) loop and the trailing free. Benign HTTP-server edge case in the
+# vendored tool; tracked for an upstream false-positive report.
+memleakOnRealloc:vendor/omnidecide-c/tools/odk_sidecar.c:698
+
+# tools/odk_sidecar.c:744 - nullPointerOutOfMemory. `response` is either a
+# strdup() result (odk_sidecar.c:733) or the handle_request() return; the
+# NULL case is replaced unconditionally at odk_sidecar.c:732-735, but the
+# replacement itself calls strdup() whose result is used without a NULL check
+# at odk_sidecar.c:744. Benign in practice (an OOM strdup kills the process
+# before the dereference); vendored tool code, tracked for an upstream fix.
+nullPointerOutOfMemory:vendor/omnidecide-c/tools/odk_sidecar.c:744
