@@ -12,9 +12,15 @@ accidental behavior change in a deterministic library.
 make golden-check          # re-runs every case; exit 0 only if all are byte-identical
 ```
 
+## Spine engines corpus
+
 The v2.0.0 spine engines have their own corpus: `golden/spine/` (35 cases,
-checked with `make spine-golden-check`), documented in
-[docs/GOLDEN.md](docs/GOLDEN.md#spine-engines-corpus).
+checked with `make spine-golden-check`). Each case exercises spine features:
+classification, decomposition, pin creation and replay, observation ingest,
+calibration, and worldstate validation.
+
+See also [../tests/golden_spine.c](../tests/golden_spine.c) for the runner, and
+[SPINE-API.md](SPINE-API.md) for the extension API.
 
 ## 1. Files
 
