@@ -98,21 +98,16 @@ echo "==> platform: $PLATFORM (kernel: $KERNEL_LIB, archive: $ARCHIVE_EXT)"
 # only when invoking native Windows programs (like the bundled CPython).
 if command -v cygpath >/dev/null 2>&1; then
   ROOT_WIN="$(cygpath -m "$ROOT")"
-  TMP_WIN="$(cygpath -m "$(mktemp -d)")"
 else
   # Non-Windows: no conversion needed
   ROOT_WIN="$ROOT"
-  TMP_WIN="$(mktemp -d)"
 fi
 
 # POSIX path for MSYS utilities (tar, cp, find, rm) - works for all platforms
 TMP="$(mktemp -d)"
-# On Windows, also keep staging/dist paths with dual-path handling
 STAGE="$TMP/stage"
-STAGE_WIN="$TMP_WIN/stage"
-DIST_WIN="$ROOT_WIN/dist"
 mkdir -p "$TMP/rt"
-trap 'rm -rf "$TMP" "$TMP_WIN"' EXIT
+trap 'rm -rf "$TMP"' EXIT
 
 # ------------------------------------------------------------------ kernel
 # Same sources and flags as scripts/build-kernel.sh, the repo's canonical
@@ -163,9 +158,9 @@ fi
 # Prove this platform's kernel + the bundled python run the real engine
 # BEFORE packaging anything.
 echo "==> engine smoke (bundled python + $KERNEL_LIB)"
-# Python needs Windows path for the kernel library on Windows, but tar
-# extracts to POSIX paths ($TMP) even on Windows (MSYS), so we keep
-# POSIX paths for Python executable and run directory.
+# The kernel library path uses Windows format on Windows (for ctypes to
+# find omnidecide.dll), but the Python executable and run directory
+# use POSIX paths (tar extracts to POSIX, MSYS Python handles both).
 if [ "$PLATFORM" = "windows-x64" ]; then
   export OMNIDECIDE_C_LIB="$ROOT_WIN/vendor/omnidecide-c/build/$KERNEL_LIB"
   PY="$TMP/rt/python/$PY_BIN"
@@ -274,16 +269,15 @@ find "$STAGE" -name ".DS_Store" -delete 2>/dev/null || true
 
 # ------------------------------------------------------------------ archive
 echo "==> creating the archive"
+# On Windows, use POSIX paths throughout - MSYS tar/Python work with both
+# formats consistently. Using mixed POSIX/Windows paths causes issues.
 mkdir -p "$DIST_ROOT"
 ART="$DIST_ROOT/$DIST_NAME.$ARCHIVE_EXT"
-ART_WIN="$DIST_WIN/$DIST_NAME.$ARCHIVE_EXT"
 rm -f "$ART" "$ART.sha256"
 if [ "$ZIP" -eq 1 ]; then
-  # Python zipfile needs Windows-style path for the output archive on Windows,
-  # but can read POSIX paths for input (MSYS Python handles this).
-  ART_ZIP="${ART_WIN:-$ART}"
-  STAGE_ZIP="$STAGE/$DIST_NAME"
-  "$PY" - "$ART_ZIP" "$STAGE_ZIP" <<'PYEOF'
+  # Python zipfile with MSYS accepts POSIX paths for both input and output.
+  # Previously attempted Windows paths (ART_WIN) caused silent failures.
+  "$PY" - "$ART" "$STAGE/$DIST_NAME" <<'PYEOF'
 import os, sys, zipfile
 art, src = sys.argv[1], sys.argv[2]
 with zipfile.ZipFile(art, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
@@ -299,12 +293,8 @@ else
 fi
 
 # sha256 calculation - Python reads the archive and writes sha256.
-# Use Windows-style path on Windows, POSIX on Unix.
-ART_SHA="$ART"
-if [ "$PLATFORM" = "windows-x64" ]; then
-  ART_SHA="$ART_WIN"
-fi
-"$PY" - "$ART_SHA" <<'PYEOF'
+# Use POSIX paths throughout on Windows (MSYS Python handles this).
+"$PY" - "$ART" <<'PYEOF'
 import hashlib, os, sys
 p = sys.argv[1]
 h = hashlib.sha256(open(p, "rb").read()).hexdigest()
