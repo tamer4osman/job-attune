@@ -2,3 +2,7 @@
 # alone; these two packages cover PDF export and QA-gate validation.
 reportlab>=4.4,<5
 pypdf>=4.0
+
+# Optional: the portable WASM fallback tier (docs/LAYERED-KERNEL.md). Only
+# needed when no native kernel library can be built or loaded:
+#   pip install wasmtime

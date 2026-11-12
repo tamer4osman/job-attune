@@ -1,0 +1,49 @@
+[
+  {
+    "id": "attune-cv-document",
+    "version": 1,
+    "valid_from": 0,
+    "valid_to": -1,
+    "default_label": "unsure",
+    "facet_names": [],
+    "rules": [
+      {
+        "label": "cv",
+        "match_terms": [
+          "curriculum vitae", "resume", "work experience",
+          "professional experience", "employment history", "education",
+          "skills", "lebenslauf", "berufserfahrung", "qualifications",
+          "career", "achievements", "certifications"
+        ],
+        "any_term": true,
+        "priority": 1,
+        "facets": {}
+      }
+    ],
+    "notes": "Job Attune document-role scheme: content that reads like a CV/resume (Tier A, deterministic lexical rules)"
+  },
+  {
+    "id": "attune-cover-letter",
+    "version": 1,
+    "valid_from": 0,
+    "valid_to": -1,
+    "default_label": "unsure",
+    "facet_names": [],
+    "rules": [
+      {
+        "label": "cover",
+        "match_terms": [
+          "cover letter", "dear hiring", "dear sir", "dear madam",
+          "to whom it may concern", "i am writing", "i would like to apply",
+          "application for the position", "sincerely", "best regards",
+          "kind regards", "anschreiben", "sehr geehrte",
+          "motivationsschreiben", "hiring manager"
+        ],
+        "any_term": true,
+        "priority": 1,
+        "facets": {}
+      }
+    ],
+    "notes": "Job Attune document-role scheme: content that reads like a cover/motivation letter (Tier A, deterministic lexical rules)"
+  }
+]
