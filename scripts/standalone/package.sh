@@ -76,16 +76,15 @@ case "$(uname -s)" in
     # libgcc_s_seh-1.dll, libwinpthread-1.dll, libmingwex-1.dll, libmingw-1.dll.
     # GNU ld auto-exports symbols with --export-all-symbols.
     KERNEL_CC="gcc"; KERNEL_LIB="omnidecide.dll"
+    # -static-libgcc handles libgcc_s_seh-1.dll, -static-libstdc++ handles
+    # libstdc++-6.dll. MinGW's libmingw(-ex) and libwinpthread static archives
+    # (-lmingw.a, -lmingwex.a, -lwinpthread.a) are NOT available on windows-latest
+    # runners (it's an MSVC toolchain). We rely on -static-libgcc to eliminate
+    # libgcc_s_seh-1.dll dependency. The MSVC C runtime (msvcrt.dll) is always
+    # available on Windows and links automatically for C11 code.
     KERNEL_ARCH_FLAGS="-static-libgcc -static-libstdc++ -Wl,--export-all-symbols"
-    # MinGW runtime libraries must be statically linked as separate flags at the
-    # end of the compile line. This prevents runtime DLL dependency on
-    # libgcc_s_seh-1.dll, libwinpthread-1.dll, libmingwex-1.dll, libmingw-1.dll.
-    # Note: -static-libgcc handles libgcc_s, but -lmingw, -lmingwex, -lwinpthread
-    # must be explicitly linked statically via -Wl,-Bstatic.
-    # On Windows, -lm is not needed (math is in C runtime via msvcrt.dll or
-    # mingwex). The -static-libgcc and the static libmingwex below handle this.
     KERNEL_MATH=""
-    KERNEL_STATIC_FLAGS="-Wl,-Bstatic -lmingwex -lmingw -lwinpthread -Wl,-Bdynamic"
+    KERNEL_STATIC_FLAGS=""
     # MSVC build (python-build-standalone 20241016 lacks GNU builds for Windows).
     # Use full install_only variant: the shared variant (~38MB) is missing the
     # Python stdlib needed by the attune engine. Full build (~66MB) includes
