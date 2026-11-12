@@ -20,8 +20,9 @@ Checks:
      escalation, claim_quality audit field).
      tuned-evidence probes (C33-C35: loader validation, override application
      + confidence gating + heuristic-input persistence, run-level manifest counters).
-     bench baselines probes (C36-C38: boolean-ats must-have veto + coverage,
-     tf-idf ordering + determinism, bm25 ordering + determinism).
+     case-study fixture probes (C36-C38: ground truth matches the candidate
+     folders and files, expert rankings are frozen permutations with
+     descending totals, plumber preregistration hashes match).
   D. Report: make_report.py exports; every PDF parses (pypdf), page count >= 1,
      manifest sha256 matches recomputed file hashes.
 
@@ -32,6 +33,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -435,34 +437,73 @@ if proc.returncode == 0 and res_path.exists():
     grade("C35 tuned-evidence fail-fast on bad schema", _raised,
           "ValueError raised for wrong schema")
 
-    # ---- bench baselines probes ------------------------------------------
-    import importlib.util as _ilu
-    _bspec = _ilu.spec_from_file_location("bench_baselines", ROOT / "bench" / "baselines.py")
-    _bmod = _ilu.module_from_spec(_bspec)
-    _bspec.loader.exec_module(_bmod)
-    _probe_prof = {"company": "ProbeCo", "job": "Senior Data Engineer",
-                   "categories": {"technical_skills": [
-                       {"skill": "Python", "weight": 3.0, "must_have": True, "aliases": []},
-                       {"skill": "Apache Airflow", "weight": 2.0, "must_have": True, "aliases": ["Airflow"]},
-                       {"skill": "Kubernetes", "weight": 1.0, "must_have": False, "aliases": ["k8s"]}]}}
-    _texts = {"good": "Built Python pipelines with Apache Airflow and Kubernetes clusters.",
-              "partial": "Python developer, no orchestrator experience.",
-              "empty": "Sales representative, completely unrelated background."}
-    _ba = _bmod.boolean_ats_scores(_probe_prof, _texts)
-    _tf = _bmod.tfidf_scores(_probe_prof, _texts)
-    _bm = _bmod.bm25_scores(_probe_prof, _texts)
-    grade("C36 bench boolean-ats must-have veto + coverage",
-          _ba["empty"] == 0.0 and _ba["partial"] == 0.0
-          and _ba["good"] > 1.0 and abs(_ba["good"] - 3.0) < 1e-9,
-          f"good={_ba['good']:.3f} partial={_ba['partial']} empty={_ba['empty']}")
-    grade("C37 bench tfidf ordering + determinism",
-          max(_tf, key=_tf.get) == "good" and _tf["good"] > _tf["partial"] > _tf["empty"]
-          and _tf["empty"] == 0.0 and _bmod.tfidf_scores(_probe_prof, _texts) == _tf,
-          f"good={_tf['good']:.3f} partial={_tf['partial']:.3f} empty={_tf['empty']:.3f}")
-    grade("C38 bench bm25 ordering + determinism",
-          max(_bm, key=_bm.get) == "good" and _bm["good"] > _bm["partial"] > _bm["empty"]
-          and _bmod.bm25_scores(_probe_prof, _texts) == _bm,
-          f"good={_bm['good']:.3f} partial={_bm['partial']:.3f} empty={_bm['empty']:.3f}")
+    # ---- case-study fixture integrity probes ------------------------------
+    _fixtures_root = ROOT / "attune-data"
+    _fixtures = ["casestudy-plumber", "casestudy-trades", "casestudy-uni"]
+    _fixture_ok, _fixture_detail, _corpus_folders = True, [], {}
+    for _name in _fixtures:
+        _base = _fixtures_root / _name
+        try:
+            _gt = json.loads((_base / "ground_truth.json").read_text(encoding="utf-8"))
+        except Exception as exc:
+            _fixture_ok = False
+            _fixture_detail.append(f"{_name}: {type(exc).__name__}")
+            continue
+        _declared = [c["folder"] for c in _gt.get("candidates") or []]
+        _on_disk = sorted(p.name for p in (_base / "candidates").iterdir() if p.is_dir())
+        _missing = sorted(set(_declared) - set(_on_disk))
+        _extra = sorted(set(_on_disk) - set(_declared))
+        _files_ok = all(
+            (_base / "candidates" / c["folder"] / f["name"]).is_file()
+            for c in _gt.get("candidates") or []
+            for f in c.get("files") or []
+        )
+        _corpus_folders[_name] = set(_declared)
+        _doc_count = sum(len(c.get("files") or []) for c in _gt.get("candidates") or [])
+        if _missing or _extra or not _files_ok or len(_declared) != 12:
+            _fixture_ok = False
+        _fixture_detail.append(
+            f"{_name}={len(_declared)}c/{_doc_count}f"
+            + (f" missing={_missing}" if _missing else "")
+            + (f" extra={_extra}" if _extra else "")
+            + (" files-missing" if not _files_ok else ""))
+    grade("C36 case-study fixtures complete (ground truth matches candidates/)",
+          _fixture_ok, "; ".join(_fixture_detail))
+
+    _expert_ok, _expert_detail = True, []
+    for _name in _fixtures:
+        _rank_path = _fixtures_root / _name / "expert" / "expert_ranking.json"
+        if not _rank_path.is_file():
+            _expert_detail.append(f"{_name}=no-expert")
+            continue
+        _rank = json.loads(_rank_path.read_text(encoding="utf-8"))
+        _order = _rank.get("expert_ranking_order") or []
+        _perm_ok = sorted(_order) == sorted(_corpus_folders.get(_name, set()))
+        _totals = [c.get("total") for c in _rank.get("candidates") or []]
+        _totals_ok = all(isinstance(t, (int, float)) for t in _totals) and all(
+            _totals[i] >= _totals[i + 1] for i in range(len(_totals) - 1))
+        _expert_ok &= _perm_ok and _totals_ok
+        _expert_detail.append(
+            f"{_name}={len(_order)} ranked"
+            + ("" if _perm_ok else " non-permutation")
+            + ("" if _totals_ok else " totals-not-descending"))
+    grade("C37 expert rankings are frozen permutations with descending totals",
+          _expert_ok, "; ".join(_expert_detail))
+
+    _prereg_ok, _prereg_detail = True, []
+    _prereg_path = _fixtures_root / "casestudy-plumber" / "preregistration.sha256"
+    _prereg = _prereg_path.read_text(encoding="utf-8")
+    for _rel in ("expert/expert_rubric.md", "expert/expert_ranking.json",
+                 "ground_truth.json", "profile-plumber-pilot.json"):
+        _match = re.search(rf"{re.escape(Path(_rel).name)}\s+sha256\s*=\s*([0-9a-f]{{64}})",
+                           _prereg)
+        _actual = hashlib.sha256(
+            (_prereg_path.parent / _rel).read_bytes()).hexdigest()
+        _ok = bool(_match) and _match.group(1) == _actual
+        _prereg_ok &= _ok
+        _prereg_detail.append(f"{Path(_rel).name}={'ok' if _ok else 'MISMATCH'}")
+    grade("C38 plumber preregistration hashes match frozen artifacts",
+          _prereg_ok, "; ".join(_prereg_detail))
 else:
     grade("C1 results.json", False, "engine failed - functional checks skipped")
 

@@ -45,8 +45,8 @@ CLIENT_HDR = {"X-Attune-Client": "smoke"}
 SAMPLE = "attune-sample-data/candidates"
 CORPORA = [
     ("sample-6", SAMPLE),
-    ("trades14", "bench/corpora/trades14/candidates"),
-    ("logistics14", "bench/corpora/logistics14/candidates"),
+    ("trades-12", "attune-data/casestudy-trades/candidates"),
+    ("plumber-12", "attune-data/casestudy-plumber/candidates"),
 ]
 
 STATIC_ASSETS = [
