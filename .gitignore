@@ -61,3 +61,9 @@ sarif/
 
 # Standalone packaging output (scripts/standalone/package.sh)
 /dist/
+
+# Electron desktop shell build inputs/outputs (see electron/README.md)
+electron/node_modules/
+electron/dist/
+electron/tmp/
+electron/standalone-bundle/

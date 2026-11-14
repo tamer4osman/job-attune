@@ -14,7 +14,8 @@
 #                   python + that kernel) against the demo corpus before
 #                   anything is packaged.
 #   boot smoke      Linux additionally extracts the finished archive and
-#                   verifies the bundled server answers an API request.
+#                   verifies the bundled server answers an API request and
+#                   serves the PWA install layer (manifest + service worker).
 #
 # Triggers:
 #   - push a v* tag: the release is created first, then all three archives are
@@ -105,12 +106,20 @@ jobs:
             fi
             sleep 1
           done
-          kill "$SERVER_PID" 2>/dev/null || true
           if [ "$ok" != "yes" ]; then
+            kill "$SERVER_PID" 2>/dev/null || true
             echo "boot smoke: the packaged server never answered /api/template" >&2
             exit 1
           fi
           echo "boot smoke OK: packaged server answered /api/template"
+          # The PWA install layer rides along in web/ - prove it survived
+          # packaging (static assets need no guard header; the server must
+          # still be running here, so these run BEFORE the kill below).
+          curl -sf http://127.0.0.1:3000/manifest.webmanifest | grep -q '"short_name"'
+          curl -sf -o /dev/null http://127.0.0.1:3000/sw.js
+          curl -sf -o /dev/null http://127.0.0.1:3000/icons/icon-512.png
+          echo "boot smoke OK: PWA manifest + service worker served"
+          kill "$SERVER_PID" 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         with:

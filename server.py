@@ -37,6 +37,7 @@ import threading
 import time
 import unicodedata
 import uuid
+from collections import deque
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -53,6 +54,12 @@ TEMPLATES_DIR = DATA_ROOT / "templates"
 ENGINE = PROJECT_ROOT / "attune-engine" / "engine.py"
 REPORTER = PROJECT_ROOT / "attune-engine" / "make_report.py"
 WEB_DIR = PROJECT_ROOT / "web"
+
+# PWA MIME types: mimetypes consults the OS table, which differs between
+# runner/desktop images - pin the two types the web app actually serves so
+# /manifest.webmanifest and the fonts are correct everywhere.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("font/woff2", ".woff2")
 
 HOST = os.environ.get("ATTUNE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("ATTUNE_PORT", "3000"))
@@ -72,7 +79,46 @@ _PDF_FILE_RE = re.compile(r"^[A-Za-z0-9._-]+\.pdf$")
 #: Loopback guard config (see the security note at the top of this file).
 CLIENT_HEADER = "x-attune-client"
 
+#: Per-client request cap (requests per minute, sliding window). The run
+#: monitor polls /api/run/status every 900 ms (~67/min), so the default is
+#: deliberately generous; it exists to cap abuse, not to ration the UI.
+#: Set ATTUNE_RATE_LIMIT=0 to disable.
+RATE_LIMIT_PER_MIN = int(os.environ.get("ATTUNE_RATE_LIMIT", "300"))
+
+#: Socket timeout for request handlers (seconds): a client that stalls -
+#: headers never finished, body trickled - has its connection dropped by the
+#: stdlib's TimeoutError path instead of holding a worker thread forever
+#: (slowloris mitigation).
+REQUEST_TIMEOUT_S = 30
+
+#: Content-Security-Policy for the HTML document. The app is fully static
+#: and external: no inline <script>, no remote origins - the only
+#: relaxations are style-src 'unsafe-inline' (the views set string style=""
+#: attributes through the DOM builder, which CSP counts as inline styling)
+#: and img-src data: (the select chevron is an inline SVG data URI in
+#: app.css; self-contained, still no network fetch).
+HTML_CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; "
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'"
+)
+
 _print_lock = threading.Lock()
+
+
+class BodyTooLarge(ValueError):
+    """Content-Length exceeds MAX_BODY_BYTES (maps to 413)."""
+
+
+class BadContentLength(ValueError):
+    """Content-Length header is not a valid integer (maps to 400)."""
 
 
 def log(tag: str, message: str) -> None:
@@ -83,6 +129,35 @@ def log(tag: str, message: str) -> None:
 def ensure_dirs() -> None:
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# --------------------------------------------------------------------------- #
+# Rate limiting - per-client sliding window (thread-safe; one deque per IP)
+# --------------------------------------------------------------------------- #
+
+_rate_lock = threading.Lock()
+_rate_events: dict[str, deque] = {}
+
+
+def rate_limit_ok(client_ip: str) -> bool:
+    """True unless this client already sent RATE_LIMIT_PER_MIN requests in
+    the last 60 seconds. monotonic clock, immune to wall-clock changes."""
+    if RATE_LIMIT_PER_MIN <= 0:
+        return True
+    now = time.monotonic()
+    with _rate_lock:
+        events = _rate_events.setdefault(client_ip, deque())
+        cutoff = now - 60.0
+        while events and events[0] < cutoff:
+            events.popleft()
+        if len(events) >= RATE_LIMIT_PER_MIN:
+            return False
+        events.append(now)
+        if len(_rate_events) > 256:  # bound the table; loopback apps see few IPs
+            for ip in [k for k, v in _rate_events.items()
+                       if not v or v[-1] < now - 600.0]:
+                del _rate_events[ip]
+        return True
 
 
 # --------------------------------------------------------------------------- #
@@ -619,21 +694,30 @@ MAX_BODY_BYTES = 10 * 1024 * 1024  # hard cap: JSON bodies are <= 2 MB by contra
 class AttuneHandler(BaseHTTPRequestHandler):
     server_version = "JobAttune"
     protocol_version = "HTTP/1.1"
+    # StreamRequestHandler honors this: the socket gets settimeout() in
+    # setup(), and handle_one_request() drops the connection on TimeoutError.
+    timeout = REQUEST_TIMEOUT_S
 
     # ---- plumbing -------------------------------------------------------- #
 
     def log_message(self, fmt, *args):  # route access logs through log()
         log("http", f"{self.address_string()} {fmt % args}")
 
-    def _send(self, status, payload, content_type="application/json; charset=utf-8", extra_headers=None):
+    def _send(self, status, payload, content_type="application/json; charset=utf-8", extra_headers=None, cache_control="no-store"):
         blob = payload if isinstance(payload, bytes) else json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(blob)))
+        # hardening headers on every response (HTML additionally gets CSP)
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        if content_type.startswith("text/html"):
+            self.send_header("Content-Security-Policy", HTML_CSP)
         for key, value in (extra_headers or {}).items():
             if key.lower() not in ("content-type", "content-length"):
                 self.send_header(key, value)
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache_control)
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(blob)
@@ -642,9 +726,15 @@ class AttuneHandler(BaseHTTPRequestHandler):
         self._send(status, {"error": message})
 
     def _read_body(self):
-        length = int(self.headers.get("Content-Length") or 0)
+        raw_len = (self.headers.get("Content-Length") or "").strip()
+        if not raw_len:
+            return {}
+        try:
+            length = int(raw_len)
+        except ValueError:
+            raise BadContentLength("Content-Length is not an integer") from None
         if length > MAX_BODY_BYTES:
-            raise ValueError("body too large")
+            raise BodyTooLarge("body too large")
         if length <= 0:
             return {}
         raw = self.rfile.read(length)
@@ -683,9 +773,14 @@ class AttuneHandler(BaseHTTPRequestHandler):
     # ---- routing --------------------------------------------------------- #
 
     def _dispatch(self, method):
+        if not rate_limit_ok(self.client_address[0]):
+            return self._send(429, {"error": "Too many requests - retry shortly."},
+                              extra_headers={"Retry-After": "30"})
         parsed = urlparse(self.path)
         path = unquote(parsed.path)
-        if path.startswith("/api"):
+        # exact /api boundary: "/api" itself and "/api/..." routes; anything
+        # else ("/apifoo") is a static-path lookup, not an API call
+        if path == "/api" or path.startswith("/api/"):
             if not self._guard_passes():
                 return
             handler = ROUTES.get((method, path.rstrip("/") or path))
@@ -693,8 +788,10 @@ class AttuneHandler(BaseHTTPRequestHandler):
                 return self._json_error("Not found", 404)
             try:
                 body = self._read_body() if method == "POST" else {}
-            except ValueError:
+            except BodyTooLarge:
                 return self._json_error("Request body too large", 413)
+            except BadContentLength:
+                return self._json_error("Invalid Content-Length header", 400)
             try:
                 if handler is api_report_download:
                     # streaming endpoint: (status, payload, extra headers)
@@ -738,7 +835,12 @@ class AttuneHandler(BaseHTTPRequestHandler):
             blob = target.read_bytes()
         except OSError:
             return self._json_error("Not found", 404)
-        self._send(200, blob, ctype)
+        # The service worker and manifest must revalidate on every load so
+        # updates roll out promptly; the worker itself is the offline cache
+        # layer, everything else stays no-store (no build step, so no cache
+        # busting exists).
+        cache_control = "no-cache" if target.name in ("sw.js", "manifest.webmanifest") else "no-store"
+        self._send(200, blob, ctype, cache_control=cache_control)
 
 
 def main():

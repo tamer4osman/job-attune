@@ -208,6 +208,17 @@ Each bundle carries the compiled C11 kernel, the app, and its own CPython
 3.12 runtime (with reportlab/pypdf preinstalled) — the unpacked archive runs
 offline with no tooling on the machine.
 
+**Install as an app** (PWA - the same UI as a standalone window, no extra
+download): with Job Attune running, open `http://127.0.0.1:3000` and use the
+browser's install action — Chrome/Edge: install icon in the address bar;
+Safari: *File → Add to Dock*; Android/iOS: *Install app* / *Add to Home
+Screen*. The app shell opens offline and instantly; screening always talks
+to the live local server ([docs/PWA.md](docs/PWA.md)).
+
+Prefer real installers? The **Desktop (Electron)** workflow packages
+`.exe` / `.dmg` / `.AppImage` build artifacts around the same standalone
+bundle ([electron/README.md](electron/README.md)).
+
 **With the UI** (vanilla HTML/CSS/JS + stdlib Python server, no Node.js,
 no build step):
 
@@ -271,6 +282,8 @@ scan) is regenerated with
 | [docs/CODEBASE-INTEL.md](docs/CODEBASE-INTEL.md) | Codebase-intelligence gates: fallow + the Python/C analyzer stack, capability map, ratchet contract |
 | [docs/MARKETING.md](docs/MARKETING.md) | Sales playbook: positioning, comparison matrix, statistics, workflows, objection handling |
 | [docs/API.md](docs/API.md) | HTTP API reference (13 routes) incl. loopback-guard auth rules |
+| [docs/PWA.md](docs/PWA.md) | The installable web app: manifest + service worker, offline shell vs. network-only `/api`, icons, update protocol |
+| [electron/README.md](electron/README.md) | Desktop shell (Electron): architecture, local + CI packaging, unsigned-build caveats |
 | [docs/ENGINE-CLI.md](docs/ENGINE-CLI.md) | Engine + reporter CLI reference, aggregation profile keys, run-directory contract |
 | [attune-data/](attune-data/) | Case-study fixtures: frozen corpora, expert rankings, preregistration hashes and reproduction commands (plumber, trades, university) |
 | [CHANGELOG.md](CHANGELOG.md) | Version history (v1.0.1 — general-reliability round: profile vocabulary lint R0-R7, clause-scoped claim quality, PDF line-wrap tolerant alias matching, cross-lingual value-token packs; cold-start battery over six professions, mean Spearman 0.771 hard / 0.809 balanced; v1.3.3 — balanced must-have gate: profile-opt-in weight-proportional ceiling; v1.3.2 — plumber case-study fix round: negation guard, multilingual claim quality, compound matching; v1.3.1 — academic German values fold; v1.3.0 — spine features: content tag verification, decision pins, calibration loop) |
@@ -284,7 +297,10 @@ scan) is regenerated with
 
 ```
 server.py                   stdlib-only web server: static UI + all /api routes
-web/                        vanilla frontend (HTML/CSS/JS, no build step)
+web/                        vanilla frontend (HTML/CSS/JS, no build step) +
+                            PWA layer (manifest.webmanifest, sw.js, icons/)
+electron/                   optional desktop shell: Electron main +
+                            electron-builder config around the standalone bundle
 attune-engine/              engine.py, ckernel.py (kernel resolver), floors.py
                             (vendored floors contract), ckernel_native.py +
                             wasm_kernel.py (tier bridges), spine_kernel.py
@@ -300,7 +316,8 @@ attune-data/                templates (runs/ is created at runtime) + shipped
 attune-sample-data/         demo corpus: 6 candidates, 10 PDFs
 scripts/                    QA gates, codebase-intel orchestrator, sample
                             generator, icon fetcher, standalone packager
-                            (scripts/standalone/)
+                            (scripts/standalone/), PWA gate (check_pwa.py)
+                            + icon generator (make_icons.py)
 .codebase-intel/            analyzer baselines + suppressions (fallow health,
                             ratchets, vulture whitelist, cppcheck exceptions)
 ruff.toml                   curated ruff rule set for the Python side

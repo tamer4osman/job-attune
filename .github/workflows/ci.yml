@@ -192,6 +192,28 @@ jobs:
           python scripts/e2e_check.py
           kill %1
 
+  # ------------------------------------------------------------- PWA web app
+  pwa:
+    name: PWA web app (manifest + service worker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # The installable-web-app gate: manifest schema + icon geometry, every
+      # precache path in sw.js must exist in web/, /api stays network-only,
+      # and the server must serve manifest/sw/icons with the right MIME types
+      # and revalidation headers. Static endpoints never spawn the engine, so
+      # no kernel build is needed here.
+      - name: PWA gate
+        run: python scripts/check_pwa.py
+
+      - name: Service worker syntax (node)
+        run: node --check web/sw.js
+
   # ------------------------------------------------------------ Docker engine image
   docker-engine:
     name: Engine Docker image (gate as CMD)

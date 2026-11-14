@@ -12,8 +12,30 @@ curl -s -H "X-Attune-Client: cli" "http://127.0.0.1:3000/api/run" | jq
 ```
 
 Errors are always `{"error": string}` with an appropriate status code
-(400 validation, 404 unknown/not-found, 413 too large, 500 failure,
-504 timeout).
+(400 validation, 404 unknown/not-found, 413 too large, 429 rate-limited,
+500 failure, 504 timeout).
+
+### Transport hardening (server-side, applies to every request)
+
+- **Security headers** — every response carries `X-Content-Type-Options:
+  nosniff`, `X-Frame-Options: DENY` and `Referrer-Policy: no-referrer`;
+  HTML responses additionally carry a `Content-Security-Policy`
+  (`script-src 'self'`, no remote origins — the UI is fully static and
+  external; styles allow `'unsafe-inline'` because the views set string
+  `style=""` attributes through the DOM builder, and `img-src` allows
+  `data:` for the self-contained inline-SVG chevron in `app.css`).
+- **Rate limit** — a per-client sliding window caps requests at
+  `ATTUNE_RATE_LIMIT` per minute (default **300** — the run monitor polls
+  at ~67/min, so normal UI use is far below the cap; set `0` to disable).
+  Exceeding it returns `429` with a `Retry-After` header.
+- **Socket timeout** — a client that stalls mid-request (headers or body
+  never finished) is dropped after 30 s instead of holding a worker
+  thread (slowloris mitigation).
+- **`/api` boundary** — only `/api` itself and `/api/...` paths hit the
+  API layer; unknown look-alikes (`/apifoo`) resolve as static paths and
+  404 without touching the guard.
+- **Body header validation** — a non-integer `Content-Length` is a
+  `400` (a body over the 10 MiB cap stays a `413`).
 
 ---
 

@@ -56,6 +56,10 @@ STATIC_ASSETS = [
     "/js/views/job-profile.js", "/js/views/position-report.js",
     "/js/views/results.js", "/js/views/run-monitor.js", "/logo.svg",
     "/robots.txt",
+    # PWA layer: installable web app (manifest + offline service worker)
+    "/manifest.webmanifest", "/sw.js",
+    "/icons/icon-192.png", "/icons/icon-512.png",
+    "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
 ]
 
 results = []          # (name, ok, detail)
@@ -147,14 +151,25 @@ def phase_static(port):
     for asset in STATIC_ASSETS:
         status, data, ctype, _ = req(port, "GET", asset)
         nice = asset if asset != "/" else "/ (index)"
-        ok = status == 200 and len(data) > 50
+        # req() parses JSON-typed bodies into dicts - the PWA manifest is
+        # application/manifest+json, so measure bytes only for raw payloads.
+        ok = status == 200 and (len(data) > 50 if isinstance(data, bytes) else len(data) >= 10)
         if asset.endswith(".css"):
             ok = ok and "css" in ctype
         elif asset.endswith(".js"):
             ok = ok and ("javascript" in ctype)
+        elif asset.endswith(".webmanifest"):
+            ok = ok and "manifest+json" in ctype
+        elif asset.endswith(".png"):
+            ok = ok and ctype == "image/png" and data[:8] == b"\x89PNG\r\n\x1a\n"
         elif asset == "/" or asset.endswith(".html"):
             ok = ok and b"Job Attune" in data
         ok_all &= check(f"GET {nice} -> 200", ok, f"status={status} ctype={ctype} bytes={len(data)}")
+    # PWA wiring: the shell must reference the manifest + worker so the app
+    # is installable from a stock browser visit.
+    status, data, _, _ = req(port, "GET", "/")
+    ok_all &= check("index links the PWA manifest", b'rel="manifest"' in data)
+    ok_all &= check("index registers the service worker", b"serviceWorker.register" in data)
     # containment: traversal out of web/ must 404 (raw dot-segments + encoded)
     for evil in ("/%2e%2e/server.py", "/js/../../../server.py", "/.../etc/passwd"):
         status, _, _, _ = req(port, "GET", evil)

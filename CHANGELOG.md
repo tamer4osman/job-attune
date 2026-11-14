@@ -6,6 +6,38 @@ All notable changes to the Job Attune engine, UI and tooling.
 Engine version is the project's release version; every run manifest records
 the engine, decision-kernel and floors versions that produced it.
 
+## [Unreleased]
+
+### Added
+
+- **Installable web app (PWA)**: `web/manifest.webmanifest` +
+  `web/sw.js` turn the existing vanilla UI into a standalone installable
+  app on Windows/macOS/Linux/Android/iOS (Chrome/Edge install action,
+  Safari Add to Dock / Add to Home Screen). The service worker caches the
+  static shell (instant opens, offline shell when the local server is down)
+  and is strictly network-only for `/api` - screening results are never
+  served from a cache and no second storage layer ever duplicates candidate
+  data. Icons rasterized from `web/logo.svg` via the new
+  `scripts/make_icons.py` (192/512 + maskable variants + electron source
+  icon). `server.py` pins the PWA MIME types and serves `sw.js`/manifest
+  with `Cache-Control: no-cache` for prompt update revalidation.
+- **PWA gate** (`scripts/check_pwa.py`, stdlib-only): manifest schema +
+  icon geometry, every service-worker precache path must exist in `web/`,
+  `/api` must stay uncached, and the live server must serve manifest /
+  worker / icons with correct MIME types and revalidation headers. Wired as
+  the `pwa` job in ci.yml (no kernel build needed); the smoke test's static
+  phase now covers the PWA assets too.
+- **Desktop (Electron) packaging** (optional distribution channel):
+  `electron/` wraps the existing standalone bundle (kernel + engine +
+  CPython runtime from `scripts/standalone/package.sh`) in a sandboxed
+  Electron window - main process spawns the bundled server on an ephemeral
+  loopback port and supervises it; renderer gets the vanilla UI with
+  contextIsolation + sandbox and no Node access. `.github/workflows/
+  electron.yml` builds unsigned NSIS/portable (Windows), dmg/zip (macOS,
+  arm64) and AppImage (Linux) installers on `workflow_dispatch` or `v*`
+  tags, attaching to the GitHub Release on tags. Docs:
+  `docs/PWA.md`, `electron/README.md`.
+
 ## [1.0.1] - 2026-11-12
 
 General-reliability round: turns the cold-start generalization battery's
@@ -407,6 +439,74 @@ corpus plus the trades and university corpora
   updated to `omnidecide-c 2.0.0`.
 
 ## [Unreleased]
+
+### Hardening round (server transport, UI lifecycle, bridge dedup)
+
+- **server.py transport hardening** (all behavior-preserving for the 13
+  documented routes; verified by the full 48-check smoke test):
+  security headers on every response (`X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`) plus a strict
+  `Content-Security-Policy` on the HTML document (`script-src 'self'`;
+  `style-src 'unsafe-inline'` because the views set string `style=""`
+  attributes through the DOM builder); a per-client sliding-window rate
+  limit (default 300 req/min, `ATTUNE_RATE_LIMIT=0` disables) answering
+  floods with `429` + `Retry-After` — the run monitor polls at ~67/min, so
+  normal UI use is far below the cap; a 30 s handler socket timeout that
+  drops stalled clients (slowloris) via the stdlib's `TimeoutError` path;
+  the API layer now engages only on `/api` and `/api/...` paths (exact
+  boundary — `/apifoo` resolves as a static path and 404s); a malformed
+  `Content-Length` is now a `400` instead of a mislabeled `413`.
+- **Governance refresher leak fixed** (`web/js/views/governance.js`): the
+  module-level `refreshers` Set grew one closure per mounted panel for the
+  lifetime of the page. Each refresher now self-prunes the first time it
+  fires after its panel root was unmounted, so re-rendering the results
+  view can no longer leak stale closures.
+- **Candidate-dialog sign-off wired through** (`results.js` +
+  `governance.js`): Endorse/Reject from the Ranking or Candidates tab
+  always passed an empty options object, so the `onDecided` callback in
+  the sign-off box never fired and the decision log stayed stale until a
+  governance action refreshed it. Both entry points now reload app state
+  and re-render the mounted Governance panels after a sign-off, exactly
+  like the review queue's own resolve buttons; `refreshAllGovernance` is
+  exported for that purpose.
+- **Kernel-bridge dedup**: the six `evaluate_*` contract checks (image
+  rejection, option arity, rubric normalization, non-empty statement /
+  instruction, top_k clamp), language-code validation, the language/text
+  mode constants and the `ODK_LIBRARY_VERSION` header parser moved from
+  near-verbatim copies in `ckernel_native.py` + `wasm_kernel.py` +
+  `ckernel.py` into the new shared `attune-engine/kernel_contract.py`.
+  Error messages and validation order are byte-identical (the shared
+  helpers take the caller's exception class); both transports still pass
+  the full engine surface. Shrinks the pylint R0801 duplicate-code surface
+  to the intentional Windows DLL-bootstrap block.
+- **make_report.py import made side-effect free**: font registration and
+  the font-verification `SystemExit` no longer run at import time; the new
+  idempotent `ensure_fonts()` is called from `main()`. Importing the
+  reporter for tests or helper reuse can no longer kill the process or
+  mutate global reportlab state.
+- **UI dedup + a11y**: the local `clear()` copies in `governance.js`,
+  `run-monitor.js` and `folder-picker.js` (`clearEl`) replaced with the
+  shared `ui.js` `clear`; the drifted local `el()` copy in `charts.js`
+  replaced with the `ui.js` import (no import cycle exists — `charts.js`
+  already imports `icon`); dead `n` variable in `radarChart` removed;
+  `prefers-reduced-motion: reduce` respected in `app.css` (spinner and
+  pop animations disabled, transitions collapsed — WCAG 2.3.3).
+- **Values-fit fold fix (behavior change, measured)**: removed the
+  `"communication": "care"` entry from `VALUES_TOKEN_SYNONYMS`. The fold
+  let the English word "communication" cover care value phrases such as
+  "customer care" (false positive), blocked German "Kommunikation" from
+  covering an English "communication" value phrase (corpus side folds
+  kommunikation -> "communication" while the phrase side folded it to
+  "care"), and contradicted the nominal->base intent of the v1.0.1 English
+  variant folds. Counterfactual
+  (`scripts/casestudy/counterfactual_communication_fold.py`): rankings AND
+  per-candidate overall scores are byte-identical without the fold on all
+  four shipped corpora (demo, plumber, trades, uni) — zero scoring change
+  in-repo; third-party corpora (e.g. the nurse battery) should re-run the
+  battery before adopting this release lineage.
+- Docs: `docs/API.md` gained a "Transport hardening" section; the
+  `docs/ARCHITECTURE.md` security model records the new headers, rate
+  limit, socket timeout and `/api` boundary.
 
 ### Added
 

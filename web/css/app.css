@@ -144,6 +144,16 @@ img, svg { display: inline-block; vertical-align: -0.15em; }
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: none; }
 }
+/* Respect the OS "reduce motion" setting: drop spinner/pop animations and
+ * hover transitions for users who opt out of movement (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* icons (lucide strokes) */
 svg.ic { flex-shrink: 0; }

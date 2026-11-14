@@ -232,6 +232,16 @@ evidence dates survive, phone numbers do not.
 - **CSRF / drive-by**: the `server.py` loopback guard requires the
   `X-Attune-Client` header (cross-site `no-cors` requests cannot set
   custom headers) and rejects `Sec-Fetch-Site: cross-site`.
+- **Transport hardening**: every response carries `X-Content-Type-Options`,
+  `X-Frame-Options: DENY` and `Referrer-Policy: no-referrer`, and the HTML
+  document carries a strict `Content-Security-Policy` (scripts
+  `'self'` only — the UI has no inline script; no remote origins). A
+  per-client sliding-window rate limit (default 300 req/min,
+  `ATTUNE_RATE_LIMIT`) answers floods with `429` + `Retry-After`, and a
+  30 s handler socket timeout drops stalled clients (slowloris) instead of
+  pinning worker threads. The API layer only engages on `/api` and
+  `/api/...` paths (exact-boundary match), and a malformed
+  `Content-Length` is a `400`, not a mislabeled `413`.
 - **Path traversal**: run ids are regex-validated and resolved with
   containment + realpath checks; template names are allow-list-validated;
   browse/scan accept absolute or root-relative paths but never write.
