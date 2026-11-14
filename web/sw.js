@@ -28,6 +28,7 @@ const CORE_ASSETS = [
   "/css/app.css",
   "/js/app.js",
   "/js/api.js",
+  "/js/sw-register.js",
   "/js/ui.js",
 ];
 
