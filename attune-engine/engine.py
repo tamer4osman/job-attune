@@ -517,8 +517,9 @@ VALUES_TOKEN_SYNONYMS = {
     # positive - and blocked German "Kommunikation" from covering an English
     # "communication" value phrase (corpus side folds kommunikation ->
     # "communication", phrase side folded "communication" -> "care").
-    # Counterfactual (scripts/cf_communication_fold.py): removing it leaves
-    # rankings AND per-candidate overall scores byte-identical on all four
+    # Counterfactual (scripts/casestudy/counterfactual_communication_fold.py):
+    # removing it leaves rankings AND per-candidate overall scores
+    # byte-identical on all four
     # shipped corpora (demo, plumber, trades, uni) - it was dead weight here.
 }
 
