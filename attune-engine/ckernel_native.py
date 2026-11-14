@@ -54,12 +54,25 @@ from __future__ import annotations
 
 import ctypes
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from text_mode import resolve_text_mode
+from kernel_contract import (
+    KERNEL_NAME,
+    TEXT_MODES,
+    SUPPORTED_LANGUAGE_CODES,
+    ENV_TEXT_MODE,
+    ENV_LANGUAGE,
+    check_no_image as _contract_check_no_image,
+    normalize_options as _contract_normalize_options,
+    rubric_levels as _contract_rubric_levels,
+    require_non_empty as _contract_require_non_empty,
+    clamp_top_k as _contract_clamp_top_k,
+    resolve_language_code as _contract_resolve_language_code,
+    read_header_version as _contract_read_header_version,
+)
 
 __all__ = [
     "KERNEL_NAME",
@@ -71,31 +84,14 @@ __all__ = [
     "OmniDecideKernelUnavailable",
 ]
 
-KERNEL_NAME = "omnidecide-c"
-
-#: Text-layer modes exposed by the bridge (omnidecide-c odk_kernel_config).
-#: "ascii"  = ODK_TEXT_ASCII_COMPAT (legacy byte-for-byte semantics, the
-#:            historical default of this engine)
-#: "unicode" = ODK_TEXT_UNICODE (NFC + Unicode case folding + script-aware
-#:            segmentation; required for evidence written in non-Latin scripts;
-#:            byte-identical on pure-ASCII input per docs/TEXT-MODES.md)
-TEXT_MODES = {"ascii": 0, "unicode": 1}
-
-#: Language codes accepted by odk_lang_from_code (docs/LANGUAGES.md).
-#: "und" keeps the generic baseline (the historical default); "auto" enables
-#: the deterministic detector. The nine non-English packs are UNREVIEWED by
-#: native speakers upstream - enabling one is an explicit, audited choice.
-SUPPORTED_LANGUAGE_CODES = (
-    "und", "en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur", "auto",
-)
-
 #: Opt-in multilingual configuration (see DeterministicDecisionKernel). The
 #: constructor kwargs take precedence; these environment variables are the
 #: process-level fallback used by engine.py (ATTUNE_TEXT_MODE /
 #: ATTUNE_LANGUAGE). Both default to the legacy behavior, so a run that
 #: sets neither is bit-identical to every previous release.
-ENV_TEXT_MODE = "ATTUNE_TEXT_MODE"
-ENV_LANGUAGE = "ATTUNE_LANGUAGE"
+#: (The constants themselves live in kernel_contract.py, shared with the
+#: WASM tier - importing them here keeps this module's public surface
+#: byte-compatible with every previous release.)
 
 #: Repo root (the parent of attune-engine/) - keeps the tree relocatable.
 _BRIDGE_ROOT = Path(__file__).resolve().parent.parent
@@ -115,14 +111,8 @@ class OmniDecideInferenceError(RuntimeError):
 
 def _parse_header_version() -> str:
     """Read ODK_LIBRARY_VERSION from the vendored header (single source)."""
-    header = _DEFAULT_C_TREE / "include" / "omnidecide.h"
-    try:
-        match = re.search(r'#define\s+ODK_LIBRARY_VERSION\s+"([^"]+)"', header.read_text(encoding="utf-8"))
-        if match:
-            return match.group(1)
-    except OSError:
-        pass
-    return "unknown"
+    return (_contract_read_header_version(
+        _DEFAULT_C_TREE / "include" / "omnidecide.h") or "unknown")
 
 
 KERNEL_VERSION = _parse_header_version()
@@ -315,16 +305,11 @@ def _resolve_text_mode(value: Any) -> str:
 def _resolve_language(value: Any) -> str:
     """Validate a language code through the kernel's own converter.
 
-    ``None`` falls back to $ATTUNE_LANGUAGE, then to "und" (the generic
-    baseline). Unknown codes are rejected here (odk_lang_from_code would
-    silently map them to UND, which would hide a config typo)."""
-    code = (str(value).strip().lower() if value is not None
-            else (os.environ.get(ENV_LANGUAGE) or "und").strip().lower())
-    if code not in SUPPORTED_LANGUAGE_CODES:
-        raise ValueError(
-            f"unknown language {code!r} - expected one of "
-            f"{', '.join(SUPPORTED_LANGUAGE_CODES)} (set {ENV_LANGUAGE} or pass language=...)"
-        )
+    Shared prefix check in kernel_contract.resolve_language_code ($ATTUNE_LANGUAGE
+    fallback, supported-codes allowlist); this wrapper then positively
+    verifies the code against the kernel's own odk_lang_from_code so a
+    bridge/ABI mismatch cannot masquerade as a valid config."""
+    code = _contract_resolve_language_code(value)
     ok = ctypes.c_int(0)
     _LIB.odk_lang_from_code(code.encode("utf-8"), ctypes.byref(ok))
     if not ok.value:
@@ -476,11 +461,7 @@ class DeterministicDecisionKernel:
 
     @staticmethod
     def _check_no_image(image: Any) -> None:
-        if image is not None:
-            raise TypeError(
-                "the omnidecide-c bridge does not support the image channel "
-                "(the engine passes extracted PDF text only)"
-            )
+        _contract_check_no_image(image, OmniDecideInferenceError, "omnidecide-c bridge")
 
     # -- the six primitives --------------------------------------------------- #
     def evaluate_choice(
@@ -492,9 +473,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Select the option best supported by the evidence channel."""
         self._check_no_image(image)
-        if not options:
-            raise OmniDecideInferenceError("choice evaluation requires at least one option")
-        cleaned = [str(option) for option in options]
+        cleaned = _contract_normalize_options(options, OmniDecideInferenceError, "choice")
         return self._eval(
             _LIB.odk_evaluate_choice,
             self._utf8(instruction), self._str_array(cleaned), len(cleaned),
@@ -517,13 +496,7 @@ class DeterministicDecisionKernel:
         dict in the Python kernel.
         """
         self._check_no_image(image)
-        if isinstance(rubric, dict):
-            levels = list(rubric.keys())
-        else:
-            levels = [str(level) for level in (rubric or [])]
-        levels = [level.strip() for level in levels if str(level).strip()]
-        if not levels:
-            levels = ["very low", "low", "medium", "high", "very high"]
+        levels = _contract_rubric_levels(rubric)
         return self._eval(
             _LIB.odk_evaluate_score,
             self._utf8(instruction), self._str_array(levels), len(levels),
@@ -540,8 +513,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Binary affirmation: is *statement* supported by the evidence?"""
         self._check_no_image(image)
-        if not statement or not str(statement).strip():
-            raise OmniDecideInferenceError("noul evaluation requires a non-empty statement")
+        _contract_require_non_empty(statement, OmniDecideInferenceError, "noul", "statement")
         return self._eval(
             _LIB.odk_evaluate_noul,
             self._utf8(statement), self._utf8(context or ""), None,
@@ -558,9 +530,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Order all options best-to-worst ("a > b > c")."""
         self._check_no_image(image)
-        if len(options) < 2:
-            raise OmniDecideInferenceError("rank evaluation requires at least two options")
-        cleaned = [str(option) for option in options]
+        cleaned = _contract_normalize_options(options, OmniDecideInferenceError, "rank", minimum=2)
         return self._eval(
             _LIB.odk_evaluate_rank,
             self._utf8(instruction), self._str_array(cleaned), len(cleaned),
@@ -578,9 +548,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Head-to-head comparison of exactly two options with tie detection."""
         self._check_no_image(image)
-        if len(options) != 2:
-            raise OmniDecideInferenceError("compare evaluation requires exactly two options")
-        cleaned = [str(option) for option in options]
+        cleaned = _contract_normalize_options(options, OmniDecideInferenceError, "compare", exact=2)
         return self._eval(
             _LIB.odk_evaluate_compare,
             self._utf8(instruction), self._str_array(cleaned), len(cleaned),
@@ -598,9 +566,8 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Retrieve the ``top_k`` context snippets most relevant to *instruction*."""
         self._check_no_image(image)
-        if not instruction or not str(instruction).strip():
-            raise OmniDecideInferenceError("extract evaluation requires a non-empty instruction")
-        clamped_top_k = max(1, min(10, int(top_k)))
+        _contract_require_non_empty(instruction, OmniDecideInferenceError, "extract", "instruction")
+        clamped_top_k = _contract_clamp_top_k(top_k)
         return self._eval(
             _LIB.odk_evaluate_extract,
             self._utf8(instruction), self._utf8(context or ""), None,

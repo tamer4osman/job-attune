@@ -47,7 +47,6 @@ from __future__ import annotations
 
 import ctypes
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -67,6 +66,8 @@ WASM_DIST_CANDIDATES = [
 _ENGINE_DIR = Path(__file__).resolve().parent
 if str(_ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(_ENGINE_DIR))
+
+from kernel_contract import read_header_version  # noqa: E402  (after sys.path fix)
 
 
 class KernelBackendUnavailable(RuntimeError):
@@ -110,12 +111,7 @@ def _find_native_lib() -> Optional[Path]:
 
 
 def _parse_version_header(header: Path) -> Optional[str]:
-    try:
-        match = re.search(r'#define\s+ODK_LIBRARY_VERSION\s+"([^"]+)"',
-                          header.read_text(encoding="utf-8"))
-        return match.group(1) if match else None
-    except OSError:
-        return None
+    return read_header_version(header)
 
 
 def _header_version_for(lib: Path) -> Tuple[Optional[str], str]:

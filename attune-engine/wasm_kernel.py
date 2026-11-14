@@ -62,6 +62,19 @@ from typing import Any, Dict, List, Optional
 
 import wasmtime
 from text_mode import resolve_text_mode
+from kernel_contract import (
+    KERNEL_NAME,
+    TEXT_MODES,
+    SUPPORTED_LANGUAGE_CODES,
+    ENV_TEXT_MODE,
+    ENV_LANGUAGE,
+    check_no_image as _contract_check_no_image,
+    normalize_options as _contract_normalize_options,
+    rubric_levels as _contract_rubric_levels,
+    require_non_empty as _contract_require_non_empty,
+    clamp_top_k as _contract_clamp_top_k,
+    resolve_language_code as _contract_resolve_language_code,
+)
 
 __all__ = [
     "KERNEL_NAME",
@@ -72,7 +85,10 @@ __all__ = [
     "OmniDecideInferenceError",
 ]
 
-KERNEL_NAME = "omnidecide-c"
+#: The contract constants (language allowlist, text modes, env names) live
+#: in kernel_contract.py, shared with the ctypes tier - importing them here
+#: keeps this module's public surface byte-compatible with every previous
+#: release while the validation rules can no longer drift between tiers.
 
 
 def _probe_kernel_version() -> str:
@@ -84,17 +100,6 @@ def _probe_kernel_version() -> str:
     except Exception:
         return "unknown"
 
-
-#: Same table as the ctypes bridge. The wrapper validates mode/language
-#: through the kernel's own odk_lang_from_code, so unknown codes fail at
-#: kernel creation exactly like the native path.
-TEXT_MODES = {"ascii": 0, "unicode": 1}
-SUPPORTED_LANGUAGE_CODES = (
-    "und", "en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur", "auto",
-)
-
-ENV_TEXT_MODE = "ATTUNE_TEXT_MODE"
-ENV_LANGUAGE = "ATTUNE_LANGUAGE"
 
 DEFAULT_WASM_PATH = (
     Path(__file__).resolve().parent.parent
@@ -230,14 +235,11 @@ def _resolve_text_mode(value: Any) -> str:
 
 
 def _resolve_language(value: Any) -> str:
-    code = (str(value).strip().lower() if value is not None
-            else (os.environ.get(ENV_LANGUAGE) or "und").strip().lower())
-    if code not in SUPPORTED_LANGUAGE_CODES:
-        raise ValueError(
-            f"unknown language {code!r} - expected one of "
-            f"{', '.join(SUPPORTED_LANGUAGE_CODES)} (set {ENV_LANGUAGE} or pass language=...)"
-        )
-    return code
+    """Shared language validation (kernel_contract): $ATTUNE_LANGUAGE
+    fallback, supported-codes allowlist. The wrapper validates mode/language
+    through the kernel's own odk_lang_from_code, so unknown codes fail at
+    kernel creation exactly like the native path."""
+    return _contract_resolve_language_code(value)
 
 
 class DeterministicDecisionKernel:
@@ -306,11 +308,7 @@ class DeterministicDecisionKernel:
     # -- internal helpers ---------------------------------------------------- #
     @staticmethod
     def _check_no_image(image: Any) -> None:
-        if image is not None:
-            raise TypeError(
-                "the omnidecide WASM bridge does not support the image "
-                "channel (the engine passes extracted PDF text only)"
-            )
+        _contract_check_no_image(image, OmniDecideInferenceError, "omnidecide WASM bridge")
 
     def _eval(
         self,
@@ -373,10 +371,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Select the option best supported by the evidence channel."""
         self._check_no_image(image)
-        if not options:
-            raise OmniDecideInferenceError(
-                "choice evaluation requires at least one option")
-        cleaned = [str(option) for option in options]
+        cleaned = _contract_normalize_options(options, OmniDecideInferenceError, "choice")
         return self._eval("choice", instruction, cleaned, context)
 
     def evaluate_score(
@@ -388,13 +383,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Place the evidence on an ordered rubric scale; result in [0, 1]."""
         self._check_no_image(image)
-        if isinstance(rubric, dict):
-            levels = list(rubric.keys())
-        else:
-            levels = [str(level) for level in (rubric or [])]
-        levels = [level.strip() for level in levels if str(level).strip()]
-        if not levels:
-            levels = ["very low", "low", "medium", "high", "very high"]
+        levels = _contract_rubric_levels(rubric)
         return self._eval("score", instruction, levels, context)
 
     def evaluate_noul(
@@ -405,9 +394,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Binary affirmation: is *statement* supported by the evidence?"""
         self._check_no_image(image)
-        if not statement or not str(statement).strip():
-            raise OmniDecideInferenceError(
-                "noul evaluation requires a non-empty statement")
+        _contract_require_non_empty(statement, OmniDecideInferenceError, "noul", "statement")
         return self._eval("noul", statement, None, context)
 
     def evaluate_rank(
@@ -419,10 +406,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Order all options best-to-worst ("a > b > c")."""
         self._check_no_image(image)
-        if len(options) < 2:
-            raise OmniDecideInferenceError(
-                "rank evaluation requires at least two options")
-        cleaned = [str(option) for option in options]
+        cleaned = _contract_normalize_options(options, OmniDecideInferenceError, "rank", minimum=2)
         return self._eval("rank", instruction, cleaned, context)
 
     def evaluate_compare(
@@ -434,10 +418,7 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Head-to-head comparison of exactly two options with tie detection."""
         self._check_no_image(image)
-        if len(options) != 2:
-            raise OmniDecideInferenceError(
-                "compare evaluation requires exactly two options")
-        cleaned = [str(option) for option in options]
+        cleaned = _contract_normalize_options(options, OmniDecideInferenceError, "compare", exact=2)
         return self._eval("compare", instruction, cleaned, context)
 
     def evaluate_extract(
@@ -449,11 +430,9 @@ class DeterministicDecisionKernel:
     ) -> Dict[str, Any]:
         """Retrieve the ``top_k`` context snippets most relevant to *instruction*."""
         self._check_no_image(image)
-        if not instruction or not str(instruction).strip():
-            raise OmniDecideInferenceError(
-                "extract evaluation requires a non-empty instruction")
+        _contract_require_non_empty(instruction, OmniDecideInferenceError, "extract", "instruction")
         return self._eval("extract", instruction, None, context,
-                          max(1, min(10, int(top_k))))
+                          _contract_clamp_top_k(top_k))
 
 
 if __name__ == "__main__":  # pragma: no cover - smoke entry

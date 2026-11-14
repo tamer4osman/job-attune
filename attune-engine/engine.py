@@ -510,7 +510,16 @@ VALUES_TOKEN_SYNONYMS = {
     # through the same dictionary (values_fit_score), so both sides meet.
     "reliability": "reliable", "verlaesslichkeit": "reliable",
     "empfindung": "empathy",
-    "communication": "care",
+    # NOTE (1.0.1 hardening round): the former "communication": "care" fold
+    # was removed. It contradicted the nominal->base intent above (there is
+    # no care-domain relationship between the two words), let the English
+    # word "communication" cover care phrases ("customer care") - a false
+    # positive - and blocked German "Kommunikation" from covering an English
+    # "communication" value phrase (corpus side folds kommunikation ->
+    # "communication", phrase side folded "communication" -> "care").
+    # Counterfactual (scripts/cf_communication_fold.py): removing it leaves
+    # rankings AND per-candidate overall scores byte-identical on all four
+    # shipped corpora (demo, plumber, trades, uni) - it was dead weight here.
 }
 
 # --------------------------------------------------------------------------- #

@@ -87,9 +87,6 @@ def _register_fonts() -> None:
             print(f"WARNING: failed to register {name}: {exc}", file=sys.stderr)
 
 
-_register_fonts()
-
-
 _HELVETICA_FALLBACK = False
 
 
@@ -137,7 +134,23 @@ def _verify_fonts_ready() -> bool:
     return False
 
 
-_verify_fonts_ready()
+_FONTS_READY = False
+
+
+def ensure_fonts() -> None:
+    """Idempotent lazy font init: register the TTFs, then verify they are
+    usable (raising SystemExit when broken and no fallback was requested).
+
+    Deliberately NOT run at import time - importing this module must stay
+    side-effect free so the helpers stay testable and importing cannot kill
+    the process; the CLI entry point calls this once before rendering.
+    """
+    global _FONTS_READY
+    if _FONTS_READY:
+        return
+    _register_fonts()
+    _verify_fonts_ready()
+    _FONTS_READY = True
 
 
 def _resolve_font(name: str) -> str:
@@ -754,6 +767,7 @@ def candidate_section(cand, styles, pseudonymous: bool) -> list:
 
 
 def main() -> int:
+    ensure_fonts()  # lazy init: import stays side-effect free (see ensure_fonts)
     parser = argparse.ArgumentParser(description="Job Attune PDF export")
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--pseudonymous", default="1")
