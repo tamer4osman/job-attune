@@ -96,7 +96,10 @@ REQUEST_TIMEOUT_S = 30
 #: relaxations are style-src 'unsafe-inline' (the views set string style=""
 #: attributes through the DOM builder, which CSP counts as inline styling)
 #: and img-src data: (the select chevron is an inline SVG data URI in
-#: app.css; self-contained, still no network fetch).
+#: app.css; self-contained, still no network fetch). The one runtime
+#: script the HTML needs (the service-worker registration) lives in
+#: web/js/sw-register.js as an external module, so script-src 'self'
+#: covers it without 'unsafe-inline'.
 HTML_CSP = (
     "default-src 'self'; "
     "script-src 'self'; "
