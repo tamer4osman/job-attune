@@ -130,12 +130,23 @@ jobs:
             dist/*.sha256
           if-no-files-found: error
 
-      - name: Attach the archives to the GitHub Release (tag builds only)
-        if: startsWith(github.ref, 'refs/tags/v')
+  attach_assets:
+    name: Attach Archives to Release
+    needs: [create_release, build_release]
+    if: always() && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Attach the archives to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag-name: ${{ needs.create_release.outputs.tag-name }}
           files: |
-            dist/*.tar.gz
-            dist/*.zip
-            dist/*.sha256
+            artifacts/*.tar.gz
+            artifacts/*.zip
+            artifacts/*.sha256
