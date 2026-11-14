@@ -58,15 +58,10 @@
 
 <!-- PWA: register the offline-shell service worker (scope /). Registration
      failure is silently ignored on purpose: contexts where it cannot work
-     (file://, embedded webviews) must keep working unchanged. -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('/sw.js').catch(function () {});
-    });
-  }
-</script>
-
+     (file://, embedded webviews) must keep working unchanged. The script is
+     an external file (not inline) so the Content-Security-Policy
+     script-src 'self' stays satisfied without 'unsafe-inline'. -->
+<script type="module" src="/js/sw-register.js"></script>
 <script type="module" src="/js/app.js"></script>
 </body>
 </html>
