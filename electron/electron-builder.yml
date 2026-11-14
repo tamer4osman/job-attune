@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Tamer Osman
+#
+# electron-builder config for the Job Attune desktop shell.
+#
+# The Electron app itself is tiny (main.js + preload.js, asar-packed); the
+# actual product is the standalone bundle this repo already builds per
+# platform via scripts/standalone/package.sh. The Electron workflow unpacks
+# that archive into electron/standalone-bundle and extraResources ships it
+# inside the installers, where electron/main.js finds and supervises it.
+#
+# All targets are UNSIGNED - see electron/README.md for what that means on
+# each OS (SmartScreen / Gatekeeper prompts) and how to add signing later.
+
+appId: dev.jobattune.desktop
+productName: Job Attune
+copyright: Copyright © 2026 Tamer Osman
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - main.js
+  - preload.js
+  - package.json
+
+asar: true
+
+extraResources:
+  - from: standalone-bundle
+    to: bundle
+    filter:
+      - "**/*"
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: Job-Attune-Setup-${version}-${arch}.${ext}
+  uninstallDisplayName: Job Attune
+
+portable:
+  artifactName: Job-Attune-Portable-${version}-${arch}.${ext}
+
+mac:
+  icon: build/icon.png
+  category: public.app-category.business
+  identity: null            # unsigned build: no codesign identity lookup
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+  artifactName: Job-Attune-${version}-mac-${arch}.${ext}
+
+linux:
+  icon: build/icon.png
+  category: Business
+  target:
+    - target: AppImage
+      arch: [x64]
+  artifactName: Job-Attune-${version}-linux-${arch}.${ext}

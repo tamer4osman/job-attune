@@ -1,0 +1,118 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Tamer Osman
+#
+# Desktop (Electron) packaging - the optional installer distribution channel.
+#
+# Reuses the exact artifacts the Release workflow ships: each runner first
+# builds its platform's standalone bundle via scripts/standalone/package.sh
+# (compiled omnidecide-c kernel + engine + demo corpus + CPython runtime,
+# with the engine smoke test run BEFORE packaging), unpacks it into
+# electron/standalone-bundle, and electron-builder wraps it into native
+# installers:
+#
+#   windows  NSIS setup .exe + portable .exe   (unsigned: SmartScreen warns)
+#   macOS    .dmg + .zip, Apple Silicon        (unsigned: Gatekeeper, see
+#                                              electron/README.md)
+#   linux    .AppImage
+#
+# The bundle carries its own CPython, so nothing else is needed at runtime -
+# no PyInstaller, no system Python, no Node.js on user machines.
+#
+# Triggers:
+#   - workflow_dispatch: builds installers as workflow artifacts only - use
+#     this to test the packaging without a release.
+#   - push a v* tag: attaches the installers to the release the Release
+#     workflow creates for the same tag.
+#
+# Free tier: public repos run these on GitHub-hosted runners at no cost.
+# The tag builds need `permissions: contents: write` to attach assets.
+
+name: Desktop (Electron)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: electron-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Desktop (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux-x64
+          # matches the standalone macos-arm64 bundle (universal kernel,
+          # arm64 CPython runtime)
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Package the standalone app (kernel + engine + CPython runtime)
+        shell: bash
+        run: bash scripts/standalone/package.sh
+
+      - name: Unpack the standalone bundle into electron/
+        shell: bash
+        run: |
+          mkdir -p electron/standalone-bundle electron/tmp
+          if [ -f dist/job-attune-standalone-windows-x64.zip ]; then
+            unzip -q dist/job-attune-standalone-windows-x64.zip -d electron/tmp
+          else
+            tar -xzf dist/job-attune-standalone-*.tar.gz -C electron/tmp
+          fi
+          shopt -s dotglob nullglob
+          mv electron/tmp/job-attune-standalone-*/* electron/standalone-bundle/
+          rm -rf electron/tmp
+          test -f electron/standalone-bundle/app/server.py
+          test -d electron/standalone-bundle/runtime/python
+          echo "standalone bundle staged under electron/standalone-bundle"
+
+      - name: Install Electron + electron-builder
+        working-directory: electron
+        run: npm install --no-audit --no-fund
+
+      - name: Build the desktop installers
+        working-directory: electron
+        run: npx electron-builder --publish never
+
+      - name: List the produced installers
+        shell: bash
+        run: ls -la electron/dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: job-attune-desktop-${{ matrix.platform }}
+          path: |
+            electron/dist/*.exe
+            electron/dist/*.dmg
+            electron/dist/*.zip
+            electron/dist/*.AppImage
+          if-no-files-found: error
+
+      - name: Attach the installers to the GitHub Release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            electron/dist/*.exe
+            electron/dist/*.dmg
+            electron/dist/*.zip
+            electron/dist/*.AppImage
