@@ -9,7 +9,20 @@ import { el, badge, icon, createTabs, append } from "../ui.js";
 import { hbarChart, vbarChart, radarChart, chartCard, KIND_COLORS, EMERALD, AMBER, ROSE } from "../charts.js";
 import { openCandidateDialog } from "./candidate-detail.js";
 import { PositionReport } from "./position-report.js";
-import { Governance } from "./governance.js";
+import { Governance, refreshAllGovernance } from "./governance.js";
+
+/** Open the candidate dossier modal with the sign-off flow wired through:
+ * after an Endorse/Reject is appended to the audit trail, reload app state
+ * and re-render the live Governance panels (decision log, exports) the same
+ * way the review queue's own resolve buttons do. */
+function openCandidateWithSignoff(candidate, results, actions) {
+  openCandidateDialog(candidate, results, {
+    onDecided: async () => {
+      await actions.refreshAudit();
+      refreshAllGovernance();
+    },
+  });
+}
 
 const BAND_CLASSES = {
   strong: "band-strong",
@@ -97,7 +110,11 @@ function overviewPanel(results) {
   const escalations = Object.entries(
     results.review_queue.reduce((acc, q) => { acc[q.kind] = (acc[q.kind] ?? 0) + 1; return acc; }, {}),
   ).map(([kind, count]) => ({
-    label: kind.replace(/_/g, " "), value: count, color: KIND_COLORS[kind] ?? "#0d9488",
+    label: kind.replace(/_/g, " "), value: count,
+    // kinds missing from KIND_COLORS (e.g. spine-era tag_conflict) fall
+    // back to the theme's primary accent, per the design contract in
+    // scripts/design_check.py ("charts render in the new orange palette")
+    color: KIND_COLORS[kind] ?? "#f26c17",
   }));
   root.appendChild(chartCard({
     title: "Human review signals", icon: "ShieldAlert", short: true,
@@ -141,7 +158,7 @@ function overviewPanel(results) {
 /* Ranking tab                                                         */
 /* ------------------------------------------------------------------ */
 
-function rankingPanel(results, state) {
+function rankingPanel(results, actions) {
   const byRef = Object.fromEntries(results.candidates.map((c) => [c.candidate_ref, c]));
   const ordered = [];
   let dropped = 0;
@@ -174,7 +191,7 @@ function rankingPanel(results, state) {
         if (c.cohort) sub.push(`pctile ${c.cohort.percentile_overall.toFixed(0)}`);
         return el("button", {
           type: "button", class: "rank-row",
-          onclick: () => openCandidateDialog(c, results, {}),
+          onclick: () => openCandidateWithSignoff(c, results, actions),
         },
           rankBadgeEl(c.rank),
           c.rank === 1 ? el("span", { style: "color:#f26c17;display:inline-flex" }, icon("Crown", 16)) : null,
@@ -201,13 +218,13 @@ function rankingPanel(results, state) {
 /* Candidates tab (card grid)                                          */
 /* ------------------------------------------------------------------ */
 
-function candidatesPanel(results) {
+function candidatesPanel(results, actions) {
   const byRef = Object.fromEntries(results.candidates.map((c) => [c.candidate_ref, c]));
   const ordered = results.ranking.map((r) => byRef[r]).filter(Boolean);
   return el("div", { class: "grid-3" }, ordered.map((c) =>
     el("button", {
       type: "button", class: "cand-card",
-      onclick: () => openCandidateDialog(c, results, {}),
+      onclick: () => openCandidateWithSignoff(c, results, actions),
     },
       el("div", { class: "candidate-tile-head" },
         icon("UserRound", 16, "muted"),
@@ -239,8 +256,8 @@ export function ResultsView(state, actions) {
     new Map([
       ["overview", () => overviewPanel(results)],
       ["position", () => PositionReport(results)],
-      ["ranking", () => rankingPanel(results, state)],
-      ["candidates", () => candidatesPanel(results)],
+      ["ranking", () => rankingPanel(results, actions)],
+      ["candidates", () => candidatesPanel(results, actions)],
       ["review", () => Governance(state, actions)],
       ["audit", () => Governance(state, actions)],
     ]),

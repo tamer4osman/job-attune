@@ -6,7 +6,7 @@
 // toggle are shared app-level state, exactly like the lifted React state).
 
 import { api, downloadReport } from "../api.js";
-import { el, button, badge, input, labelFor, switchInput, icon, separator, append } from "../ui.js";
+import { el, button, badge, input, labelFor, switchInput, icon, separator, append, clear } from "../ui.js";
 
 const KIND_BADGE = {
   unreadable_document: { label: "blocking", cls: "badge-rose-soft" },
@@ -20,11 +20,17 @@ const KIND_BADGE = {
 
 /** Live Governance panels (Review + Audit tabs render one each). After a
  * state refresh every mounted panel re-reads decisions/exports - the
- * vanilla equivalent of the React re-render both instances got. */
+ * vanilla equivalent of the React re-render both instances got.
+ * Refresher callbacks self-prune: each closes over its own panel root and
+ * removes itself from the set the first time it runs after that root was
+ * unmounted, so re-rendering the results view cannot leak stale closures. */
 const refreshers = new Set();
 
-function refreshAllGovernance() {
-  for (const fn of refreshers) fn();
+/** Re-render every mounted Governance panel from current app state.
+ * Exported for views outside this module (e.g. the candidate dialog's
+ * sign-off flow) that mutate decision data behind the panels' backs. */
+export function refreshAllGovernance() {
+  for (const fn of [...refreshers]) fn();
 }
 
 export function Governance(state, actions) {
@@ -196,7 +202,16 @@ export function Governance(state, actions) {
   ));
 
   /* ---------------- actions ------------------------------------------ */
-  refreshers.add(() => { renderExports(); renderDecisionLog(); });
+  // Self-pruning refresher: see the note on the refreshers set above.
+  const refresher = () => {
+    if (!root.isConnected) {
+      refreshers.delete(refresher);
+      return;
+    }
+    renderExports();
+    renderDecisionLog();
+  };
+  refreshers.add(refresher);
 
   async function resolve(item, decision) {
     if (resolving) return; // audit JSONL is append-only: never double-append
@@ -240,8 +255,6 @@ export function Governance(state, actions) {
       btn.disabled = false;
     }
   }
-
-  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
   return root;
 }

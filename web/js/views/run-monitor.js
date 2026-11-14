@@ -7,7 +7,7 @@
 // after "done" (a reset inside that window cancels the hand-off).
 
 import { api } from "../api.js";
-import { el, button, icon, progressBar, append } from "../ui.js";
+import { el, button, icon, progressBar, append, clear } from "../ui.js";
 
 const STAGE_ORDER = ["boot", "scan", "gates", "evidence", "scoring", "decisions", "verify", "done"];
 
@@ -111,8 +111,6 @@ export function RunMonitor(state, actions) {
         icon("ShieldCheck", 14), "Six OmniDecide primitives in use: noul, extract, score, choice, compare, rank"),
       null));
   }
-
-  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
   async function tick() {
     if (stopped || finished || failed !== null) return;

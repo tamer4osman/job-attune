@@ -5,7 +5,7 @@
 // src/components/attune/folder-picker.tsx.
 
 import { api, fmtBytes } from "../api.js";
-import { el, button, badge, input, labelFor, select, openDialog, icon, append } from "../ui.js";
+import { el, button, badge, input, labelFor, select, openDialog, icon, append, clear } from "../ui.js";
 
 export function FolderPicker(state, actions) {
   const root = el("div", { class: "stack" });
@@ -136,14 +136,14 @@ export function FolderPicker(state, actions) {
   }
 
   function renderBrowseError(body, message) {
-    clearEl(body);
+    clear(body);
     append(body, el("div", {
       class: "error-text", style: "height:10rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;font-size:14px",
     }, icon("AlertTriangle", 20), message));
   }
 
   function renderBrowse(body, browse) {
-    clearEl(body);
+    clear(body);
     const list = el("div", { class: "browse-list" });
     if (browse.directories.length === 0) {
       list.appendChild(el("p", { class: "text-xs muted", style: "padding:0.75rem" }, "No sub-directories."));
@@ -152,7 +152,7 @@ export function FolderPicker(state, actions) {
       list.appendChild(el("button", {
         type: "button", class: "browse-item",
         onclick: async () => {
-          clearEl(list);
+          clear(list);
           list.appendChild(el("p", { class: "text-xs muted", style: "padding:0.75rem" }, "Loading..."));
           try {
             const next = await api("/api/browse", { method: "POST", body: JSON.stringify({ path: d.path }) });
@@ -181,7 +181,7 @@ export function FolderPicker(state, actions) {
   }
 
   async function openBrowseRefresh(body, path) {
-    clearEl(body);
+    clear(body);
     append(body, el("div", { style: "height:10rem;display:flex;align-items:center;justify-content:center" }, icon("Loader2", 24, "spin")));
     try {
       renderBrowse(body, await api("/api/browse", { method: "POST", body: JSON.stringify({ path }) }));
@@ -194,7 +194,6 @@ export function FolderPicker(state, actions) {
     document.querySelector(".dialog-overlay .dialog-close")?.click();
   }
 
-  function clearEl(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
   return root;
 }

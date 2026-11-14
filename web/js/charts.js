@@ -6,7 +6,7 @@
 // escalation bars). No external library: charts redraw on container resize
 // via ResizeObserver and show a hover tooltip like Recharts did.
 
-import { icon } from "./ui.js";
+import { el, icon } from "./ui.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -190,7 +190,6 @@ export function radarChart(container, { items, tickSize = 10 }) {
   return responsive(container, (svg, width, height) => {
     const cx = width / 2, cy = height / 2 + 2;
     const outer = Math.min(width, height) / 2 - 26; // room for labels
-    const n = Math.max(3, items.length);
     const angle = (i) => -Math.PI / 2 + (2 * Math.PI * i) / items.length;
     const point = (i, r) => [cx + Math.cos(angle(i)) * r, cy + Math.sin(angle(i)) * r];
 
@@ -255,17 +254,5 @@ export function chartCard({ title, desc, icon: iconName, short = false, make }) 
   );
 }
 
-// el() lives in ui.js; avoid a circular import with a local minimal version
-function el(tag, attrs = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs ?? {})) {
-    if (v == null || v === false) continue;
-    if (k === "class") node.className = v;
-    else node.setAttribute(k, v);
-  }
-  for (const c of children.flat(Infinity)) {
-    if (c == null || c === false) continue;
-    node.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
-  }
-  return node;
-}
+// el() is shared with ui.js (charts.js already imports icon from there, so
+// there is no import cycle); the local copy had drifted out of sync.
