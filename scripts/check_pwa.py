@@ -121,7 +121,14 @@ def check_service_worker(m: dict) -> None:
 
     index = (WEB / "index.html").read_text(encoding="utf-8")
     check("index links the manifest", 'rel="manifest"' in index)
-    check("index registers the service worker", "serviceWorker" in index)
+    # The registration call lives in an external module (web/js/sw-register.js)
+    # so the inline CSP script-src 'self' stays satisfied without
+    # 'unsafe-inline' - verify the module is wired up, not an inline script.
+    sw_register = (WEB / "js" / "sw-register.js").read_text(encoding="utf-8")
+    check("index loads the service-worker registration module",
+          '/js/sw-register.js' in index)
+    check("sw-register.js registers the service worker",
+          "serviceWorker.register" in sw_register)
     check("index declares the theme color", "theme-color" in index)
 
 
@@ -196,10 +203,31 @@ def check_served() -> None:
             check(f"{icon} served as image/png", ctype == "image/png", ctype)
             check(f"{icon} payload is a PNG", blob[:8] == b"\x89PNG\r\n\x1a\n")
 
-        status, _, _, data = serve_get(port, "/")
+        status, _, headers, data = serve_get(port, "/")
         check("GET / -> 200", status == 200, str(status))
         check("/ links the manifest", b'rel="manifest"' in data)
-        check("/ registers the service worker", b"serviceWorker.register" in data)
+        # CSP must be present and must not relax script-src with
+        # 'unsafe-inline' (the app is fully external - that is the whole
+        # point of the transport hardening).
+        csp = headers.get("content-security-policy", "")
+        check("GET / serves a Content-Security-Policy", bool(csp), csp)
+        # script-src must not relax to unsafe-inline (style-src may, because
+        # the DOM builder sets string style="" attributes - that is the one
+        # deliberate relaxation and it is scoped to style-src only).
+        script_src = ""
+        for part in csp.split(";"):
+            part = part.strip()
+            if part.startswith("script-src"):
+                script_src = part
+        check("CSP script-src is 'self' only (no unsafe-inline)",
+              script_src == "script-src 'self'", script_src or csp)
+        # The registration script is an external module (web/js/sw-register.js)
+        # so the inline CSP script-src 'self' stays satisfied - verify both
+        # the module is served and it actually calls register().
+        status, _, _, sw_data = serve_get(port, "/js/sw-register.js")
+        check("GET /js/sw-register.js -> 200", status == 200, str(status))
+        check("sw-register.js calls serviceWorker.register",
+              b"serviceWorker.register" in sw_data)
     finally:
         proc.terminate()
         try:
