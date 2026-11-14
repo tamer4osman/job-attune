@@ -62,6 +62,7 @@ from typing import Any, Dict, List, Optional
 
 import wasmtime
 from kernel_contract import (
+    ENV_LANGUAGE,
     ENV_TEXT_MODE,
     KERNEL_NAME,
     SUPPORTED_LANGUAGE_CODES,
@@ -76,6 +77,7 @@ from kernel_contract import (
 from text_mode import resolve_text_mode
 
 __all__ = [
+    "ENV_LANGUAGE",
     "KERNEL_NAME",
     "SUPPORTED_LANGUAGE_CODES",
     "TEXT_MODES",

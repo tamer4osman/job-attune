@@ -59,6 +59,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from kernel_contract import (
+    ENV_LANGUAGE,
     ENV_TEXT_MODE,
     KERNEL_NAME,
     SUPPORTED_LANGUAGE_CODES,
@@ -74,6 +75,7 @@ from kernel_contract import (
 from text_mode import resolve_text_mode
 
 __all__ = [
+    "ENV_LANGUAGE",
     "KERNEL_NAME",
     "KERNEL_VERSION",
     "KERNEL_ID",
