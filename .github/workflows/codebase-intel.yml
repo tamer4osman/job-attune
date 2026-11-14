@@ -62,7 +62,7 @@ jobs:
       - name: fallow gates (any finding or any complexity growth fails)
         run: |
           mkdir -p sarif
-          npx --yes fallow@3.38.1 dead-code    --ci -o sarif/fallow-dead-code.sarif
+          npx --yes fallow@3.38.1 dead-code    --ci --fail-on-regression --baseline .codebase-intel/dead-code-baseline.json -o sarif/fallow-dead-code.sarif
           npx --yes fallow@3.38.1 dupes        --ci -o sarif/fallow-dupes.sarif
           npx --yes fallow@3.38.1 architecture --ci -o sarif/fallow-architecture.sarif
           npx --yes fallow@3.38.1 health \
@@ -74,7 +74,7 @@ jobs:
         if: always()
         run: |
           {
-            npx --yes fallow@3.38.1 dead-code    -f github-summary -q
+            npx --yes fallow@3.38.1 dead-code    -f github-summary -q --fail-on-regression --baseline .codebase-intel/dead-code-baseline.json
             npx --yes fallow@3.38.1 dupes        -f github-summary -q
             npx --yes fallow@3.38.1 architecture -f github-summary -q
             npx --yes fallow@3.38.1 health \

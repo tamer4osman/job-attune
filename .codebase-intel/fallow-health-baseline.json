@@ -1,6 +1,20 @@
 {
   "kind": "health",
   "finding_counts": {
+    "electron/main.js": {
+      "complexity_critical": {
+        "count": 1
+      },
+      "crap_critical": {
+        "count": 1
+      },
+      "crap_high": {
+        "count": 1
+      },
+      "crap_moderate": {
+        "count": 1
+      }
+    },
     "web/js/api.js": {
       "crap_critical": {
         "count": 1
@@ -18,9 +32,6 @@
       }
     },
     "web/js/charts.js": {
-      "crap_critical": {
-        "count": 1
-      },
       "crap_moderate": {
         "count": 2
       }
@@ -96,6 +107,11 @@
       },
       "crap_critical": {
         "count": 2
+      }
+    },
+    "web/sw.js": {
+      "crap_moderate": {
+        "count": 1
       }
     }
   },

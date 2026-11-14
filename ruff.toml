@@ -26,3 +26,11 @@ select = ["E4", "E7", "E9", "F", "I", "RUF059", "RUF100"]
 
 [lint.isort]
 known-first-party = ["ckernel", "floors"]
+# ruff 0.17.x defaults combine-as-imports to false, so a single
+# `from kernel_contract import (...)` block mixing plain names and
+# `as`-aliased names is flagged.  The kernel-bridge modules import a
+# large, stable contract surface under aliases (to avoid clashing with
+# the engine's own helpers); splitting that block into 8 single-line
+# imports would make every future contract edit a merge nightmare.
+# This keeps the block as one sorted unit.
+combine-as-imports = true

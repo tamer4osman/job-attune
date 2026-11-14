@@ -58,21 +58,20 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from text_mode import resolve_text_mode
 from kernel_contract import (
-    KERNEL_NAME,
-    TEXT_MODES,
-    SUPPORTED_LANGUAGE_CODES,
     ENV_TEXT_MODE,
-    ENV_LANGUAGE,
+    KERNEL_NAME,
+    SUPPORTED_LANGUAGE_CODES,
+    TEXT_MODES,
     check_no_image as _contract_check_no_image,
-    normalize_options as _contract_normalize_options,
-    rubric_levels as _contract_rubric_levels,
-    require_non_empty as _contract_require_non_empty,
     clamp_top_k as _contract_clamp_top_k,
-    resolve_language_code as _contract_resolve_language_code,
+    normalize_options as _contract_normalize_options,
     read_header_version as _contract_read_header_version,
+    require_non_empty as _contract_require_non_empty,
+    resolve_language_code as _contract_resolve_language_code,
+    rubric_levels as _contract_rubric_levels,
 )
+from text_mode import resolve_text_mode
 
 __all__ = [
     "KERNEL_NAME",

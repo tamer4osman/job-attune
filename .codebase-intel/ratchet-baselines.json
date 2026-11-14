@@ -10,10 +10,10 @@
     "max_ccn": 397
   },
   "python": {
-    "ccn_ge_11": 177,
-    "ccn_ge_21": 102,
-    "ccn_ge_31": 64,
-    "ccn_ge_41": 41,
+    "ccn_ge_11": 179,
+    "ccn_ge_21": 106,
+    "ccn_ge_31": 68,
+    "ccn_ge_41": 43,
     "max_ccn": 242
   }
 }
